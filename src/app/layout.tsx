@@ -4,6 +4,7 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { TitleTypewriter } from "@/components/TitleTypewriter";
 import { LinkClickTracker } from "@/components/LinkClickTracker";
+import { BackgroundContextMenu } from "@/components/BackgroundContextMenu";
 import { parseBrandAliases } from "@/lib/brandAliases";
 import { getSiteSettings } from "@/lib/siteSettings";
 import "./globals.css";
@@ -88,6 +89,7 @@ export default async function RootLayout({
           brandAliases={brandAliases}
         />
         <LinkClickTracker />
+        <BackgroundContextMenu />
         <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
         <main className="flex-1">{children}</main>
         <Footer

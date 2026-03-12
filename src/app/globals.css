@@ -176,6 +176,15 @@ textarea {
   animation: grain 8s steps(10) infinite;
 }
 
+html.bg-paused body {
+  background-color: #000000;
+}
+
+html.bg-paused .grain-overlay {
+  animation-play-state: paused;
+  opacity: 0;
+}
+
 /* ===================================================
    SCROLL-DRIVEN LAYOUT
    =================================================== */

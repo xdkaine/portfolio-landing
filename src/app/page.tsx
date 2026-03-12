@@ -368,7 +368,7 @@ export default function Home() {
       </ScrollZoom>
 
       {/* Marquee */}
-      <Marquee text="CURRENTLY AVAILABLE FOR WORK &mdash; BUILDING DIGITAL EXPERIENCES &mdash; CODE IS CRAFT &mdash; " />
+      <Marquee text="DEVELOPER FOR ALL PLATFORMS &mdash; BUILDING EXPERIENCES &mdash; LEARNING TO BUILD &mdash; " />
 
       {/* Selected work */}
       <section className="py-24 md:py-32 px-6 md:px-12 lg:px-24">
@@ -412,7 +412,7 @@ export default function Home() {
       {/* Manifesto */}
       <section className="py-32 md:py-48 px-6 md:px-12 lg:px-24 border-t border-iron">
         <ScrollTextReveal
-          text="I DON'T BUILD WEBSITES. I BUILD SYSTEMS. EVERY PIXEL IS INTENTIONAL. EVERY ANIMATION HAS PURPOSE. EVERY LINE OF CODE IS CONSIDERED."
+          text="I DON'T BUILD WEBSITES. I BUILD SYSTEMS. EVERY LOC IS POSTIONED. DECISIONS ARE DELIBERATE. BUILDING IS INTENTIONAL AND THE WAY TO LEARN."
           mode="word"
           className="font-display text-3xl md:text-5xl lg:text-6xl leading-[1.2] max-w-5xl gap-x-[0.3em]"
           itemClassName="text-bone"
@@ -432,7 +432,7 @@ export default function Home() {
         <CapabilityRow
           number="01"
           title="FRONTEND"
-          items={["React", "Next.js", "TypeScript", "WebGL", "Tailwind CSS"]}
+          items={["React", "Next.js", "TypeScript", "Tailwind CSS"]}
           index={0}
         />
         <CapabilityRow
@@ -462,17 +462,17 @@ export default function Home() {
         <CapabilityRow
           number="06"
           title="TOOLING"
-          items={["Rust CLI", "Docker", "Git", "Figma", "Linux"]}
+          items={["CLI", "Docker", "Git", "Figma", "Linux"]}
           index={5}
         />
       </section>
 
-      {/* Latest transmissions */}
+      {/* Latest BLOG */}
       <section className="py-24 md:py-32 px-6 md:px-12 lg:px-24 border-t border-iron">
         <ScrollReveal>
           <div className="flex justify-between items-end border-b-2 border-bone pb-4 mb-16">
             <h2 className="font-display text-5xl md:text-7xl">
-              TRANSMISSIONS
+              BLOG
             </h2>
             <span className="text-ash text-sm">
               ({String(recentPosts.length).padStart(2, "0")})
@@ -525,7 +525,7 @@ export default function Home() {
             href="/blog"
             className="mt-12 inline-flex items-center gap-2 text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors border-b border-transparent hover:border-ember pb-1"
           >
-            ALL TRANSMISSIONS &rarr;
+            ALL BLOGS &rarr;
           </Link>
         </ScrollReveal>
       </section>
@@ -534,9 +534,9 @@ export default function Home() {
       <section className="py-32 md:py-48 px-6 md:px-12 lg:px-24 border-t border-iron relative">
         <ScrollReveal>
           <p className="font-display text-4xl md:text-6xl lg:text-7xl leading-[1.1] max-w-5xl">
-            I BUILD DIGITAL EXPERIENCES
+            I BUILD SYSTEMS & EXPERIENCES
             <br />
-            <span className="text-ember">THAT REFUSE TO BLEND IN.</span>
+            <span className="text-ember">THAT ARE FOR EVERYONE.</span>
           </p>
         </ScrollReveal>
         <ScrollReveal delay={0.15}>

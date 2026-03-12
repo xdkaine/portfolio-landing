@@ -5,21 +5,21 @@ import { ScrollReveal } from "@/components/ScrollReveal";
 import { useSiteSettings } from "@/lib/useSiteSettings";
 
 const specs = [
-  { label: "ROLE", value: "FULL-STACK DEVELOPER" },
-  { label: "FOCUS", value: "FRONTEND ENGINEERING" },
+  { label: "ROLE", value: "SYSTEMS ENGINEER" },
+  { label: "FOCUS", value: "BACKEND DEVOPS" },
   { label: "LOCATION", value: "REMOTE" },
-  { label: "EXPERIENCE", value: "5+ YEARS" },
+  { label: "EXPERIENCE", value: "2+ YEARS" },
   { label: "STATUS", value: "AVAILABLE", accent: true },
 ];
 
 const techTree = [
   {
     category: "LANGUAGES",
-    items: ["TypeScript", "Rust", "Python", "GLSL"],
+    items: ["TypeScript", "Python", "Lua", "PHP", "SQL"],
   },
   {
     category: "FRONTEND",
-    items: ["React", "Next.js", "Tailwind CSS", "WebGL"],
+    items: ["React", "Next.js", "Vue", "Tailwind"],
   },
   {
     category: "BACKEND",
@@ -103,20 +103,18 @@ export default function AboutPage() {
         <ScrollReveal delay={0.1}>
           <div className="border-l-2 border-ember pl-6 md:pl-10 max-w-3xl">
             <p className="text-sm md:text-base leading-relaxed text-bone mb-6">
-              I&apos;m a developer who cares about craft. I believe code is a
+              I&apos;m a systems engineer who cares about craft. I believe code is a
               creative medium &mdash; not just a means to an end. Every
-              interface I build is an exercise in precision, performance, and
-              intentional design.
+              interface I build is an exercise in thought, performance and design.
             </p>
             <p className="text-sm md:text-base leading-relaxed text-ash mb-6">
-              I specialize in frontend engineering with a deep understanding of
+              I specialize in both sides of frontend and backend engineering with a deep understanding of
               the full stack. My work sits at the intersection of technical
               excellence and visual design &mdash; building things that are as
               beautiful under the hood as they are on screen.
             </p>
             <p className="text-sm md:text-base leading-relaxed text-ash">
-              When I&apos;m not shipping code, I&apos;m exploring generative
-              art, contributing to open source, or writing about the things I
+              When I&apos;m not shipping and building, I&apos;m exploring new technologies, finding new passions in music, or writing about the things I
               learn along the way.
             </p>
           </div>
