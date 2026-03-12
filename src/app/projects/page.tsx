@@ -5,7 +5,6 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Marquee } from "@/components/Marquee";
-import { projects as staticProjects } from "@/data/projects";
 import { useSiteSettings } from "@/lib/useSiteSettings";
 
 interface ProjectListItem {
@@ -25,12 +24,6 @@ function normalizeStatus(status: unknown): ProjectListItem["status"] {
   return "LIVE";
 }
 
-const fallbackProjects: ProjectListItem[] = staticProjects.map((project) => ({
-  ...project,
-  number: project.id,
-  status: normalizeStatus(project.status),
-}));
-
 const permissionString = (status: string) => {
   switch (status) {
     case "LIVE":
@@ -46,7 +39,7 @@ const permissionString = (status: string) => {
 
 export default function ProjectsPage() {
   const settings = useSiteSettings();
-  const [projects, setProjects] = useState<ProjectListItem[]>(fallbackProjects);
+  const [projects, setProjects] = useState<ProjectListItem[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,11 +91,11 @@ export default function ProjectsPage() {
           })
           .filter((item): item is ProjectListItem => Boolean(item));
 
-        if (normalized.length > 0 && !cancelled) {
+        if (!cancelled) {
           setProjects(normalized);
         }
       } catch {
-        // Keep static fallback data on fetch failure.
+        // Keep current data on fetch failure.
       }
     };
 
@@ -204,89 +197,65 @@ export default function ProjectsPage() {
 
       {/* Project listing */}
       <section className="px-6 md:px-12 lg:px-24 pb-24">
-        {projects.map((project, i) => (
-          <ScrollReveal key={project.id} delay={i * 0.06}>
-            <Link
-              href={`/projects/${project.number}`}
-              className="group block"
-              aria-label={`Open ${project.title} case study`}
-            >
-              <motion.article
-                className="border-b border-iron py-6 hover:bg-surface transition-colors duration-300"
-                whileHover={{ x: 4 }}
-                transition={{ duration: 0.2 }}
+        {projects.length === 0 ? (
+          <div className="border-b border-iron py-16 text-center">
+            <p className="text-iron text-xs tracking-[0.2em]">NO PROJECTS PUBLISHED</p>
+          </div>
+        ) : (
+          projects.map((project, i) => (
+            <ScrollReveal key={project.id} delay={i * 0.06}>
+              <Link
+                href={`/projects/${project.number}`}
+                className="group block"
+                aria-label={`Open ${project.title} case study`}
               >
-                {/* Desktop row */}
-                <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_80px] gap-4 items-center">
-                  <span className="text-[10px] text-iron tracking-tight">
-                    {permissionString(project.status)}
-                  </span>
-
-                  <div className="min-w-0">
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-steel text-[10px] tracking-[0.15em] shrink-0">
-                        {project.number}
-                        {"//"}
-                      </span>
-                      <h2 className="font-display text-xl group-hover:text-ember transition-colors duration-300 truncate">
-                        {project.title}
-                      </h2>
-                    </div>
-                    <p className="text-ash text-xs mt-1 leading-relaxed line-clamp-1 group-hover:line-clamp-none transition-all">
-                      {project.description}
-                    </p>
-                    <span className="inline-flex mt-2 text-[9px] tracking-[0.18em] text-steel group-hover:text-ember transition-colors">
-                      OPEN CASE STUDY &rarr;
+                <motion.article
+                  className="border-b border-iron py-6 hover:bg-surface transition-colors duration-300"
+                  whileHover={{ x: 4 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {/* Desktop row */}
+                  <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_80px] gap-4 items-center">
+                    <span className="text-[10px] text-iron tracking-tight">
+                      {permissionString(project.status)}
                     </span>
-                  </div>
 
-                  <div className="flex flex-wrap gap-1">
-                    {project.tags.slice(0, 2).map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-[9px] tracking-[0.1em] text-smoke border border-iron px-1.5 py-0.5"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    {project.tags.length > 2 && (
-                      <span className="text-[9px] text-iron">
-                        +{project.tags.length - 2}
-                      </span>
-                    )}
-                  </div>
-
-                  <span
-                    className={`text-[10px] tracking-[0.15em] px-2 py-0.5 inline-block w-fit ${
-                      project.status === "LIVE"
-                        ? "text-emerald-400 border border-emerald-400/30"
-                        : project.status === "IN PROGRESS"
-                          ? "text-amber-400 border border-amber-400/30"
-                          : "text-steel border border-iron"
-                    }`}
-                  >
-                    {project.status}
-                  </span>
-
-                  <span className="text-[10px] text-steel tracking-[0.2em] text-right">
-                    {project.year}
-                  </span>
-                </div>
-
-                {/* Mobile layout */}
-                <div className="md:hidden">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-steel text-[10px] tracking-[0.15em]">
-                        {project.number}
-                        {"//"}
-                      </span>
-                      <span className="text-[9px] text-iron tracking-tight">
-                        {permissionString(project.status)}
+                    <div className="min-w-0">
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-steel text-[10px] tracking-[0.15em] shrink-0">
+                          {project.number}
+                          {"//"}
+                        </span>
+                        <h2 className="font-display text-xl group-hover:text-ember transition-colors duration-300 truncate">
+                          {project.title}
+                        </h2>
+                      </div>
+                      <p className="text-ash text-xs mt-1 leading-relaxed line-clamp-1 group-hover:line-clamp-none transition-all">
+                        {project.description}
+                      </p>
+                      <span className="inline-flex mt-2 text-[9px] tracking-[0.18em] text-steel group-hover:text-ember transition-colors">
+                        OPEN CASE STUDY &rarr;
                       </span>
                     </div>
+
+                    <div className="flex flex-wrap gap-1">
+                      {project.tags.slice(0, 2).map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-[9px] tracking-[0.1em] text-smoke border border-iron px-1.5 py-0.5"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      {project.tags.length > 2 && (
+                        <span className="text-[9px] text-iron">
+                          +{project.tags.length - 2}
+                        </span>
+                      )}
+                    </div>
+
                     <span
-                      className={`text-[9px] tracking-[0.1em] px-1.5 py-0.5 ${
+                      className={`text-[10px] tracking-[0.15em] px-2 py-0.5 inline-block w-fit ${
                         project.status === "LIVE"
                           ? "text-emerald-400 border border-emerald-400/30"
                           : project.status === "IN PROGRESS"
@@ -296,39 +265,69 @@ export default function ProjectsPage() {
                     >
                       {project.status}
                     </span>
-                  </div>
 
-                  <h2 className="font-display text-2xl mb-2 group-hover:text-ember transition-colors">
-                    {project.title}
-                  </h2>
-
-                  <p className="text-ash text-xs leading-relaxed mb-2">
-                    {project.description}
-                  </p>
-                  <span className="inline-flex mb-3 text-[9px] tracking-[0.18em] text-steel group-hover:text-ember transition-colors">
-                    OPEN CASE STUDY &rarr;
-                  </span>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-wrap gap-1">
-                      {project.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-[9px] tracking-[0.1em] text-smoke border border-iron px-1.5 py-0.5"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <span className="text-[10px] text-steel tracking-[0.2em]">
+                    <span className="text-[10px] text-steel tracking-[0.2em] text-right">
                       {project.year}
                     </span>
                   </div>
-                </div>
-              </motion.article>
-            </Link>
-          </ScrollReveal>
-        ))}
+
+                  {/* Mobile layout */}
+                  <div className="md:hidden">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-steel text-[10px] tracking-[0.15em]">
+                          {project.number}
+                          {"//"}
+                        </span>
+                        <span className="text-[9px] text-iron tracking-tight">
+                          {permissionString(project.status)}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-[9px] tracking-[0.1em] px-1.5 py-0.5 ${
+                          project.status === "LIVE"
+                            ? "text-emerald-400 border border-emerald-400/30"
+                            : project.status === "IN PROGRESS"
+                              ? "text-amber-400 border border-amber-400/30"
+                              : "text-steel border border-iron"
+                        }`}
+                      >
+                        {project.status}
+                      </span>
+                    </div>
+
+                    <h2 className="font-display text-2xl mb-2 group-hover:text-ember transition-colors">
+                      {project.title}
+                    </h2>
+
+                    <p className="text-ash text-xs leading-relaxed mb-2">
+                      {project.description}
+                    </p>
+                    <span className="inline-flex mb-3 text-[9px] tracking-[0.18em] text-steel group-hover:text-ember transition-colors">
+                      OPEN CASE STUDY &rarr;
+                    </span>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap gap-1">
+                        {project.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-[9px] tracking-[0.1em] text-smoke border border-iron px-1.5 py-0.5"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-[10px] text-steel tracking-[0.2em]">
+                        {project.year}
+                      </span>
+                    </div>
+                  </div>
+                </motion.article>
+              </Link>
+            </ScrollReveal>
+          ))
+        )}
 
         {/* Bottom navigation */}
         <ScrollReveal delay={0.2}>

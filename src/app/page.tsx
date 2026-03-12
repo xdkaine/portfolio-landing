@@ -9,8 +9,6 @@ import { Marquee } from "@/components/Marquee";
 import { ScrollParallax, ScrollZoom } from "@/components/ScrollParallax";
 import { ScrollTextReveal } from "@/components/ScrollTextReveal";
 import { TypewriterText } from "@/components/TypewriterText";
-import { projects as staticProjects } from "@/data/projects";
-import { posts as staticPosts } from "@/data/posts";
 import { parseBrandAliases } from "@/lib/brandAliases";
 import { useSiteSettings } from "@/lib/useSiteSettings";
 
@@ -32,30 +30,6 @@ interface HomePost {
   readTime: string;
   tags: string[];
 }
-
-const fallbackProjects: HomeProject[] = staticProjects.map((project) => ({
-  id: project.id,
-  number: project.id,
-  title: project.title,
-  description: project.description,
-  tags: project.tags,
-  status:
-    project.status === "IN PROGRESS"
-      ? "IN PROGRESS"
-      : project.status === "ARCHIVED"
-        ? "ARCHIVED"
-        : "LIVE",
-  featured: project.featured,
-}));
-
-const fallbackPosts: HomePost[] = staticPosts.map((post) => ({
-  id: post.id,
-  slug: post.slug,
-  title: post.title,
-  date: post.date,
-  readTime: post.readTime,
-  tags: post.tags,
-}));
 
 // Counts up when the metric enters view.
 
@@ -197,8 +171,8 @@ export default function Home() {
     () => parseBrandAliases(siteSettings.siteAliases),
     [siteSettings.siteAliases],
   );
-  const [projects, setProjects] = useState<HomeProject[]>(fallbackProjects);
-  const [posts, setPosts] = useState<HomePost[]>(fallbackPosts);
+  const [projects, setProjects] = useState<HomeProject[]>([]);
+  const [posts, setPosts] = useState<HomePost[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,9 +229,7 @@ export default function Home() {
               })
               .filter((item): item is HomeProject => Boolean(item));
 
-            if (normalized.length > 0) {
-              setProjects(normalized);
-            }
+            setProjects(normalized);
           }
         }
 
@@ -298,13 +270,11 @@ export default function Home() {
               })
               .filter((item): item is HomePost => Boolean(item));
 
-            if (normalized.length > 0) {
-              setPosts(normalized);
-            }
+            setPosts(normalized);
           }
         }
       } catch {
-        // Keep static fallback content when API is unavailable.
+        // Keep current data when API is unavailable.
       }
     };
 

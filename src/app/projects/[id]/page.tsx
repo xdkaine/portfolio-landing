@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { projectDeepDives } from "@/data/projectDeepDives";
-import { projects as staticProjects } from "@/data/projects";
 import {
   mergeProjectCaseStudy,
   parseProjectCaseStudy,
@@ -55,22 +54,18 @@ function getStatusClass(status: NormalizedStatus): string {
 }
 
 export async function generateStaticParams() {
-  const routeIds = new Set<string>(staticProjects.map((project) => project.id));
-
   try {
     const projects = await prisma.project.findMany({
       select: { id: true, number: true },
     });
 
-    for (const project of projects) {
-      routeIds.add(project.id);
-      routeIds.add(project.number);
-    }
+    return projects.flatMap((project) => [
+      { id: project.id },
+      { id: project.number },
+    ]);
   } catch {
-    // Fall back to static data only.
+    return [];
   }
-
-  return Array.from(routeIds).map((id) => ({ id }));
 }
 
 export default async function ProjectDetailPage({
@@ -81,29 +76,17 @@ export default async function ProjectDetailPage({
   const { id } = await params;
   const settings = await getSiteSettings();
 
-  let project:
-    | {
-        id: string;
-        number: string;
-        title: string;
-        description: string;
-        tags: string[];
-        year: string;
-        url: string | null;
-        github: string | null;
-        status: string;
-      }
-    | {
-        id: string;
-        title: string;
-        description: string;
-        tags: string[];
-        year: string;
-        url?: string;
-        github?: string;
-        status: string;
-      }
-    | null = null;
+  let project: {
+    id: string;
+    number: string;
+    title: string;
+    description: string;
+    tags: string[];
+    year: string;
+    url: string | null;
+    github: string | null;
+    status: string;
+  } | null = null;
 
   try {
     project = await prisma.project.findUnique({
@@ -139,51 +122,32 @@ export default async function ProjectDetailPage({
       });
     }
   } catch {
-    // DB not available, continue with static fallback.
-  }
-
-  if (!project) {
-    project = staticProjects.find((entry) => entry.id === id) ?? null;
+    // DB not available.
   }
 
   if (!project) notFound();
 
-  const normalizedProject: NormalizedProject =
-    "number" in project
-      ? {
-          id: project.id,
-          number: project.number,
-          title: project.title,
-          description: project.description,
-          tags: project.tags,
-          year: project.year,
-          url: project.url,
-          github: project.github,
-          status: normalizeStatus(project.status),
-        }
-      : {
-          id: project.id,
-          number: project.id,
-          title: project.title,
-          description: project.description,
-          tags: project.tags,
-          year: project.year,
-          url: project.url,
-          github: project.github,
-          status: normalizeStatus(project.status),
-        };
+  const normalizedProject: NormalizedProject = {
+    id: project.id,
+    number: project.number,
+    title: project.title,
+    description: project.description,
+    tags: project.tags,
+    year: project.year,
+    url: project.url,
+    github: project.github,
+    status: normalizeStatus(project.status),
+  };
 
   let editableCaseStudy = null;
-  if ("number" in project) {
-    try {
-      const caseStudySetting = await prisma.siteSetting.findUnique({
-        where: { key: projectCaseStudySettingKey(normalizedProject.number) },
-        select: { value: true },
-      });
-      editableCaseStudy = parseProjectCaseStudy(caseStudySetting?.value);
-    } catch {
-      editableCaseStudy = null;
-    }
+  try {
+    const caseStudySetting = await prisma.siteSetting.findUnique({
+      where: { key: projectCaseStudySettingKey(normalizedProject.number) },
+      select: { value: true },
+    });
+    editableCaseStudy = parseProjectCaseStudy(caseStudySetting?.value);
+  } catch {
+    editableCaseStudy = null;
   }
 
   const deepDive = projectDeepDives[normalizedProject.number] ?? {
@@ -226,14 +190,23 @@ export default async function ProjectDetailPage({
   const demoUrl = normalizedProject.url ?? mergedDeepDive.demoUrl;
   const repoUrl = normalizedProject.github ?? mergedDeepDive.repoUrl;
 
-  const currentIndex = staticProjects.findIndex(
-    (entry) => entry.id === normalizedProject.number,
+  let projectOrder: { number: string }[] = [];
+  try {
+    projectOrder = await prisma.project.findMany({
+      orderBy: { sortOrder: "asc" },
+      select: { number: true },
+    });
+  } catch {
+    projectOrder = [];
+  }
+
+  const currentIndex = projectOrder.findIndex(
+    (entry) => entry.number === normalizedProject.number,
   );
-  const previousProject =
-    currentIndex > 0 ? staticProjects[currentIndex - 1] : null;
+  const previousProject = currentIndex > 0 ? projectOrder[currentIndex - 1] : null;
   const nextProject =
-    currentIndex >= 0 && currentIndex < staticProjects.length - 1
-      ? staticProjects[currentIndex + 1]
+    currentIndex >= 0 && currentIndex < projectOrder.length - 1
+      ? projectOrder[currentIndex + 1]
       : null;
 
   return (
@@ -466,10 +439,10 @@ export default async function ProjectDetailPage({
           <div className="flex items-center gap-6 text-[10px] tracking-[0.2em]">
             {previousProject ? (
               <Link
-                href={`/projects/${previousProject.id}`}
+                href={`/projects/${previousProject.number}`}
                 className="text-steel hover:text-ember transition-colors"
               >
-                PREV: {previousProject.id}
+                PREV: {previousProject.number}
                 {"//"}
               </Link>
             ) : (
@@ -478,10 +451,10 @@ export default async function ProjectDetailPage({
 
             {nextProject ? (
               <Link
-                href={`/projects/${nextProject.id}`}
+                href={`/projects/${nextProject.number}`}
                 className="text-steel hover:text-ember transition-colors"
               >
-                NEXT: {nextProject.id}
+                NEXT: {nextProject.number}
                 {"//"}
               </Link>
             ) : (

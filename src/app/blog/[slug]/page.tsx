@@ -44,12 +44,7 @@ export default async function BlogPostPage({
       post = dbPost;
     }
   } catch {
-    // DB not available; static fallback handled below.
-  }
-
-  if (!post) {
-    const { posts } = await import("@/data/posts");
-    post = posts.find((p) => p.slug === slug);
+    // DB not available.
   }
 
   if (!post) notFound();

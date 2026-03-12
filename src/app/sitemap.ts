@@ -1,7 +1,5 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
-import { posts as staticPosts } from "@/data/posts";
-import { projects as staticProjects } from "@/data/projects";
 
 function getSiteUrl(): string {
   const fallback = "https://phao.dev";
@@ -57,20 +55,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     return [...staticRoutes, ...postRoutes, ...projectRoutes];
   } catch {
-    const fallbackPostRoutes = staticPosts.map((post) => ({
-      url: `${siteUrl}/blog/${post.slug}`,
-      lastModified: now,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    }));
-
-    const fallbackProjectRoutes = staticProjects.map((project) => ({
-      url: `${siteUrl}/projects/${project.id}`,
-      lastModified: now,
-      changeFrequency: "monthly" as const,
-      priority: 0.75,
-    }));
-
-    return [...staticRoutes, ...fallbackPostRoutes, ...fallbackProjectRoutes];
+    return staticRoutes;
   }
 }

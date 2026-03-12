@@ -12,7 +12,6 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { ScrollReveal } from "@/components/ScrollReveal";
-import { posts as staticPosts } from "@/data/posts";
 import { useSiteSettings } from "@/lib/useSiteSettings";
 
 interface BlogListPost {
@@ -24,16 +23,6 @@ interface BlogListPost {
   readTime: string;
   tags: string[];
 }
-
-const fallbackPosts: BlogListPost[] = staticPosts.map((post) => ({
-  id: post.id,
-  slug: post.slug,
-  title: post.title,
-  excerpt: post.excerpt,
-  date: post.date,
-  readTime: post.readTime,
-  tags: post.tags,
-}));
 
 interface BlogTagSummary {
   name: string;
@@ -102,7 +91,7 @@ function useBlogState(): BlogStateContextValue {
 }
 
 function BlogStateProvider({ children }: { children: ReactNode }) {
-  const [posts, setPosts] = useState<BlogListPost[]>(fallbackPosts);
+  const [posts, setPosts] = useState<BlogListPost[]>([]);
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const tagCounts = useMemo(() => {
@@ -139,11 +128,11 @@ function BlogStateProvider({ children }: { children: ReactNode }) {
 
         const normalized = normalizePosts(data);
 
-        if (normalized.length > 0 && !cancelled) {
+        if (!cancelled) {
           setPosts(normalized);
         }
       } catch {
-        // Keep static fallback posts when API fails.
+        // Keep current data when API fails.
       }
     };
 
