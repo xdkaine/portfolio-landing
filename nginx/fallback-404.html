@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>404 | Temporarily Unavailable</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0d10;
+      --card: #12161b;
+      --border: #232a33;
+      --text: #f2f5f7;
+      --muted: #97a5b6;
+      --accent: #e67e22;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: radial-gradient(1200px 600px at 20% -10%, #1a2330 0%, var(--bg) 50%);
+      color: var(--text);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    main {
+      width: 100%;
+      max-width: 640px;
+      background: rgba(18, 22, 27, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(28px, 5vw, 40px);
+      line-height: 1.1;
+      letter-spacing: 0.02em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .status {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(230, 126, 34, 0.15);
+      border: 1px solid rgba(230, 126, 34, 0.35);
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="status">404</span>
+    <h1>Site temporarily unavailable</h1>
+    <p>
+      The application is not reachable right now. Please try again shortly.
+    </p>
+  </main>
+</body>
+</html>

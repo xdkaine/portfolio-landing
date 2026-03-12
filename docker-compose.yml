@@ -42,8 +42,8 @@ services:
       JWT_SECRET: "${JWT_SECRET}"
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: "${NEXT_PUBLIC_TURNSTILE_SITE_KEY}"
       TURNSTILE_SECRET_KEY: "${TURNSTILE_SECRET_KEY}"
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     depends_on:
       db:
         condition: service_healthy
@@ -55,14 +55,24 @@ services:
     image: nginx:alpine
     profiles: ["proxy"]
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
+    expose:
+      - "80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/fallback-404.html:/usr/share/nginx/html/fallback-404.html:ro
     depends_on:
       - app
+
+  # ─── Cloudflare Tunnel (edge ingress) ───────────────
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: ["proxy"]
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: "${CLOUDFLARED_TUNNEL_TOKEN}"
+    depends_on:
+      - nginx
 
 volumes:
   pgdata:
