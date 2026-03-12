@@ -4,7 +4,7 @@ import { posts as staticPosts } from "@/data/posts";
 import { projects as staticProjects } from "@/data/projects";
 
 function getSiteUrl(): string {
-  const fallback = "http://localhost:3000";
+  const fallback = "https://phao.dev";
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
   if (!envUrl) return fallback;
@@ -74,4 +74,3 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [...staticRoutes, ...fallbackPostRoutes, ...fallbackProjectRoutes];
   }
 }
-

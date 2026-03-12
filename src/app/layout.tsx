@@ -23,7 +23,7 @@ const dmMono = DM_Mono({
 });
 
 function resolveSiteUrl(): string {
-  const fallback = "http://localhost:3000";
+  const fallback = "https://phao.dev";
   const raw = process.env.NEXT_PUBLIC_SITE_URL;
 
   if (!raw) return fallback;
@@ -38,6 +38,7 @@ function resolveSiteUrl(): string {
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
   const siteUrl = resolveSiteUrl();
+  const googleVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
   const fullTitle = `${settings.siteName} - Developer & Designer`;
 
   return {
@@ -57,6 +58,11 @@ export async function generateMetadata(): Promise<Metadata> {
       title: fullTitle,
       description: settings.siteDescription,
     },
+    verification: googleVerification
+      ? {
+          google: googleVerification,
+        }
+      : undefined,
   };
 }
 

@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: xtomm_secret
       POSTGRES_DB: portfolio
     ports:
-      - "5432:5432"
+      - "5434:5434"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -40,6 +40,8 @@ services:
     environment:
       DATABASE_URL: "postgresql://xtomm:xtomm_secret@db:5432/portfolio?schema=public"
       JWT_SECRET: "${JWT_SECRET}"
+      NEXT_PUBLIC_SITE_URL: "${NEXT_PUBLIC_SITE_URL:-https://phao.dev}"
+      GOOGLE_SITE_VERIFICATION: "${GOOGLE_SITE_VERIFICATION:-}"
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: "${NEXT_PUBLIC_TURNSTILE_SITE_KEY}"
       TURNSTILE_SECRET_KEY: "${TURNSTILE_SECRET_KEY}"
     expose:

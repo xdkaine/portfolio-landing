@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 function getSiteUrl(): string {
-  const fallback = "http://localhost:3000";
+  const fallback = "https://phao.dev";
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
   if (!envUrl) return fallback;
@@ -27,4 +27,3 @@ export default function robots(): MetadataRoute.Robots {
     sitemap: [`${siteUrl}/sitemap.xml`],
   };
 }
-
