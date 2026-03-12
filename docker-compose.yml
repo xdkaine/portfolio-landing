@@ -1,0 +1,68 @@
+services:
+  # ─── PostgreSQL ──────────────────────────────────────
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: xtomm
+      POSTGRES_PASSWORD: xtomm_secret
+      POSTGRES_DB: portfolio
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xtomm -d portfolio"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Prisma DB Init (one-time) ───────────────────────
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prisma
+    environment:
+      DATABASE_URL: "postgresql://xtomm:xtomm_secret@db:5432/portfolio?schema=public"
+    command: ["npx", "prisma", "db", "push"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # ─── Next.js App ─────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgresql://xtomm:xtomm_secret@db:5432/portfolio?schema=public"
+      JWT_SECRET: "${JWT_SECRET}"
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: "${NEXT_PUBLIC_TURNSTILE_SITE_KEY}"
+      TURNSTILE_SECRET_KEY: "${TURNSTILE_SECRET_KEY}"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+
+  # ─── Nginx Reverse Proxy ─────────────────────────────
+  nginx:
+    image: nginx:alpine
+    profiles: ["proxy"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+
+volumes:
+  pgdata:

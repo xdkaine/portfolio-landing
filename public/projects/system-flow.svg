@@ -1,0 +1,38 @@
+<svg width="1600" height="1000" viewBox="0 0 1600 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="1000" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0E0E10"/>
+      <stop offset="1" stop-color="#141419"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <rect x="140" y="120" width="1320" height="760" rx="18" stroke="#2B2B31" stroke-width="3"/>
+
+  <rect x="220" y="220" width="320" height="120" rx="12" fill="#16161C" stroke="#3A3A43" stroke-width="2"/>
+  <rect x="640" y="220" width="320" height="120" rx="12" fill="#16161C" stroke="#3A3A43" stroke-width="2"/>
+  <rect x="1060" y="220" width="320" height="120" rx="12" fill="#16161C" stroke="#3A3A43" stroke-width="2"/>
+
+  <rect x="220" y="500" width="320" height="120" rx="12" fill="#16161C" stroke="#3A3A43" stroke-width="2"/>
+  <rect x="640" y="500" width="320" height="120" rx="12" fill="#16161C" stroke="#3A3A43" stroke-width="2"/>
+  <rect x="1060" y="500" width="320" height="120" rx="12" fill="#16161C" stroke="#3A3A43" stroke-width="2"/>
+
+  <path d="M540 280H640" stroke="#FF0066" stroke-width="3"/>
+  <path d="M960 280H1060" stroke="#FF0066" stroke-width="3"/>
+  <path d="M380 340V500" stroke="#616173" stroke-width="2"/>
+  <path d="M800 340V500" stroke="#616173" stroke-width="2"/>
+  <path d="M1220 340V500" stroke="#616173" stroke-width="2"/>
+  <path d="M540 560H640" stroke="#616173" stroke-width="2"/>
+  <path d="M960 560H1060" stroke="#616173" stroke-width="2"/>
+
+  <text x="280" y="290" fill="#D1D1DA" font-family="monospace" font-size="24" letter-spacing="3">INPUT</text>
+  <text x="690" y="290" fill="#D1D1DA" font-family="monospace" font-size="24" letter-spacing="3">PROCESS</text>
+  <text x="1100" y="290" fill="#D1D1DA" font-family="monospace" font-size="24" letter-spacing="3">OUTPUT</text>
+
+  <text x="300" y="570" fill="#8A8A98" font-family="monospace" font-size="20" letter-spacing="2">VALIDATION</text>
+  <text x="740" y="570" fill="#8A8A98" font-family="monospace" font-size="20" letter-spacing="2">TRANSFORM</text>
+  <text x="1130" y="570" fill="#8A8A98" font-family="monospace" font-size="20" letter-spacing="2">DELIVERY</text>
+
+  <text x="170" y="170" fill="#C8C8D1" font-family="monospace" font-size="28" letter-spacing="4">SYSTEM FLOW</text>
+  <text x="170" y="930" fill="#6F6F7B" font-family="monospace" font-size="20" letter-spacing="3">ARCHITECTURE VISUAL PLACEHOLDER</text>
+</svg>
