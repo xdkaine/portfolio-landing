@@ -183,7 +183,7 @@ async function main() {
         "Building digital experiences that refuse to blend in. Portfolio of Kaine.",
     },
     { key: "hero_subtitle", value: "DEVELOPER - DESIGNER - BUILDER" },
-    { key: "contact_email", value: "hello@tommykaine.dev" },
+    { key: "contact_email", value: "hello@phao.dev" },
     { key: "social_github", value: "https://github.com/xtomm" },
     { key: "social_twitter", value: "https://x.com/xtomm" },
     { key: "social_linkedin", value: "https://linkedin.com/in/xtomm" },

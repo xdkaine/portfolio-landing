@@ -34,7 +34,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteDescription:
     "Building digital experiences that refuse to blend in. Portfolio of Kaine.",
   heroSubtitle: "DEVELOPER - DESIGNER - BUILDER",
-  contactEmail: "hello@tommykaine.dev",
+  contactEmail: "hello@phao.dev",
   socialGithub: "https://github.com/xtomm",
   socialTwitter: "https://x.com/xtomm",
   socialLinkedin: "https://linkedin.com/in/xtomm",

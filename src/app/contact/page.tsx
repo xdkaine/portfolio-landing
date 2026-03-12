@@ -67,7 +67,7 @@ export default function ContactPage() {
     { label: "LINKEDIN", href: settings.socialLinkedin },
   ].filter((social) => Boolean(social.href));
 
-  const contactEmail = settings.contactEmail || "hello@tommykaine.dev";
+  const contactEmail = settings.contactEmail || "hello@phao.dev";
 
   return (
     <>

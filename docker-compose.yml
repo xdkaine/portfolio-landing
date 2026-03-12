@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: xtomm_secret
       POSTGRES_DB: portfolio
     ports:
-      - "5434:5434"
+      - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -55,7 +55,6 @@ services:
   # ─── Nginx Reverse Proxy ─────────────────────────────
   nginx:
     image: nginx:alpine
-    profiles: ["proxy"]
     restart: unless-stopped
     expose:
       - "80"
@@ -68,7 +67,6 @@ services:
   # ─── Cloudflare Tunnel (edge ingress) ───────────────
   cloudflared:
     image: cloudflare/cloudflared:latest
-    profiles: ["proxy"]
     restart: unless-stopped
     command: ["tunnel", "--no-autoupdate", "run"]
     environment:
