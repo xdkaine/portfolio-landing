@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import {
   mergeProjectCaseStudy,
@@ -10,6 +12,9 @@ import {
 } from "@/lib/projectCaseStudy";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/siteSettings";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type NormalizedStatus = "LIVE" | "IN PROGRESS" | "ARCHIVED";
 
@@ -45,6 +50,7 @@ function createBaseCaseStudy(project: NormalizedProject): ProjectCaseStudyViewMo
     subtitle: project.description,
     role: "",
     timeline: "",
+    writeupMarkdown: createFallbackWriteup(project.description).join("\n\n"),
     writeup: createFallbackWriteup(project.description),
     highlights: [],
     gallery: [],
@@ -59,21 +65,6 @@ function getStatusClass(status: NormalizedStatus): string {
     return "text-amber-400 border-amber-400/30";
   }
   return "text-steel border-iron";
-}
-
-export async function generateStaticParams() {
-  try {
-    const projects = await prisma.project.findMany({
-      select: { id: true, number: true },
-    });
-
-    return projects.flatMap((project) => [
-      { id: project.id },
-      { id: project.number },
-    ]);
-  } catch {
-    return [];
-  }
 }
 
 export default async function ProjectDetailPage({
@@ -162,6 +153,9 @@ export default async function ProjectDetailPage({
     createBaseCaseStudy(normalizedProject),
     editableCaseStudy,
   );
+  const writeupMarkdown =
+    mergedDeepDive.writeupMarkdown.trim() ||
+    mergedDeepDive.writeup.join("\n\n");
 
   const demoUrl = normalizedProject.url ?? mergedDeepDive.demoUrl;
   const repoUrl = normalizedProject.github ?? mergedDeepDive.repoUrl;
@@ -242,16 +236,73 @@ export default async function ProjectDetailPage({
               <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
                 WRITE-UP//
               </span>
-              <div className="space-y-5">
-                {mergedDeepDive.writeup.map((paragraph, index) => (
-                  <p
-                    key={`${normalizedProject.number}-writeup-${index}`}
-                    className="text-sm md:text-base leading-relaxed text-ash"
-                  >
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => (
+                    <p className="text-sm md:text-base leading-relaxed text-ash mb-5 last:mb-0">
+                      {children}
+                    </p>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="font-display text-2xl md:text-3xl tracking-tight text-bone mt-8 mb-4">
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="font-display text-xl md:text-2xl tracking-tight text-bone mt-7 mb-3">
+                      {children}
+                    </h3>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="space-y-2 mb-5 pl-5 list-disc text-ash text-sm md:text-base">
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="space-y-2 mb-5 pl-5 list-decimal text-ash text-sm md:text-base">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  code: ({ children }) => (
+                    <code className="text-xs bg-surface px-1.5 py-0.5 border border-iron text-smoke">
+                      {children}
+                    </code>
+                  ),
+                  pre: ({ children }) => (
+                    <pre className="text-xs bg-surface/60 border border-iron p-4 mb-5 overflow-x-auto text-smoke">
+                      {children}
+                    </pre>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-2 border-ember pl-4 italic text-ash/90 mb-5">
+                      {children}
+                    </blockquote>
+                  ),
+                  img: ({ src, alt }) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={src ?? ""}
+                      alt={alt ?? ""}
+                      loading="lazy"
+                      className="w-full h-auto border border-iron mb-5"
+                    />
+                  ),
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-ember underline underline-offset-2 hover:text-bone transition-colors"
+                    >
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {writeupMarkdown}
+              </ReactMarkdown>
             </div>
           </ScrollReveal>
 

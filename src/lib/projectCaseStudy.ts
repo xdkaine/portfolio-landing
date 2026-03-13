@@ -11,6 +11,7 @@ export interface ProjectCaseStudyViewModel {
   timeline: string;
   challenge?: string;
   concept?: string;
+  writeupMarkdown: string;
   writeup: string[];
   highlights: string[];
   demoSummary?: string;
@@ -27,6 +28,7 @@ export interface ProjectCaseStudyContent {
   timeline?: string;
   challenge?: string;
   concept?: string;
+  writeupMarkdown?: string;
   writeup?: string[];
   highlights?: string[];
   demoSummary?: string;
@@ -55,6 +57,22 @@ function normalizeWriteup(value: unknown): string[] | undefined {
       .map((item) => item.trim())
       .filter(Boolean);
     return paragraphs.length > 0 ? paragraphs : undefined;
+  }
+
+  return undefined;
+}
+
+function normalizeWriteupMarkdown(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  if (Array.isArray(value)) {
+    const paragraphs = normalizeWriteup(value);
+    return paragraphs && paragraphs.length > 0
+      ? paragraphs.join("\n\n")
+      : undefined;
   }
 
   return undefined;
@@ -108,6 +126,10 @@ export function normalizeProjectCaseStudyInput(
 
   const data = value as Record<string, unknown>;
   const subtitle = normalizeString(data.subtitle) ?? normalizeString(data.pitch);
+  const writeup = normalizeWriteup(data.writeup);
+  const writeupMarkdown =
+    normalizeWriteupMarkdown(data.writeupMarkdown) ??
+    (writeup && writeup.length > 0 ? writeup.join("\n\n") : undefined);
   const normalized: ProjectCaseStudyContent = {
     subtitle,
     pitch: subtitle,
@@ -115,7 +137,8 @@ export function normalizeProjectCaseStudyInput(
     timeline: normalizeString(data.timeline),
     challenge: normalizeString(data.challenge),
     concept: normalizeString(data.concept),
-    writeup: normalizeWriteup(data.writeup),
+    writeupMarkdown,
+    writeup,
     highlights: normalizeHighlights(data.highlights),
     demoSummary: normalizeString(data.demoSummary),
     demoUrl: normalizeString(data.demoUrl),
@@ -159,6 +182,16 @@ export function mergeProjectCaseStudy(
 ): ProjectCaseStudyViewModel {
   if (!override) return base;
 
+  const overrideWriteup =
+    override.writeup && override.writeup.length > 0
+      ? override.writeup
+      : normalizeWriteup(override.writeupMarkdown) ?? base.writeup;
+  const overrideWriteupMarkdown =
+    override.writeupMarkdown ??
+    (override.writeup && override.writeup.length > 0
+      ? override.writeup.join("\n\n")
+      : base.writeupMarkdown);
+
   return {
     ...base,
     subtitle: override.subtitle ?? override.pitch ?? base.subtitle,
@@ -166,10 +199,8 @@ export function mergeProjectCaseStudy(
     timeline: override.timeline ?? base.timeline,
     challenge: override.challenge ?? base.challenge,
     concept: override.concept ?? base.concept,
-    writeup:
-      override.writeup && override.writeup.length > 0
-        ? override.writeup
-        : base.writeup,
+    writeupMarkdown: overrideWriteupMarkdown,
+    writeup: overrideWriteup,
     highlights:
       override.highlights && override.highlights.length > 0
         ? override.highlights

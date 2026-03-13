@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { AdminMetricsDashboard } from "@/components/AdminMetricsDashboard";
 import {
   DEFAULT_SITE_SETTINGS,
@@ -33,6 +35,7 @@ interface Project {
     timeline?: string;
     challenge?: string;
     concept?: string;
+    writeupMarkdown?: string;
     writeup?: string[];
     highlights?: string[];
     demoSummary?: string;
@@ -656,6 +659,21 @@ const emptyVisualNote = (): VisualNoteFormItem => ({
   alt: "",
 });
 
+function markdownToPlainText(markdown: string): string {
+  return markdown
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^>\s?/gm, "")
+    .replace(/[*_~]/g, "")
+    .replace(/^-{1,3}\s+/gm, "")
+    .replace(/\n+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function ProjectForm({
   project,
   onSave,
@@ -682,7 +700,10 @@ function ProjectForm({
     timeline: project?.caseStudy?.timeline || "",
     challenge: project?.caseStudy?.challenge || "",
     concept: project?.caseStudy?.concept || "",
-    writeup: project?.caseStudy?.writeup?.join("\n\n") || "",
+    writeup:
+      project?.caseStudy?.writeupMarkdown ||
+      project?.caseStudy?.writeup?.join("\n\n") ||
+      "",
     highlights: project?.caseStudy?.highlights?.join("\n") || "",
     demoSummary: project?.caseStudy?.demoSummary || "",
     demoUrl: project?.caseStudy?.demoUrl || "",
@@ -698,6 +719,10 @@ function ProjectForm({
         }))
       : [],
   );
+  const [uploadingVisualNoteIndex, setUploadingVisualNoteIndex] = useState<
+    number | null
+  >(null);
+  const [visualNoteUploadNotice, setVisualNoteUploadNotice] = useState("");
 
   const updateVisualNote = (
     index: number,
@@ -711,12 +736,59 @@ function ProjectForm({
     );
   };
 
+  const uploadVisualNoteImage = async (index: number, file: File) => {
+    setVisualNoteUploadNotice("");
+    setUploadingVisualNoteIndex(index);
+
+    try {
+      const payload = new FormData();
+      payload.append("file", file);
+
+      const response = await fetch("/api/uploads/project-image", {
+        method: "POST",
+        body: payload,
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !data.url) {
+        setVisualNoteUploadNotice(data.error || "Image upload failed.");
+        return;
+      }
+
+      updateVisualNote(index, "image", data.url);
+      setVisualNoteUploadNotice("Image uploaded.");
+    } catch {
+      setVisualNoteUploadNotice("Network error while uploading image.");
+    } finally {
+      setUploadingVisualNoteIndex(null);
+    }
+  };
+
   const handleSave = () => {
+    const writeupMarkdown = form.writeup.trim();
+    const writeupParagraphs = writeupMarkdown
+      .split(/\n\s*\n/g)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const highlights = form.highlights
+      .split(/\n|,/g)
+      .map((h) => h.trim())
+      .filter(Boolean);
+    const mainDescription =
+      markdownToPlainText(writeupParagraphs[0] || writeupMarkdown) ||
+      form.subtitle.trim() ||
+      form.description.trim() ||
+      form.title.trim();
+
     onSave({
       ...(form.id ? { id: form.id } : {}),
       number: form.number,
       title: form.title,
-      description: form.description,
+      description: mainDescription,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       year: form.year,
       url: form.url || undefined,
@@ -731,15 +803,10 @@ function ProjectForm({
         timeline: form.timeline || undefined,
         challenge: form.challenge || undefined,
         concept: form.concept || undefined,
-        // Admin writes paragraphs as free text; API stores them as string arrays.
-        writeup: form.writeup
-          .split(/\n\s*\n/g)
-          .map((p) => p.trim())
-          .filter(Boolean),
-        highlights: form.highlights
-          .split(/\n|,/g)
-          .map((h) => h.trim())
-          .filter(Boolean),
+        writeupMarkdown: writeupMarkdown || undefined,
+        // Backward compatibility for legacy consumers.
+        writeup: writeupParagraphs,
+        highlights,
         demoSummary: form.demoSummary || undefined,
         demoUrl: form.demoUrl || undefined,
         repoUrl: form.repoUrl || undefined,
@@ -764,9 +831,6 @@ function ProjectForm({
       <div className="grid md:grid-cols-2 gap-4">
         <AdminInput label="NUMBER" value={form.number} onChange={(v) => setForm({ ...form, number: v })} placeholder="07" />
         <AdminInput label="TITLE" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="PROJECT NAME" />
-        <div className="md:col-span-2">
-          <AdminInput label="DESCRIPTION" value={form.description} onChange={(v) => setForm({ ...form, description: v })} placeholder="Project description..." multiline />
-        </div>
         <AdminInput label="TAGS (comma separated)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} placeholder="REACT, TYPESCRIPT" />
         <AdminInput label="YEAR" value={form.year} onChange={(v) => setForm({ ...form, year: v })} placeholder="2025" />
         <AdminInput label="URL" value={form.url} onChange={(v) => setForm({ ...form, url: v })} placeholder="https://..." />
@@ -829,13 +893,85 @@ function ProjectForm({
         </div>
         <div className="md:col-span-2">
           <AdminInput
-            label="WRITE-UP (separate paragraphs with a blank line)"
+            label="WRITE-UP MARKDOWN"
             value={form.writeup}
             onChange={(v) => setForm({ ...form, writeup: v })}
-            placeholder="Detailed case study narrative..."
+            placeholder="# What You Built\n\nUse markdown: headings, lists, links, code, and images..."
             multiline
-            rows={8}
+            rows={12}
           />
+        </div>
+        <div className="md:col-span-2 border border-iron bg-surface/20 p-4">
+          <span className="text-[10px] tracking-[0.2em] text-steel block mb-3">
+            WRITE-UP PREVIEW
+          </span>
+          {form.writeup.trim() ? (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({ children }) => (
+                  <p className="text-xs md:text-sm text-ash leading-relaxed mb-3 last:mb-0">
+                    {children}
+                  </p>
+                ),
+                h1: ({ children }) => (
+                  <h3 className="font-display text-xl text-bone tracking-tight mb-3">
+                    {children}
+                  </h3>
+                ),
+                h2: ({ children }) => (
+                  <h4 className="font-display text-lg text-bone tracking-tight mb-2">
+                    {children}
+                  </h4>
+                ),
+                ul: ({ children }) => (
+                  <ul className="list-disc pl-5 space-y-1 text-xs md:text-sm text-ash mb-3">
+                    {children}
+                  </ul>
+                ),
+                ol: ({ children }) => (
+                  <ol className="list-decimal pl-5 space-y-1 text-xs md:text-sm text-ash mb-3">
+                    {children}
+                  </ol>
+                ),
+                code: ({ children }) => (
+                  <code className="text-[11px] bg-void border border-iron px-1.5 py-0.5 text-smoke">
+                    {children}
+                  </code>
+                ),
+                pre: ({ children }) => (
+                  <pre className="text-[11px] bg-void border border-iron p-3 mb-3 overflow-x-auto text-smoke">
+                    {children}
+                  </pre>
+                ),
+                img: ({ src, alt }) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={src ?? ""}
+                    alt={alt ?? ""}
+                    loading="lazy"
+                    className="w-full h-auto border border-iron mb-3"
+                  />
+                ),
+                a: ({ href, children }) => (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-ember underline underline-offset-2"
+                  >
+                    {children}
+                  </a>
+                ),
+              }}
+            >
+              {form.writeup}
+            </ReactMarkdown>
+          ) : (
+            <p className="text-[10px] tracking-[0.15em] text-iron">
+              Add markdown above to preview rendered output.
+            </p>
+          )}
         </div>
 
         <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
@@ -927,6 +1063,30 @@ function ProjectForm({
                       />
                     </div>
                     <div className="md:col-span-2">
+                      <label className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+                        UPLOAD IMAGE
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) {
+                              void uploadVisualNoteImage(index, file);
+                            }
+                            event.currentTarget.value = "";
+                          }}
+                          className="text-[10px] tracking-[0.15em] text-ash file:mr-3 file:border file:border-iron file:bg-void file:text-smoke file:px-3 file:py-1 file:text-[10px] file:tracking-[0.15em] hover:file:border-ember"
+                        />
+                        {uploadingVisualNoteIndex === index ? (
+                          <span className="text-[10px] tracking-[0.15em] text-steel">
+                            UPLOADING...
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
                       <AdminInput
                         label="CAPTION"
                         value={note.caption}
@@ -940,6 +1100,11 @@ function ProjectForm({
               ))}
             </div>
           )}
+          {visualNoteUploadNotice ? (
+            <p className="text-[10px] tracking-[0.15em] text-ash mt-3">
+              {visualNoteUploadNotice}
+            </p>
+          ) : null}
         </div>
 
         <div className="md:col-span-2 border-t border-iron mt-3 pt-5">

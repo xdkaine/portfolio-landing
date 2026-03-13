@@ -12,6 +12,7 @@ interface ProjectListItem {
   number: string;
   title: string;
   description: string;
+  subtitle?: string;
   tags: string[];
   year: string;
   status: "LIVE" | "IN PROGRESS" | "ARCHIVED";
@@ -70,6 +71,17 @@ export default function ProjectsPage() {
               return null;
             }
 
+            const caseStudy =
+              entry.caseStudy && typeof entry.caseStudy === "object"
+                ? (entry.caseStudy as Record<string, unknown>)
+                : null;
+            const subtitle =
+              typeof caseStudy?.subtitle === "string" && caseStudy.subtitle.trim()
+                ? caseStudy.subtitle.trim()
+                : typeof caseStudy?.pitch === "string" && caseStudy.pitch.trim()
+                  ? caseStudy.pitch.trim()
+                  : undefined;
+
             const tags = entry.tags.filter(
               (tag: unknown): tag is string => typeof tag === "string",
             );
@@ -83,6 +95,7 @@ export default function ProjectsPage() {
               number,
               title: entry.title,
               description: entry.description,
+              subtitle,
               tags,
               year: entry.year,
               status: normalizeStatus(entry.status),
@@ -228,7 +241,7 @@ export default function ProjectsPage() {
                         </h2>
                       </div>
                       <p className="text-ash text-xs mt-1 leading-relaxed line-clamp-1 group-hover:line-clamp-none transition-all">
-                        {project.description}
+                        {project.subtitle || project.description}
                       </p>
                       <span className="inline-flex mt-2 text-[9px] tracking-[0.18em] text-steel group-hover:text-ember transition-colors">
                         OPEN CASE STUDY &rarr;
@@ -298,7 +311,7 @@ export default function ProjectsPage() {
                     </h2>
 
                     <p className="text-ash text-xs leading-relaxed mb-2">
-                      {project.description}
+                      {project.subtitle || project.description}
                     </p>
                     <span className="inline-flex mb-3 text-[9px] tracking-[0.18em] text-steel group-hover:text-ember transition-colors">
                       OPEN CASE STUDY &rarr;

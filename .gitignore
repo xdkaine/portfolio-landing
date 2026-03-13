@@ -40,3 +40,6 @@ next-env.d.ts
 skills-lock.json
 
 /src/generated/prisma
+
+# runtime uploads
+/public/uploads/
