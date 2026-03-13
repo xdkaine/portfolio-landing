@@ -264,8 +264,7 @@ function BlogHeader({ siteName }: { siteName: string }) {
 
       <ScrollReveal delay={0.1}>
         <p className="text-ash text-xs md:text-sm mt-4 max-w-xl leading-relaxed">
-          Thoughts on engineering, design, and the systems that shape how we
-          build. Raw, unfiltered, occasionally useful.
+          Random thoughts put together on things projects I build and think of..
         </p>
       </ScrollReveal>
 

@@ -17,7 +17,7 @@ interface TitleTypewriterProps {
 export function TitleTypewriter({
   brandName,
   brandAliases,
-  titleSuffix = " - Developer & Designer",
+  titleSuffix = " - Developer",
   timing = DEFAULT_ALIAS_TYPEWRITER_TIMING,
 }: TitleTypewriterProps) {
   const aliases = useMemo(

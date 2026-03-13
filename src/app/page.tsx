@@ -368,7 +368,7 @@ export default function Home() {
       </ScrollZoom>
 
       {/* Marquee */}
-      <Marquee text="DEVELOPER FOR ALL PLATFORMS &mdash; BUILDING EXPERIENCES &mdash; LEARNING TO BUILD &mdash; " />
+      <Marquee text="DEVELOPER WHO LOVES TO BUILD &mdash; SOLVING REAL PROBLEMS &mdash; CRAFTING THOUGHTFUL DIGITAL EXPERIENCES &mdash; " />
 
       {/* Selected work */}
       <section className="py-24 md:py-32 px-6 md:px-12 lg:px-24">
@@ -412,7 +412,7 @@ export default function Home() {
       {/* Manifesto */}
       <section className="py-32 md:py-48 px-6 md:px-12 lg:px-24 border-t border-iron">
         <ScrollTextReveal
-          text="I DON'T BUILD WEBSITES. I BUILD SYSTEMS. EVERY LOC IS POSTIONED. DECISIONS ARE DELIBERATE. BUILDING IS INTENTIONAL AND THE WAY TO LEARN."
+          text="I BUILD ANYTHING & EVERYTHING. FRONTNED - BACKEND - TOOLS - SYSTEMS. I LOVE SOLVING PROBLEMS, CRAFTING EXPERIENCES, AND CONTINUOUSLY LEARNING."
           mode="word"
           className="font-display text-3xl md:text-5xl lg:text-6xl leading-[1.2] max-w-5xl gap-x-[0.3em]"
           itemClassName="text-bone"
@@ -534,7 +534,7 @@ export default function Home() {
       <section className="py-32 md:py-48 px-6 md:px-12 lg:px-24 border-t border-iron relative">
         <ScrollReveal>
           <p className="font-display text-4xl md:text-6xl lg:text-7xl leading-[1.1] max-w-5xl">
-            I BUILD SYSTEMS & EXPERIENCES
+            BUILDING SYSTEMS & SOLUTIONS
             <br />
             <span className="text-ember">THAT ARE FOR EVERYONE.</span>
           </p>

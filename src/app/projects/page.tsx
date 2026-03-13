@@ -147,10 +147,7 @@ export default function ProjectsPage() {
 
         <ScrollReveal delay={0.1}>
           <p className="text-ash text-xs md:text-sm mt-4 max-w-xl leading-relaxed">
-            A collection of things I&apos;ve built, broken, and shipped. Each
-            project is a system &mdash; architected, engineered, and delivered
-            with intention. Open any row for a full case study with write-up,
-            concepts, visuals, and demo links.
+            A collection of things I&apos;ve built, broken, and shipped. Open any row for a deep dive into the project, including write-ups, concepts, visuals, and demo links.
           </p>
         </ScrollReveal>
 
