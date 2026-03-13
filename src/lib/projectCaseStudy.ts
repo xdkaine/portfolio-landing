@@ -1,6 +1,27 @@
-import type { ProjectDeepDive } from "@/data/projectDeepDives";
+export interface ProjectCaseStudyGalleryItem {
+  title: string;
+  caption: string;
+  image: string;
+  alt: string;
+}
+
+export interface ProjectCaseStudyViewModel {
+  subtitle: string;
+  role: string;
+  timeline: string;
+  challenge?: string;
+  concept?: string;
+  writeup: string[];
+  highlights: string[];
+  demoSummary?: string;
+  demoUrl?: string;
+  repoUrl?: string;
+  gallery: ProjectCaseStudyGalleryItem[];
+}
 
 export interface ProjectCaseStudyContent {
+  subtitle?: string;
+  // Backward compatibility for older records.
   pitch?: string;
   role?: string;
   timeline?: string;
@@ -11,6 +32,7 @@ export interface ProjectCaseStudyContent {
   demoSummary?: string;
   demoUrl?: string;
   repoUrl?: string;
+  gallery?: ProjectCaseStudyGalleryItem[];
 }
 
 function normalizeString(value: unknown): string | undefined {
@@ -57,14 +79,38 @@ function normalizeHighlights(value: unknown): string[] | undefined {
   return undefined;
 }
 
+function normalizeGallery(
+  value: unknown,
+): ProjectCaseStudyGalleryItem[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+
+  const items = value
+    .map((entry, index): ProjectCaseStudyGalleryItem | null => {
+      if (!entry || typeof entry !== "object") return null;
+      const item = entry as Record<string, unknown>;
+      const image = normalizeString(item.image);
+      if (!image) return null;
+
+      const title = normalizeString(item.title) ?? `VISUAL NOTE ${index + 1}`;
+      const caption = normalizeString(item.caption) ?? "";
+      const alt = normalizeString(item.alt) ?? title;
+      return { title, caption, image, alt };
+    })
+    .filter((entry): entry is ProjectCaseStudyGalleryItem => Boolean(entry));
+
+  return items.length > 0 ? items : undefined;
+}
+
 export function normalizeProjectCaseStudyInput(
   value: unknown,
 ): ProjectCaseStudyContent | null {
   if (!value || typeof value !== "object") return null;
 
   const data = value as Record<string, unknown>;
+  const subtitle = normalizeString(data.subtitle) ?? normalizeString(data.pitch);
   const normalized: ProjectCaseStudyContent = {
-    pitch: normalizeString(data.pitch),
+    subtitle,
+    pitch: subtitle,
     role: normalizeString(data.role),
     timeline: normalizeString(data.timeline),
     challenge: normalizeString(data.challenge),
@@ -74,6 +120,7 @@ export function normalizeProjectCaseStudyInput(
     demoSummary: normalizeString(data.demoSummary),
     demoUrl: normalizeString(data.demoUrl),
     repoUrl: normalizeString(data.repoUrl),
+    gallery: normalizeGallery(data.gallery),
   };
 
   const hasValue = Object.values(normalized).some((field) => {
@@ -107,14 +154,14 @@ export function projectCaseStudySettingKey(projectNumber: string): string {
 }
 
 export function mergeProjectCaseStudy(
-  base: ProjectDeepDive,
+  base: ProjectCaseStudyViewModel,
   override: ProjectCaseStudyContent | null,
-): ProjectDeepDive {
+): ProjectCaseStudyViewModel {
   if (!override) return base;
 
   return {
     ...base,
-    pitch: override.pitch ?? base.pitch,
+    subtitle: override.subtitle ?? override.pitch ?? base.subtitle,
     role: override.role ?? base.role,
     timeline: override.timeline ?? base.timeline,
     challenge: override.challenge ?? base.challenge,
@@ -130,5 +177,9 @@ export function mergeProjectCaseStudy(
     demoSummary: override.demoSummary ?? base.demoSummary,
     demoUrl: override.demoUrl ?? base.demoUrl,
     repoUrl: override.repoUrl ?? base.repoUrl,
+    gallery:
+      override.gallery && override.gallery.length > 0
+        ? override.gallery
+        : base.gallery,
   };
 }

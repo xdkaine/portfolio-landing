@@ -2,11 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ScrollReveal } from "@/components/ScrollReveal";
-import { projectDeepDives } from "@/data/projectDeepDives";
 import {
   mergeProjectCaseStudy,
   parseProjectCaseStudy,
   projectCaseStudySettingKey,
+  type ProjectCaseStudyViewModel,
 } from "@/lib/projectCaseStudy";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/siteSettings";
@@ -36,11 +36,19 @@ function normalizeStatus(status: string): NormalizedStatus {
 }
 
 function createFallbackWriteup(description: string): string[] {
-  return [
-    description,
-    "This project page is ready for a deeper case study. Add architecture decisions, tradeoffs, and implementation notes in `src/data/projectDeepDives.ts`.",
-    "You can also attach custom gallery images in `public/projects` and reference them from the same data file to create a full narrative walkthrough.",
-  ];
+  const trimmed = description.trim();
+  return [trimmed || "Write-up coming soon."];
+}
+
+function createBaseCaseStudy(project: NormalizedProject): ProjectCaseStudyViewModel {
+  return {
+    subtitle: project.description,
+    role: "",
+    timeline: "",
+    writeup: createFallbackWriteup(project.description),
+    highlights: [],
+    gallery: [],
+  };
 }
 
 function getStatusClass(status: NormalizedStatus): string {
@@ -150,45 +158,14 @@ export default async function ProjectDetailPage({
     editableCaseStudy = null;
   }
 
-  const deepDive = projectDeepDives[normalizedProject.number] ?? {
-    pitch: "Project case study in progress.",
-    role: "Add role details",
-    timeline: "Add timeline",
-    challenge:
-      "Document the core problem this project solves and why it matters.",
-    concept:
-      "Describe your concept and key technical/UX decisions here.",
-    writeup: createFallbackWriteup(normalizedProject.description),
-    highlights: ["Add highlight bullets in src/data/projectDeepDives.ts"],
-    demoSummary:
-      "Demo content can be linked with `demoUrl` in src/data/projectDeepDives.ts.",
-    gallery: [
-      {
-        title: "CONCEPT",
-        caption:
-          "Replace with project-specific visual notes in src/data/projectDeepDives.ts.",
-        image: "/projects/concept-frame.svg",
-        alt: "Project concept placeholder",
-      },
-      {
-        title: "SYSTEM",
-        caption: "Add architecture diagrams or flow screenshots.",
-        image: "/projects/system-flow.svg",
-        alt: "Project system placeholder",
-      },
-      {
-        title: "DEMO",
-        caption: "Attach final UI captures or demo moments.",
-        image: "/projects/demo-surface.svg",
-        alt: "Project demo placeholder",
-      },
-    ],
-  };
-
-  const mergedDeepDive = mergeProjectCaseStudy(deepDive, editableCaseStudy);
+  const mergedDeepDive = mergeProjectCaseStudy(
+    createBaseCaseStudy(normalizedProject),
+    editableCaseStudy,
+  );
 
   const demoUrl = normalizedProject.url ?? mergedDeepDive.demoUrl;
   const repoUrl = normalizedProject.github ?? mergedDeepDive.repoUrl;
+  const hasDemoSection = Boolean(mergedDeepDive.demoSummary || demoUrl || repoUrl);
 
   let projectOrder: { number: string }[] = [];
   try {
@@ -233,7 +210,7 @@ export default async function ProjectDetailPage({
                 {normalizedProject.title}
               </h1>
               <p className="text-bone/80 text-sm md:text-base leading-relaxed mt-6 max-w-3xl">
-                {mergedDeepDive.pitch}
+                {mergedDeepDive.subtitle || normalizedProject.description}
               </p>
             </div>
             <span
@@ -284,16 +261,20 @@ export default async function ProjectDetailPage({
                 SNAPSHOT//
               </span>
               <div className="space-y-4 text-xs">
-                <div className="flex justify-between gap-4">
-                  <span className="text-iron tracking-[0.12em]">ROLE</span>
-                  <span className="text-bone text-right">{mergedDeepDive.role}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-iron tracking-[0.12em]">TIMELINE</span>
-                  <span className="text-bone text-right">
-                    {mergedDeepDive.timeline}
-                  </span>
-                </div>
+                {mergedDeepDive.role ? (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-iron tracking-[0.12em]">ROLE</span>
+                    <span className="text-bone text-right">{mergedDeepDive.role}</span>
+                  </div>
+                ) : null}
+                {mergedDeepDive.timeline ? (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-iron tracking-[0.12em]">TIMELINE</span>
+                    <span className="text-bone text-right">
+                      {mergedDeepDive.timeline}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between gap-4">
                   <span className="text-iron tracking-[0.12em]">YEAR</span>
                   <span className="text-bone text-right">
@@ -302,130 +283,142 @@ export default async function ProjectDetailPage({
                 </div>
               </div>
 
-              <div className="border-t border-iron mt-6 pt-6">
-                <span className="text-[10px] tracking-[0.25em] text-steel block mb-4">
-                  HIGHLIGHTS
-                </span>
-                <ul className="space-y-2">
-                  {mergedDeepDive.highlights.map((highlight) => (
-                    <li
-                      key={highlight}
-                      className="text-xs text-ash leading-relaxed flex gap-2"
-                    >
-                      <span className="text-ember mt-[2px]">&#8226;</span>
-                      <span>{highlight}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {mergedDeepDive.highlights.length > 0 ? (
+                <div className="border-t border-iron mt-6 pt-6">
+                  <span className="text-[10px] tracking-[0.25em] text-steel block mb-4">
+                    HIGHLIGHTS
+                  </span>
+                  <ul className="space-y-2">
+                    {mergedDeepDive.highlights.map((highlight) => (
+                      <li
+                        key={highlight}
+                        className="text-xs text-ash leading-relaxed flex gap-2"
+                      >
+                        <span className="text-ember mt-[2px]">&#8226;</span>
+                        <span>{highlight}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </aside>
           </ScrollReveal>
         </div>
       </section>
 
-      <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
-        <div className="grid md:grid-cols-2 gap-8">
-          <ScrollReveal>
-            <article className="border border-iron p-6 md:p-8 h-full">
-              <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
-                CHALLENGE//
-              </span>
-              <p className="text-sm leading-relaxed text-ash">
-                {mergedDeepDive.challenge}
-              </p>
-            </article>
-          </ScrollReveal>
-          <ScrollReveal delay={0.06}>
-            <article className="border border-iron p-6 md:p-8 h-full">
-              <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
-                CONCEPT//
-              </span>
-              <p className="text-sm leading-relaxed text-ash">
-                {mergedDeepDive.concept}
-              </p>
-            </article>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
-        <ScrollReveal>
-          <div className="border-b border-iron pb-4 mb-8">
-            <h2 className="font-display text-4xl md:text-5xl tracking-tight">
-              VISUAL NOTES
-            </h2>
-          </div>
-        </ScrollReveal>
-
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {mergedDeepDive.gallery.map((item, index) => (
-            <ScrollReveal
-              key={`${normalizedProject.number}-gallery-${item.title}`}
-              delay={index * 0.05}
-            >
-              <article className="border border-iron bg-surface/30 h-full">
-                <div className="relative aspect-[16/10] overflow-hidden border-b border-iron">
-                  <Image
-                    src={item.image}
-                    alt={item.alt}
-                    fill
-                    sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="p-5">
-                  <h3 className="text-[11px] tracking-[0.22em] text-bone mb-3">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs text-ash leading-relaxed">
-                    {item.caption}
+      {mergedDeepDive.challenge || mergedDeepDive.concept ? (
+        <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
+          <div className="grid md:grid-cols-2 gap-8">
+            {mergedDeepDive.challenge ? (
+              <ScrollReveal>
+                <article className="border border-iron p-6 md:p-8 h-full">
+                  <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
+                    CHALLENGE//
+                  </span>
+                  <p className="text-sm leading-relaxed text-ash">
+                    {mergedDeepDive.challenge}
                   </p>
-                </div>
-              </article>
-            </ScrollReveal>
-          ))}
-        </div>
-      </section>
-
-      <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
-        <ScrollReveal>
-          <div className="border border-iron bg-surface/40 p-6 md:p-10">
-            <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
-              DEMO//
-            </span>
-            <p className="text-sm md:text-base text-ash leading-relaxed max-w-3xl">
-              {mergedDeepDive.demoSummary}
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4 text-xs tracking-[0.2em]">
-              {demoUrl ? (
-                <a
-                  href={demoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 border border-ember/50 text-ember hover:bg-ember/10 transition-colors"
-                >
-                  OPEN DEMO &nearr;
-                </a>
-              ) : (
-                <span className="px-4 py-2 border border-iron text-steel">
-                  DEMO COMING SOON
-                </span>
-              )}
-
-              {repoUrl ? (
-                <a
-                  href={repoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 border border-iron text-ash hover:text-ember hover:border-ember/40 transition-colors"
-                >
-                  SOURCE CODE &nearr;
-                </a>
-              ) : null}
-            </div>
+                </article>
+              </ScrollReveal>
+            ) : null}
+            {mergedDeepDive.concept ? (
+              <ScrollReveal delay={mergedDeepDive.challenge ? 0.06 : 0}>
+                <article className="border border-iron p-6 md:p-8 h-full">
+                  <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
+                    CONCEPT//
+                  </span>
+                  <p className="text-sm leading-relaxed text-ash">
+                    {mergedDeepDive.concept}
+                  </p>
+                </article>
+              </ScrollReveal>
+            ) : null}
           </div>
-        </ScrollReveal>
-      </section>
+        </section>
+      ) : null}
+
+      {mergedDeepDive.gallery.length > 0 ? (
+        <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
+          <ScrollReveal>
+            <div className="border-b border-iron pb-4 mb-8">
+              <h2 className="font-display text-4xl md:text-5xl tracking-tight">
+                VISUAL NOTES
+              </h2>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {mergedDeepDive.gallery.map((item, index) => (
+              <ScrollReveal
+                key={`${normalizedProject.number}-gallery-${item.title}-${index}`}
+                delay={index * 0.05}
+              >
+                <article className="border border-iron bg-surface/30 h-full">
+                  <div className="relative aspect-[16/10] overflow-hidden border-b border-iron">
+                    <Image
+                      src={item.image}
+                      alt={item.alt}
+                      fill
+                      sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="p-5">
+                    <h3 className="text-[11px] tracking-[0.22em] text-bone mb-3">
+                      {item.title}
+                    </h3>
+                    {item.caption ? (
+                      <p className="text-xs text-ash leading-relaxed">
+                        {item.caption}
+                      </p>
+                    ) : null}
+                  </div>
+                </article>
+              </ScrollReveal>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {hasDemoSection ? (
+        <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
+          <ScrollReveal>
+            <div className="border border-iron bg-surface/40 p-6 md:p-10">
+              <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
+                DEMO//
+              </span>
+              {mergedDeepDive.demoSummary ? (
+                <p className="text-sm md:text-base text-ash leading-relaxed max-w-3xl">
+                  {mergedDeepDive.demoSummary}
+                </p>
+              ) : null}
+              <div className="mt-8 flex flex-wrap items-center gap-4 text-xs tracking-[0.2em]">
+                {demoUrl ? (
+                  <a
+                    href={demoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 border border-ember/50 text-ember hover:bg-ember/10 transition-colors"
+                  >
+                    OPEN DEMO &nearr;
+                  </a>
+                ) : null}
+
+                {repoUrl ? (
+                  <a
+                    href={repoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 border border-iron text-ash hover:text-ember hover:border-ember/40 transition-colors"
+                  >
+                    SOURCE CODE &nearr;
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          </ScrollReveal>
+        </section>
+      ) : null}
 
       <section className="px-6 md:px-12 lg:px-24 pb-24 pt-10 border-t border-iron">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">

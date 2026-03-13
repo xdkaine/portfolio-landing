@@ -26,6 +26,8 @@ interface Project {
   createdAt?: string;
   updatedAt?: string;
   caseStudy?: {
+    subtitle?: string;
+    // Backward compatibility for legacy payloads.
     pitch?: string;
     role?: string;
     timeline?: string;
@@ -36,6 +38,12 @@ interface Project {
     demoSummary?: string;
     demoUrl?: string;
     repoUrl?: string;
+    gallery?: {
+      title: string;
+      caption: string;
+      image: string;
+      alt: string;
+    }[];
   } | null;
 }
 
@@ -634,6 +642,20 @@ export default function AdminDashboardClient() {
 
 // Normalizes UI-friendly text inputs into the API shape expected by /api/projects.
 
+interface VisualNoteFormItem {
+  title: string;
+  caption: string;
+  image: string;
+  alt: string;
+}
+
+const emptyVisualNote = (): VisualNoteFormItem => ({
+  title: "",
+  caption: "",
+  image: "",
+  alt: "",
+});
+
 function ProjectForm({
   project,
   onSave,
@@ -655,7 +677,7 @@ function ProjectForm({
     status: project?.status || "LIVE",
     featured: project?.featured ?? false,
     sortOrder: project?.sortOrder ?? 0,
-    pitch: project?.caseStudy?.pitch || "",
+    subtitle: project?.caseStudy?.subtitle || project?.caseStudy?.pitch || "",
     role: project?.caseStudy?.role || "",
     timeline: project?.caseStudy?.timeline || "",
     challenge: project?.caseStudy?.challenge || "",
@@ -666,6 +688,28 @@ function ProjectForm({
     demoUrl: project?.caseStudy?.demoUrl || "",
     repoUrl: project?.caseStudy?.repoUrl || "",
   });
+  const [visualNotes, setVisualNotes] = useState<VisualNoteFormItem[]>(
+    project?.caseStudy?.gallery?.length
+      ? project.caseStudy.gallery.map((item) => ({
+          title: item.title || "",
+          caption: item.caption || "",
+          image: item.image || "",
+          alt: item.alt || "",
+        }))
+      : [],
+  );
+
+  const updateVisualNote = (
+    index: number,
+    field: keyof VisualNoteFormItem,
+    value: string,
+  ) => {
+    setVisualNotes((prev) =>
+      prev.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    );
+  };
 
   const handleSave = () => {
     onSave({
@@ -681,7 +725,8 @@ function ProjectForm({
       featured: form.featured,
       sortOrder: form.sortOrder,
       caseStudy: {
-        pitch: form.pitch || undefined,
+        subtitle: form.subtitle || undefined,
+        pitch: form.subtitle || undefined,
         role: form.role || undefined,
         timeline: form.timeline || undefined,
         challenge: form.challenge || undefined,
@@ -698,6 +743,14 @@ function ProjectForm({
         demoSummary: form.demoSummary || undefined,
         demoUrl: form.demoUrl || undefined,
         repoUrl: form.repoUrl || undefined,
+        gallery: visualNotes
+          .map((item) => ({
+            title: item.title.trim(),
+            caption: item.caption.trim(),
+            image: item.image.trim(),
+            alt: item.alt.trim(),
+          }))
+          .filter((item) => item.image.length > 0),
       },
     });
   };
@@ -748,31 +801,20 @@ function ProjectForm({
 
         <div className="md:col-span-2">
           <AdminInput
-            label="PITCH"
-            value={form.pitch}
-            onChange={(v) => setForm({ ...form, pitch: v })}
-            placeholder="One-line framing for the case study hero..."
+            label="SUBTITLE"
+            value={form.subtitle}
+            onChange={(v) => setForm({ ...form, subtitle: v })}
+            placeholder="One-line framing under the project title..."
             multiline
           />
         </div>
-        <AdminInput
-          label="ROLE"
-          value={form.role}
-          onChange={(v) => setForm({ ...form, role: v })}
-          placeholder="Architecture, frontend, etc."
-        />
-        <AdminInput
-          label="TIMELINE"
-          value={form.timeline}
-          onChange={(v) => setForm({ ...form, timeline: v })}
-          placeholder="8 weeks"
-        />
+
         <div className="md:col-span-2">
           <AdminInput
             label="CHALLENGE"
             value={form.challenge}
             onChange={(v) => setForm({ ...form, challenge: v })}
-            placeholder="What was hard about this project?"
+            placeholder="Optional: what was hard about this project?"
             multiline
           />
         </div>
@@ -781,7 +823,7 @@ function ProjectForm({
             label="CONCEPT"
             value={form.concept}
             onChange={(v) => setForm({ ...form, concept: v })}
-            placeholder="How did you approach the solution?"
+            placeholder="Optional: how did you approach the solution?"
             multiline
           />
         </div>
@@ -795,6 +837,24 @@ function ProjectForm({
             rows={8}
           />
         </div>
+
+        <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
+          <span className="text-[10px] tracking-[0.25em] text-steel block mb-4">
+            SNAPSHOT
+          </span>
+        </div>
+        <AdminInput
+          label="ROLE"
+          value={form.role}
+          onChange={(v) => setForm({ ...form, role: v })}
+          placeholder="Architecture, frontend, backend..."
+        />
+        <AdminInput
+          label="TIMELINE"
+          value={form.timeline}
+          onChange={(v) => setForm({ ...form, timeline: v })}
+          placeholder="8 weeks"
+        />
         <div className="md:col-span-2">
           <AdminInput
             label="HIGHLIGHTS (one per line)"
@@ -805,12 +865,94 @@ function ProjectForm({
             rows={5}
           />
         </div>
+
+        <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <span className="text-[10px] tracking-[0.25em] text-steel block">
+              VISUAL NOTES
+            </span>
+            <button
+              type="button"
+              onClick={() => setVisualNotes((prev) => [...prev, emptyVisualNote()])}
+              className="text-[10px] tracking-[0.2em] text-ember border border-ember px-3 py-1 hover:bg-ember hover:text-void transition-colors"
+            >
+              + ADD NOTE
+            </button>
+          </div>
+
+          {visualNotes.length === 0 ? (
+            <p className="text-[10px] tracking-[0.15em] text-iron border border-iron px-3 py-3">
+              No visual notes yet. Add at least one image note to populate the Visual Notes section.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {visualNotes.map((note, index) => (
+                <div key={`visual-note-${index}`} className="border border-iron p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] tracking-[0.2em] text-ash">
+                      NOTE {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVisualNotes((prev) =>
+                          prev.filter((_, itemIndex) => itemIndex !== index),
+                        )
+                      }
+                      className="text-[10px] tracking-[0.15em] text-ash hover:text-red-400 transition-colors"
+                    >
+                      REMOVE
+                    </button>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <AdminInput
+                      label="NOTE TITLE"
+                      value={note.title}
+                      onChange={(value) => updateVisualNote(index, "title", value)}
+                      placeholder="SYSTEM FLOW"
+                    />
+                    <AdminInput
+                      label="ALT TEXT"
+                      value={note.alt}
+                      onChange={(value) => updateVisualNote(index, "alt", value)}
+                      placeholder="Short accessible image description..."
+                    />
+                    <div className="md:col-span-2">
+                      <AdminInput
+                        label="IMAGE PATH OR URL"
+                        value={note.image}
+                        onChange={(value) => updateVisualNote(index, "image", value)}
+                        placeholder="/projects/uar-system.png"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <AdminInput
+                        label="CAPTION"
+                        value={note.caption}
+                        onChange={(value) => updateVisualNote(index, "caption", value)}
+                        placeholder="Explain what this visual shows..."
+                        multiline
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
+          <span className="text-[10px] tracking-[0.25em] text-steel block mb-4">
+            DEMO (OPTIONAL)
+          </span>
+        </div>
         <div className="md:col-span-2">
           <AdminInput
             label="DEMO SUMMARY"
             value={form.demoSummary}
             onChange={(v) => setForm({ ...form, demoSummary: v })}
-            placeholder="Short summary for demo section..."
+            placeholder="Optional summary for the demo section..."
             multiline
           />
         </div>

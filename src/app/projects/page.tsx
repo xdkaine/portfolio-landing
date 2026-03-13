@@ -343,11 +343,11 @@ export default function ProjectsPage() {
       </section>
 
       {/* Tech marquee */}
-      <Marquee
+{/*       <Marquee
         text="REACT &mdash; NEXT.JS &mdash; TYPESCRIPT &mdash; NODE.JS &mdash; RUST &mdash; WEBGL &mdash; POSTGRESQL &mdash; "
         variant="muted"
         speed={35}
-      />
+      /> */}
     </>
   );
 }
