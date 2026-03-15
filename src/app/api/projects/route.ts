@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const [projects, caseStudySettings] = await Promise.all([
       prisma.project.findMany({
-        orderBy: { sortOrder: "asc" },
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { number: "asc" }],
       }),
       prisma.siteSetting.findMany({
         where: { key: { startsWith: "project_case_" } },
@@ -74,6 +74,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const parsedSortOrder =
+      typeof sortOrder === "number" && Number.isFinite(sortOrder)
+        ? Math.max(0, Math.trunc(sortOrder))
+        : null;
+
+    const resolvedSortOrder =
+      parsedSortOrder ??
+      ((await prisma.project.aggregate({
+        _max: { sortOrder: true },
+      }))._max.sortOrder ?? -1) +
+        1;
+
     const project = await prisma.project.create({
       data: {
         number,
@@ -85,7 +97,7 @@ export async function POST(request: Request) {
         github,
         status: status === "IN PROGRESS" ? "IN_PROGRESS" : (status || "LIVE"),
         featured: featured ?? false,
-        sortOrder: sortOrder ?? 0,
+        sortOrder: resolvedSortOrder,
       },
     });
 

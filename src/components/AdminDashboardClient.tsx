@@ -84,6 +84,34 @@ interface LinkClickMetric {
   lastClickedAt: string;
 }
 
+function compareProjectNumbers(a: string, b: string): number {
+  return a.localeCompare(b, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function toTimestamp(value?: string): number {
+  if (!value) return 0;
+
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function compareProjectsByDisplayOrder(a: Project, b: Project): number {
+  const sortOrderDifference = a.sortOrder - b.sortOrder;
+  if (sortOrderDifference !== 0) {
+    return sortOrderDifference;
+  }
+
+  const createdAtDifference = toTimestamp(a.createdAt) - toTimestamp(b.createdAt);
+  if (createdAtDifference !== 0) {
+    return createdAtDifference;
+  }
+
+  return compareProjectNumbers(a.number, b.number);
+}
+
 type Tab = "metrics" | "projects" | "posts" | "messages" | "settings";
 
 export default function AdminDashboardClient() {
@@ -98,6 +126,8 @@ export default function AdminDashboardClient() {
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsNotice, setSettingsNotice] = useState("");
+  const [orderingProjects, setOrderingProjects] = useState(false);
+  const [projectOrderNotice, setProjectOrderNotice] = useState("");
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [showNewProject, setShowNewProject] = useState(false);
@@ -263,6 +293,124 @@ export default function AdminDashboardClient() {
     }
   };
 
+  const orderedProjects = useMemo(
+    () => [...projects].sort(compareProjectsByDisplayOrder),
+    [projects],
+  );
+
+  const nextProjectSortOrder = useMemo(() => {
+    if (orderedProjects.length === 0) {
+      return 0;
+    }
+
+    return (
+      orderedProjects.reduce(
+        (highestOrder, project) => Math.max(highestOrder, project.sortOrder),
+        -1,
+      ) + 1
+    );
+  }, [orderedProjects]);
+
+  const persistProjectOrder = useCallback(
+    async (nextProjects: Project[], successNotice: string) => {
+      setOrderingProjects(true);
+      setProjectOrderNotice("");
+
+      const currentSortOrders = new Map(
+        projects.map((project) => [project.id, project.sortOrder]),
+      );
+
+      try {
+        const updates = nextProjects
+          .map((project, index) => ({
+            id: project.id,
+            sortOrder: index,
+          }))
+          .filter(
+            (project) => currentSortOrders.get(project.id) !== project.sortOrder,
+          );
+
+        if (updates.length === 0) {
+          setProjectOrderNotice(successNotice);
+          return;
+        }
+
+        const responses = await Promise.all(
+          updates.map(({ id, sortOrder }) =>
+            fetch(`/api/projects/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sortOrder }),
+            }),
+          ),
+        );
+
+        if (responses.some((response) => !response.ok)) {
+          setProjectOrderNotice("Failed to update project order.");
+          return;
+        }
+
+        setProjectOrderNotice(successNotice);
+        await fetchData();
+      } catch {
+        setProjectOrderNotice("Failed to update project order.");
+      } finally {
+        setOrderingProjects(false);
+      }
+    },
+    [fetchData, projects],
+  );
+
+  const moveProject = useCallback(
+    async (projectId: string, direction: -1 | 1) => {
+      const currentIndex = orderedProjects.findIndex(
+        (project) => project.id === projectId,
+      );
+      const nextIndex = currentIndex + direction;
+
+      if (
+        currentIndex < 0 ||
+        nextIndex < 0 ||
+        nextIndex >= orderedProjects.length
+      ) {
+        return;
+      }
+
+      const nextProjects = [...orderedProjects];
+      const [movedProject] = nextProjects.splice(currentIndex, 1);
+      nextProjects.splice(nextIndex, 0, movedProject);
+
+      await persistProjectOrder(nextProjects, "Project order updated.");
+    },
+    [orderedProjects, persistProjectOrder],
+  );
+
+  const applyProjectOrderPreset = useCallback(
+    async (mode: "number" | "newest") => {
+      const nextProjects = [...orderedProjects].sort((left, right) => {
+        if (mode === "number") {
+          return compareProjectNumbers(left.number, right.number);
+        }
+
+        const createdAtDifference =
+          toTimestamp(right.createdAt) - toTimestamp(left.createdAt);
+        if (createdAtDifference !== 0) {
+          return createdAtDifference;
+        }
+
+        return compareProjectNumbers(left.number, right.number);
+      });
+
+      const successNotice =
+        mode === "number"
+          ? "Project order synced to project numbers."
+          : "Project order updated to newest first.";
+
+      await persistProjectOrder(nextProjects, successNotice);
+    },
+    [orderedProjects, persistProjectOrder],
+  );
+
   const unreadMessagesCount = useMemo(
     () => messages.filter((message) => !message.read).length,
     [messages],
@@ -354,25 +502,53 @@ export default function AdminDashboardClient() {
             {tab === "projects" && (
               <div>
                 <div className="flex justify-between items-center mb-6">
-                  <span className="text-ash text-xs tracking-[0.1em]">
-                    {projects.length} projects
-                  </span>
-                  <button
-                    onClick={() => {
-                      setShowNewProject(true);
-                      setEditingProject(null);
-                    }}
-                    className="text-[10px] tracking-[0.2em] text-ember border border-ember px-4 py-2 hover:bg-ember hover:text-void transition-all"
-                  >
-                    + NEW PROJECT
-                  </button>
+                  <div>
+                    <span className="text-ash text-xs tracking-[0.1em]">
+                      {orderedProjects.length} projects
+                    </span>
+                    <p className="text-[10px] tracking-[0.18em] text-iron mt-2">
+                      Manual order is live. Lower display order appears first on the
+                      public site.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      onClick={() => void applyProjectOrderPreset("number")}
+                      disabled={orderingProjects || orderedProjects.length < 2}
+                      className="text-[10px] tracking-[0.18em] text-ash border border-iron px-3 py-2 hover:text-bone hover:border-ash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ORDER BY #
+                    </button>
+                    <button
+                      onClick={() => void applyProjectOrderPreset("newest")}
+                      disabled={orderingProjects || orderedProjects.length < 2}
+                      className="text-[10px] tracking-[0.18em] text-ash border border-iron px-3 py-2 hover:text-bone hover:border-ash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      NEWEST FIRST
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowNewProject(true);
+                        setEditingProject(null);
+                      }}
+                      className="text-[10px] tracking-[0.2em] text-ember border border-ember px-4 py-2 hover:bg-ember hover:text-void transition-all"
+                    >
+                      + NEW PROJECT
+                    </button>
+                  </div>
                 </div>
+                {projectOrderNotice ? (
+                  <p className="text-[10px] tracking-[0.16em] text-ash mb-4">
+                    {projectOrderNotice}
+                  </p>
+                ) : null}
 
                 {(showNewProject || editingProject) && (
                   <ProjectForm
                     key={editingProject?.id ?? "new-project"}
                     project={editingProject}
                     onSave={saveProject}
+                    defaultSortOrder={nextProjectSortOrder}
                     onCancel={() => {
                       setEditingProject(null);
                       setShowNewProject(false);
@@ -381,12 +557,15 @@ export default function AdminDashboardClient() {
                 )}
 
                 <div className="space-y-1">
-                  {projects.map((p) => (
+                  {orderedProjects.map((p, index) => (
                     <div
                       key={p.id}
                       className="flex items-center justify-between py-3 border-b border-iron group hover:bg-surface/50 px-2 -mx-2"
                     >
                       <div className="flex items-center gap-4 min-w-0">
+                        <span className="text-iron text-[10px] w-14">
+                          ORD {String(index + 1).padStart(2, "0")}
+                        </span>
                         <span className="text-iron text-[10px] w-6">{p.number}</span>
                         <span className="text-bone text-sm truncate">{p.title}</span>
                         <span
@@ -404,7 +583,23 @@ export default function AdminDashboardClient() {
                           <span className="text-[9px] text-ember tracking-[0.1em]">FEATURED</span>
                         )}
                       </div>
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => void moveProject(p.id, -1)}
+                          disabled={orderingProjects || index === 0}
+                          className="text-[10px] text-ash hover:text-bone px-2 py-1 border border-iron disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          UP
+                        </button>
+                        <button
+                          onClick={() => void moveProject(p.id, 1)}
+                          disabled={
+                            orderingProjects || index === orderedProjects.length - 1
+                          }
+                          className="text-[10px] text-ash hover:text-bone px-2 py-1 border border-iron disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          DOWN
+                        </button>
                         <button
                           onClick={() => {
                             setEditingProject(p);
@@ -593,6 +788,12 @@ export default function AdminDashboardClient() {
                     placeholder="24"
                   />
                   <AdminInput
+                    label="FOOTER CHUCKLES GIF URL"
+                    value={settings.footerChucklesGifUrl}
+                    onChange={(v) => updateSetting("footerChucklesGifUrl", v)}
+                    placeholder="https://..."
+                  />
+                  <AdminInput
                     label="LEGAL EFFECTIVE DATE"
                     value={settings.legalEffectiveDate}
                     onChange={(v) => updateSetting("legalEffectiveDate", v)}
@@ -676,10 +877,12 @@ function markdownToPlainText(markdown: string): string {
 
 function ProjectForm({
   project,
+  defaultSortOrder,
   onSave,
   onCancel,
 }: {
   project: Project | null;
+  defaultSortOrder: number;
   onSave: (p: Partial<Project>) => void;
   onCancel: () => void;
 }) {
@@ -694,7 +897,7 @@ function ProjectForm({
     github: project?.github || "",
     status: project?.status || "LIVE",
     featured: project?.featured ?? false,
-    sortOrder: project?.sortOrder ?? 0,
+    sortOrder: project?.sortOrder ?? defaultSortOrder,
     subtitle: project?.caseStudy?.subtitle || project?.caseStudy?.pitch || "",
     role: project?.caseStudy?.role || "",
     timeline: project?.caseStudy?.timeline || "",
@@ -833,6 +1036,32 @@ function ProjectForm({
         <AdminInput label="TITLE" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="PROJECT NAME" />
         <AdminInput label="TAGS (comma separated)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} placeholder="REACT, TYPESCRIPT" />
         <AdminInput label="YEAR" value={form.year} onChange={(v) => setForm({ ...form, year: v })} placeholder="2025" />
+        <div>
+          <label className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+            DISPLAY ORDER
+          </label>
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={form.sortOrder}
+            onChange={(event) =>
+              setForm({
+                ...form,
+                sortOrder: Math.max(
+                  0,
+                  Number.isFinite(event.currentTarget.valueAsNumber)
+                    ? event.currentTarget.valueAsNumber
+                    : 0,
+                ),
+              })
+            }
+            className="w-full bg-void border border-iron text-bone text-xs py-2 px-3 outline-none focus:border-ember"
+          />
+          <p className="text-[10px] tracking-[0.15em] text-iron mt-2">
+            Lower numbers display first.
+          </p>
+        </div>
         <AdminInput label="URL" value={form.url} onChange={(v) => setForm({ ...form, url: v })} placeholder="https://..." />
         <AdminInput label="GITHUB" value={form.github} onChange={(v) => setForm({ ...form, github: v })} placeholder="https://github.com/..." />
         <div>

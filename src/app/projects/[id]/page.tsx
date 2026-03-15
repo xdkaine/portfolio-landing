@@ -164,7 +164,7 @@ export default async function ProjectDetailPage({
   let projectOrder: { number: string }[] = [];
   try {
     projectOrder = await prisma.project.findMany({
-      orderBy: { sortOrder: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { number: "asc" }],
       select: { number: true },
     });
   } catch {
@@ -405,13 +405,14 @@ export default async function ProjectDetailPage({
                 delay={index * 0.05}
               >
                 <article className="border border-iron bg-surface/30 h-full">
-                  <div className="relative aspect-[16/10] overflow-hidden border-b border-iron">
+                  <div className="overflow-hidden border-b border-iron">
                     <Image
                       src={item.image}
                       alt={item.alt}
-                      fill
-                      sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
-                      className="object-cover"
+                      width={1600}
+                      height={1000}
+                      unoptimized
+                      className="block w-full h-auto"
                     />
                   </div>
                   <div className="p-5">

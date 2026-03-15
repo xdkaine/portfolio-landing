@@ -244,7 +244,7 @@ export default function ProjectsPage() {
                         {project.subtitle || project.description}
                       </p>
                       <span className="inline-flex mt-2 text-[9px] tracking-[0.18em] text-steel group-hover:text-ember transition-colors">
-                        OPEN CASE STUDY &rarr;
+                        VIEW &rarr;
                       </span>
                     </div>
 
@@ -314,7 +314,7 @@ export default function ProjectsPage() {
                       {project.subtitle || project.description}
                     </p>
                     <span className="inline-flex mb-3 text-[9px] tracking-[0.18em] text-steel group-hover:text-ember transition-colors">
-                      OPEN CASE STUDY &rarr;
+                      VIEW &rarr;
                     </span>
 
                     <div className="flex items-center justify-between">

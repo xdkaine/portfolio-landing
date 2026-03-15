@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
+import { FooterChuckles } from "@/components/FooterChuckles";
 import { TypewriterText } from "@/components/TypewriterText";
 
 const DEFAULT_SOCIALS = [
@@ -13,6 +14,7 @@ interface FooterProps {
   brandAliases?: string[];
   socials?: { label: string; href: string }[];
   legalEffectiveDate?: string;
+  chucklesGifUrl?: string;
 }
 
 export function Footer({
@@ -20,6 +22,7 @@ export function Footer({
   brandAliases = [],
   socials = DEFAULT_SOCIALS,
   legalEffectiveDate,
+  chucklesGifUrl,
 }: FooterProps) {
   const legalDateText = legalEffectiveDate ? ` - UPDATED ${legalEffectiveDate}` : "";
   const currentYear = new Date().getFullYear();
@@ -84,9 +87,7 @@ export function Footer({
       </div>
 
       <div className="mt-12 pt-8 border-t border-iron">
-        <p className="text-[10px] text-steel tracking-[0.3em] uppercase">
-          BUILT WITH OBSESSIVE ATTENTION TO DETAIL
-        </p>
+        <FooterChuckles gifUrl={chucklesGifUrl} />
       </div>
     </footer>
   );

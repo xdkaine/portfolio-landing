@@ -112,7 +112,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       updateData.featured = body.featured;
     }
     if (typeof body.sortOrder === "number" && Number.isFinite(body.sortOrder)) {
-      updateData.sortOrder = body.sortOrder;
+      updateData.sortOrder = Math.max(0, Math.trunc(body.sortOrder));
     }
 
     const project = await prisma.project.update({

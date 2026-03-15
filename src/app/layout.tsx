@@ -97,6 +97,7 @@ export default async function RootLayout({
           brandAliases={brandAliases}
           socials={footerSocials}
           legalEffectiveDate={settings.legalEffectiveDate}
+          chucklesGifUrl={settings.footerChucklesGifUrl}
         />
         <div className="grain-overlay" aria-hidden="true" />
       </body>

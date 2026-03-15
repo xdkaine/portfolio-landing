@@ -8,6 +8,7 @@ export interface SiteSettings {
   socialTwitter: string;
   socialLinkedin: string;
   responseTimeHours: string;
+  footerChucklesGifUrl: string;
   legalEffectiveDate: string;
   privacyPolicy: string;
   termsOfService: string;
@@ -23,6 +24,7 @@ export const SITE_SETTING_KEYS: Record<keyof SiteSettings, string> = {
   socialTwitter: "social_twitter",
   socialLinkedin: "social_linkedin",
   responseTimeHours: "response_time_hours",
+  footerChucklesGifUrl: "footer_chuckles_gif_url",
   legalEffectiveDate: "legal_effective_date",
   privacyPolicy: "privacy_policy",
   termsOfService: "terms_of_service",
@@ -39,6 +41,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   socialTwitter: "https://x.com/xtomm",
   socialLinkedin: "https://linkedin.com/in/xtomm",
   responseTimeHours: "24",
+  footerChucklesGifUrl: "",
   legalEffectiveDate: "2026-03-12",
   privacyPolicy:
     "We collect contact details only when you submit the contact form. We use this data solely to respond to your inquiry and do not sell personal information.",
@@ -56,6 +59,7 @@ export const PUBLIC_SITE_SETTING_NAMES = [
   "socialTwitter",
   "socialLinkedin",
   "responseTimeHours",
+  "footerChucklesGifUrl",
 ] as const;
 
 export type PublicSiteSettings = Pick<
@@ -73,6 +77,7 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
   socialTwitter: DEFAULT_SITE_SETTINGS.socialTwitter,
   socialLinkedin: DEFAULT_SITE_SETTINGS.socialLinkedin,
   responseTimeHours: DEFAULT_SITE_SETTINGS.responseTimeHours,
+  footerChucklesGifUrl: DEFAULT_SITE_SETTINGS.footerChucklesGifUrl,
 };
 
 const SETTINGS_MAX_LENGTH: Record<keyof SiteSettings, number> = {
@@ -85,6 +90,7 @@ const SETTINGS_MAX_LENGTH: Record<keyof SiteSettings, number> = {
   socialTwitter: 2048,
   socialLinkedin: 2048,
   responseTimeHours: 3,
+  footerChucklesGifUrl: 2048,
   legalEffectiveDate: 32,
   privacyPolicy: 50000,
   termsOfService: 50000,
@@ -106,6 +112,7 @@ const URL_FIELDS = new Set<keyof SiteSettings>([
   "socialGithub",
   "socialTwitter",
   "socialLinkedin",
+  "footerChucklesGifUrl",
 ]);
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -154,6 +161,7 @@ export function pickPublicSiteSettings(
     socialTwitter: settings.socialTwitter,
     socialLinkedin: settings.socialLinkedin,
     responseTimeHours: settings.responseTimeHours,
+    footerChucklesGifUrl: settings.footerChucklesGifUrl,
   };
 }
 
