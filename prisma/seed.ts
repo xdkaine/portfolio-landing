@@ -180,7 +180,7 @@ async function main() {
     {
       key: "site_description",
       value:
-        "Building digital experiences that refuse to blend in. Portfolio of Kaine.",
+        "Building anything & everything. Portfolio of Kaine.",
     },
     { key: "hero_subtitle", value: "DEVELOPER - DESIGNER - BUILDER" },
     { key: "contact_email", value: "hello@phao.dev" },

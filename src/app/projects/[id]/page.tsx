@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import { ZoomableImage } from "@/components/ui/ZoomableImage";
 import {
   mergeProjectCaseStudy,
   parseProjectCaseStudy,
@@ -391,10 +392,13 @@ export default async function ProjectDetailPage({
       {mergedDeepDive.gallery.length > 0 ? (
         <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
           <ScrollReveal>
-            <div className="border-b border-iron pb-4 mb-8">
+            <div className="border-b border-iron pb-4 mb-8 flex flex-col md:flex-row md:items-baseline md:justify-between gap-4">
               <h2 className="font-display text-4xl md:text-5xl tracking-tight">
                 VISUAL NOTES
               </h2>
+              <span className="text-steel text-[10px] tracking-[0.2em]">
+                // CLICK AN IMAGE TO ENLARGE & ZOOM
+              </span>
             </div>
           </ScrollReveal>
 
@@ -406,13 +410,9 @@ export default async function ProjectDetailPage({
               >
                 <article className="border border-iron bg-surface/30 h-full">
                   <div className="overflow-hidden border-b border-iron">
-                    <Image
+                    <ZoomableImage
                       src={item.image}
                       alt={item.alt}
-                      width={1600}
-                      height={1000}
-                      unoptimized
-                      className="block w-full h-auto"
                     />
                   </div>
                   <div className="p-5">

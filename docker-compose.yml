@@ -35,6 +35,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: "${NEXT_PUBLIC_SITE_URL:-https://phao.dev}"
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: "${NEXT_PUBLIC_TURNSTILE_SITE_KEY}"
     restart: unless-stopped
     environment:
       DATABASE_URL: "postgresql://xtomm:xtomm_secret@db:5432/portfolio?schema=public"

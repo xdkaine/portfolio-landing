@@ -34,7 +34,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteName: "Kaine",
   siteAliases: "Kaine, Tommy",
   siteDescription:
-    "Building digital experiences that refuse to blend in. Portfolio of Kaine.",
+    "Building anything & everything. Portfolio of Kaine.",
   heroSubtitle: "DEVELOPER - DESIGNER - BUILDER",
   contactEmail: "hello@phao.dev",
   socialGithub: "https://github.com/xdkaine",
