@@ -4,9 +4,9 @@ import { FooterChuckles } from "@/components/FooterChuckles";
 import { TypewriterText } from "@/components/TypewriterText";
 
 const DEFAULT_SOCIALS = [
-  { label: "GITHUB", href: "https://github.com/xtomm" },
-  { label: "TWITTER", href: "https://x.com/xtomm" },
-  { label: "LINKEDIN", href: "https://linkedin.com/in/xtomm" },
+  { label: "GITHUB", href: "https://github.com/xdkaine" },
+  { label: "TWITTER", href: "https://x.com/xdkaine" },
+  { label: "LINKEDIN", href: "https://linkedin.com/in/thomasphao" },
 ];
 
 interface FooterProps {
