@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useInView } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
@@ -31,34 +31,67 @@ interface HomePost {
   tags: string[];
 }
 
-// Counts up when the metric enters view.
+// Stat block that reveals with a top-down wipe instead of a count-up animation.
 
 function ScrollCounter({
   value,
   label,
   suffix = "",
+  delay = 0,
 }: {
   value: number;
   label: string;
   suffix?: string;
+  delay?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start 90%", "start 30%"],
-  });
-  const count = useTransform(scrollYProgress, [0, 1], [0, value]);
-  const rounded = useTransform(count, (v) => Math.round(v));
+  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const hiddenValue = {
+    opacity: 0,
+    y: -28,
+    clipPath: "inset(0 0 100% 0)",
+    filter: "blur(6px)",
+  };
+  const visibleValue = {
+    opacity: 1,
+    y: 0,
+    clipPath: "inset(0 0 0% 0)",
+    filter: "blur(0px)",
+  };
+  const hiddenLabel = { opacity: 0, x: 24, filter: "blur(4px)" };
+  const visibleLabel = { opacity: 1, x: 0, filter: "blur(0px)" };
 
   return (
     <div ref={ref}>
-      <div className="font-display text-5xl md:text-7xl lg:text-8xl text-bone tabular-nums leading-none">
-        <motion.span>{rounded}</motion.span>
-        <span className="text-ember">{suffix}</span>
+      <div className="overflow-hidden">
+        <motion.div
+          initial={hiddenValue}
+          animate={isInView ? visibleValue : hiddenValue}
+          transition={{
+            duration: 0.9,
+            delay,
+            ease: [0.16, 1, 0.3, 1],
+          }}
+          className="font-display text-5xl md:text-7xl lg:text-8xl text-bone tabular-nums leading-none will-change-transform"
+        >
+          <span>{value}</span>
+          <span className="text-ember">{suffix}</span>
+        </motion.div>
       </div>
-      <span className="text-[10px] tracking-[0.3em] text-steel mt-3 block">
-        {label}
-      </span>
+      <div className="overflow-hidden mt-3">
+        <motion.span
+          initial={hiddenLabel}
+          animate={isInView ? visibleLabel : hiddenLabel}
+          transition={{
+            duration: 0.7,
+            delay: delay + 0.12,
+            ease: [0.16, 1, 0.3, 1],
+          }}
+          className="text-[10px] tracking-[0.3em] text-steel block will-change-transform"
+        >
+          {label}
+        </motion.span>
+      </div>
     </div>
   );
 }
@@ -402,17 +435,17 @@ export default function Home() {
       {/* Stats */}
       <section className="py-24 md:py-32 px-6 md:px-12 lg:px-24 border-t border-iron">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-8">
-          <ScrollCounter value={6} label="PROJECTS SHIPPED" suffix="+" />
-          <ScrollCounter value={5} label="YEARS EXPERIENCE" suffix="+" />
-          <ScrollCounter value={8} label="TECHNOLOGIES" suffix="+" />
-          <ScrollCounter value={24} label="HOUR RESPONSE" suffix="H" />
+          <ScrollCounter value={6} label="PROJECTS SHIPPED" suffix="+" delay={0} />
+          <ScrollCounter value={5} label="YEARS EXPERIENCE" suffix="+" delay={0.08} />
+          <ScrollCounter value={8} label="TECHNOLOGIES" suffix="+" delay={0.16} />
+          <ScrollCounter value={24} label="HOUR RESPONSE" suffix="H" delay={0.24} />
         </div>
       </section>
 
       {/* Manifesto */}
       <section className="py-32 md:py-48 px-6 md:px-12 lg:px-24 border-t border-iron">
         <ScrollTextReveal
-          text="I BUILD ANYTHING & EVERYTHING. FRONTNED - BACKEND - TOOLS - SYSTEMS. I LOVE SOLVING PROBLEMS, CRAFTING EXPERIENCES, AND CONTINUOUSLY LEARNING."
+          text="I BUILD ANYTHING & EVERYTHING. FRONTEND - BACKEND - TOOLS - SYSTEMS. I LOVE SOLVING PROBLEMS, CRAFTING EXPERIENCES, AND CONTINUOUSLY LEARNING."
           mode="word"
           className="font-display text-3xl md:text-5xl lg:text-6xl leading-[1.2] max-w-5xl gap-x-[0.3em]"
           itemClassName="text-bone"

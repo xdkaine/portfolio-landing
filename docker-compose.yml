@@ -48,6 +48,8 @@ services:
       TURNSTILE_SECRET_KEY: "${TURNSTILE_SECRET_KEY}"
     expose:
       - "3000"
+    volumes:
+      - public_data:/app/public
     depends_on:
       db:
         condition: service_healthy
@@ -78,3 +80,4 @@ services:
 
 volumes:
   pgdata:
+  public_data:
