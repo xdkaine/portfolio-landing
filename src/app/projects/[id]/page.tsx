@@ -452,7 +452,7 @@ export default async function ProjectDetailPage({
                     rel="noopener noreferrer"
                     className="px-4 py-2 border border-ember/50 text-ember hover:bg-ember/10 transition-colors"
                   >
-                    OPEN DEMO &nearr;
+                    OPEN DEMO ↗
                   </a>
                 ) : null}
 
@@ -463,7 +463,7 @@ export default async function ProjectDetailPage({
                     rel="noopener noreferrer"
                     className="px-4 py-2 border border-iron text-ash hover:text-ember hover:border-ember/40 transition-colors"
                   >
-                    SOURCE CODE &nearr;
+                    SOURCE CODE ↗
                   </a>
                 ) : null}
               </div>

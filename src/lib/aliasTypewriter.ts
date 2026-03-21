@@ -18,10 +18,10 @@ const FALLBACK_ALIAS = "Kaine";
 const MIN_DELAY_MS = 16;
 
 export const DEFAULT_ALIAS_TYPEWRITER_TIMING: AliasTypewriterTiming = {
-  typingSpeed: 78,
-  deletingSpeed: 48,
-  pauseMs: 1600,
-  betweenAliasesMs: 180,
+  typingSpeed: 108,
+  deletingSpeed: 52,
+  pauseMs: 2400,
+  betweenAliasesMs: 520,
 };
 
 export function normalizeAliases(aliases: string[]): string[] {

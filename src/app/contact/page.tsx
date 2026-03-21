@@ -410,7 +410,7 @@ export default function ContactPage() {
                   {social.label}
                 </span>
                 <span className="text-ash group-hover:text-ember group-hover:translate-x-1 transition-all text-xs">
-                  &nearr;
+                  ↗
                 </span>
               </a>
             </ScrollReveal>

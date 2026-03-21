@@ -45,12 +45,15 @@ function ScrollCounter({
   delay?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const isInView = useInView(ref, {
+    once: true,
+    margin: "0px 0px -18% 0px",
+  });
   const hiddenValue = {
     opacity: 0,
-    y: -28,
+    y: -64,
     clipPath: "inset(0 0 100% 0)",
-    filter: "blur(6px)",
+    filter: "blur(10px)",
   };
   const visibleValue = {
     opacity: 1,
@@ -63,12 +66,12 @@ function ScrollCounter({
 
   return (
     <div ref={ref}>
-      <div className="overflow-hidden">
+      <div className="overflow-hidden relative">
         <motion.div
           initial={hiddenValue}
           animate={isInView ? visibleValue : hiddenValue}
           transition={{
-            duration: 0.9,
+            duration: 1.05,
             delay,
             ease: [0.16, 1, 0.3, 1],
           }}
@@ -77,6 +80,17 @@ function ScrollCounter({
           <span>{value}</span>
           <span className="text-ember">{suffix}</span>
         </motion.div>
+        <motion.div
+          aria-hidden="true"
+          initial={{ y: "0%" }}
+          animate={isInView ? { y: "110%" } : { y: "0%" }}
+          transition={{
+            duration: 0.95,
+            delay,
+            ease: [0.16, 1, 0.3, 1],
+          }}
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-void via-void/95 to-transparent"
+        />
       </div>
       <div className="overflow-hidden mt-3">
         <motion.span
@@ -317,10 +331,10 @@ export default function Home() {
     };
   }, []);
 
-  const featuredProjects = useMemo(
-    () => projects.filter((project) => project.featured).slice(0, 4),
-    [projects],
-  );
+  const featuredProjects = useMemo(() => {
+    const explicitlyFeatured = projects.filter((project) => project.featured);
+    return (explicitlyFeatured.length > 0 ? explicitlyFeatured : projects).slice(0, 4);
+  }, [projects]);
   const recentPosts = useMemo(() => posts.slice(0, 4), [posts]);
 
   return (

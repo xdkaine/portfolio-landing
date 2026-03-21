@@ -38,9 +38,6 @@ export function Footer({
             {brandAliases.length > 1 ? (
               <AliasTypewriter
                 aliases={brandAliases}
-                typingSpeed={68}
-                deletingSpeed={44}
-                pauseMs={1000}
                 cursorClassName="text-xs"
               />
             ) : (
