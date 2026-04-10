@@ -15,6 +15,8 @@ const LINKS = [
   { href: "/contact", label: "CONTACT" },
 ];
 
+const ADMIN_LINK = { href: "/admin", label: "ADMIN" };
+
 interface NavigationProps {
   brandName?: string;
   brandAliases?: string[];
@@ -26,12 +28,23 @@ export function Navigation({
 }: NavigationProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
     damping: 30,
     restDelta: 0.001,
   });
+
+  // Check auth session
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setIsAdmin(!!data?.user))
+      .catch(() => setIsAdmin(false));
+  }, [pathname]);
+
+  const navLinks = isAdmin ? [...LINKS, ADMIN_LINK] : LINKS;
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -78,19 +91,24 @@ export function Navigation({
 
         {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-8">
-          {LINKS.map((link) => {
+          {navLinks.map((link) => {
             const isActive = pathname === link.href;
+            const isAdminTab = link.href === "/admin";
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 className={`relative group text-xs tracking-[0.2em] uppercase transition-colors duration-300 ${
-                  isActive
-                    ? "text-ember"
-                    : "text-ash hover:text-bone"
+                  isAdminTab
+                    ? isActive
+                      ? "text-ember"
+                      : "text-ember/60 hover:text-ember"
+                    : isActive
+                      ? "text-ember"
+                      : "text-ash hover:text-bone"
                 }`}
               >
-                {isActive ? `[${link.label}]` : link.label}
+                {isAdminTab ? "⌘ ADMIN" : isActive ? `[${link.label}]` : link.label}
                 {!isActive && (
                   <span className="absolute left-0 -bottom-1 w-full h-px bg-ember origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
                 )}
@@ -142,27 +160,32 @@ export function Navigation({
             exit={{ clipPath: "inset(0 0 100% 0)" }}
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            {LINKS.map((link, i) => (
-              <motion.div
-                key={link.href}
-                initial={{ opacity: 0, x: -40 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -40 }}
-                transition={{ delay: i * 0.08, duration: 0.4 }}
-              >
-                <Link
-                  href={link.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`font-display text-5xl block py-2 transition-colors duration-300 ${
-                    pathname === link.href
-                      ? "text-ember"
-                      : "text-bone hover:text-ember"
-                  }`}
+            {navLinks.map((link, i) => {
+              const isAdminTab = link.href === "/admin";
+              return (
+                <motion.div
+                  key={link.href}
+                  initial={{ opacity: 0, x: -40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -40 }}
+                  transition={{ delay: i * 0.08, duration: 0.4 }}
                 >
-                  {link.label}
-                </Link>
-              </motion.div>
-            ))}
+                  <Link
+                    href={link.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`font-display text-5xl block py-2 transition-colors duration-300 ${
+                      isAdminTab
+                        ? "text-ember/60 hover:text-ember"
+                        : pathname === link.href
+                          ? "text-ember"
+                          : "text-bone hover:text-ember"
+                    }`}
+                  >
+                    {isAdminTab ? "⌘ ADMIN" : link.label}
+                  </Link>
+                </motion.div>
+              );
+            })}
 
             <motion.div
               className="absolute bottom-12 left-12 text-steel text-[10px] tracking-[0.3em] uppercase"

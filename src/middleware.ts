@@ -1,6 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { jwtVerify } from "jose";
+import { COOKIE_NAME } from "@/lib/auth";
 
 const isDev = process.env.NODE_ENV !== "production";
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || "fallback-dev-secret-change-me"
+);
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -16,8 +22,33 @@ const CONTENT_SECURITY_POLICY = [
   "frame-ancestors 'none'",
 ].join("; ");
 
-export function middleware(request: NextRequest) {
-  void request;
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // --- Auth-aware routing ---
+  const token = request.cookies.get(COOKIE_NAME)?.value;
+  let isAuthenticated = false;
+
+  if (token) {
+    try {
+      await jwtVerify(token, JWT_SECRET);
+      isAuthenticated = true;
+    } catch {
+      // Invalid or expired token — treat as unauthenticated
+    }
+  }
+
+  // Redirect authenticated users away from /login
+  if (pathname === "/login" && isAuthenticated) {
+    return NextResponse.redirect(new URL("/admin", request.url));
+  }
+
+  // Redirect unauthenticated users away from /admin
+  if (pathname.startsWith("/admin") && !isAuthenticated) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // --- Security headers ---
   const response = NextResponse.next();
 
   response.headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);

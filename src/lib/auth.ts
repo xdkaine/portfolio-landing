@@ -5,7 +5,7 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-dev-secret-change-me"
 );
 
-const COOKIE_NAME = "xtomm-session";
+export const COOKIE_NAME = "xtomm-session";
 const EXPIRY = "7d";
 
 export async function createSession(userId: string, role: string) {
