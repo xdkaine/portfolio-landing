@@ -926,6 +926,7 @@ function ProjectForm({
     number | null
   >(null);
   const [visualNoteUploadNotice, setVisualNoteUploadNotice] = useState("");
+  const [bulkUploading, setBulkUploading] = useState(false);
 
   const updateVisualNote = (
     index: number,
@@ -968,6 +969,61 @@ function ProjectForm({
       setVisualNoteUploadNotice("Network error while uploading image.");
     } finally {
       setUploadingVisualNoteIndex(null);
+    }
+  };
+
+  const bulkUploadImages = async (files: FileList) => {
+    if (files.length === 0) return;
+    if (files.length > 5) {
+      setVisualNoteUploadNotice("You can upload a maximum of 5 images at a time.");
+      return;
+    }
+
+    setVisualNoteUploadNotice("");
+    setBulkUploading(true);
+
+    try {
+      const payload = new FormData();
+      for (const file of Array.from(files)) {
+        payload.append("files", file);
+      }
+
+      const response = await fetch("/api/uploads/project-image", {
+        method: "POST",
+        body: payload,
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        urls?: string[];
+        url?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setVisualNoteUploadNotice(data.error || "Bulk upload failed.");
+        return;
+      }
+
+      const urls = data.urls ?? (data.url ? [data.url] : []);
+      if (urls.length === 0) {
+        setVisualNoteUploadNotice("Upload returned no image URLs.");
+        return;
+      }
+
+      // Create a new visual note stub for each uploaded image.
+      const newNotes: VisualNoteFormItem[] = urls.map((url) => ({
+        title: "",
+        caption: "",
+        image: url,
+        alt: "",
+      }));
+
+      setVisualNotes((prev) => [...prev, ...newNotes]);
+      setVisualNoteUploadNotice(`${urls.length} image${urls.length > 1 ? "s" : ""} uploaded. Add titles and captions below.`);
+    } catch {
+      setVisualNoteUploadNotice("Network error during bulk upload.");
+    } finally {
+      setBulkUploading(false);
     }
   };
 
@@ -1236,13 +1292,32 @@ function ProjectForm({
             <span className="text-[10px] tracking-[0.25em] text-steel block">
               VISUAL NOTES
             </span>
-            <button
-              type="button"
-              onClick={() => setVisualNotes((prev) => [...prev, emptyVisualNote()])}
-              className="text-[10px] tracking-[0.2em] text-ember border border-ember px-3 py-1 hover:bg-ember hover:text-void transition-colors"
-            >
-              + ADD NOTE
-            </button>
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] tracking-[0.2em] text-ember border border-ember px-3 py-1 hover:bg-ember hover:text-void transition-colors cursor-pointer">
+                {bulkUploading ? "UPLOADING..." : "+ BULK UPLOAD"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                  multiple
+                  className="hidden"
+                  disabled={bulkUploading}
+                  onChange={(event) => {
+                    const fileList = event.target.files;
+                    if (fileList && fileList.length > 0) {
+                      void bulkUploadImages(fileList);
+                    }
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => setVisualNotes((prev) => [...prev, emptyVisualNote()])}
+                className="text-[10px] tracking-[0.2em] text-ember border border-ember px-3 py-1 hover:bg-ember hover:text-void transition-colors"
+              >
+                + ADD NOTE
+              </button>
+            </div>
           </div>
 
           {visualNotes.length === 0 ? (
