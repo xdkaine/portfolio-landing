@@ -464,7 +464,7 @@ export default function Home() {
       {/* Manifesto */}
       <section className="py-32 md:py-48 px-6 md:px-12 lg:px-24 border-t border-iron">
         <ScrollTextReveal
-          text="I BUILD ANYTHING & EVERYTHING. FRONTEND - BACKEND - TOOLS - SYSTEMS. I LOVE SOLVING PROBLEMS, CRAFTING EXPERIENCES, AND CONTINUOUSLY LEARNING."
+          text="BUILDING ANYTHING & EVERYTHING. FRONTEND."
           mode="word"
           className="font-display text-3xl md:text-5xl lg:text-6xl leading-[1.2] max-w-5xl gap-x-[0.3em]"
           itemClassName="text-bone"
@@ -588,7 +588,7 @@ export default function Home() {
           <p className="font-display text-4xl md:text-6xl lg:text-7xl leading-[1.1] max-w-5xl">
             BUILDING SYSTEMS & SOLUTIONS
             <br />
-            <span className="text-ember">THAT ARE FOR EVERYONE.</span>
+            <span className="text-ember">FOR EVERYONE.</span>
           </p>
         </ScrollReveal>
         <ScrollReveal delay={0.15}>
