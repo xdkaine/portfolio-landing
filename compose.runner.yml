@@ -1,3 +1,5 @@
+name: portfolio-runner
+
 # GitHub Actions self-hosted runner
 # Separate from docker-compose.yml so deploying the main stack does not stop the runner.
 #

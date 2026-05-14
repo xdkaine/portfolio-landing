@@ -186,7 +186,7 @@ jobs:
           cd "$DEPLOY_PATH"
 
           APP_IMAGE="$APP_IMAGE" compose pull app
-          APP_IMAGE="$APP_IMAGE" compose up -d --no-build --remove-orphans
+          APP_IMAGE="$APP_IMAGE" compose up -d --no-build
 
           attempt=1
           while [ "$attempt" -le 30 ]; do

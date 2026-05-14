@@ -87,6 +87,8 @@ Create the token at GitHub -> Developer settings -> Personal access tokens -> To
 The runner compose file uses this shape:
 
 ```yaml
+name: portfolio-runner
+
 services:
    github-runner:
       image: myoung34/github-runner:latest
@@ -112,6 +114,8 @@ docker compose -f compose.runner.yml --env-file .env.runner logs -f github-runne
 ```
 
 The runner should appear in GitHub with the `self-hosted`, `linux`, `truenas`, and `portfolio-landing` labels. The deploy workflow requires all four labels.
+
+Do not run the app stack with `--remove-orphans` from this directory unless the runner is isolated with the `name: portfolio-runner` compose project. Otherwise Compose can treat the runner as an orphan and stop the job that is currently deploying.
 
 The `/var/run/docker.sock` mount lets the runner deploy with the host Docker daemon. Treat that runner as privileged host access: do not use it for untrusted repositories or untrusted pull request workflows.
 
