@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "motion/react";
+import { motion, useInView, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
@@ -89,7 +89,7 @@ function ScrollCounter({
             delay,
             ease: [0.16, 1, 0.3, 1],
           }}
-          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-void via-void/95 to-transparent"
+          className="pointer-events-none absolute inset-0 bg-linear-to-b from-void via-void/95 to-transparent"
         />
       </div>
       <div className="overflow-hidden mt-3">
@@ -164,7 +164,7 @@ function ProjectCard({
               >
                 {project.status}
               </span>
-              <span className="text-ash group-hover:text-ember group-hover:translate-x-1 transition-all duration-300 text-sm">
+              <span className="text-ash group-hover:text-ember group-hover:translate-x-1 transition-[color,transform] duration-300 text-sm">
                 &rarr;
               </span>
             </div>
@@ -197,7 +197,7 @@ function CapabilityRow({
         <span className="font-display text-base md:text-lg text-bone group-hover:text-ember transition-colors duration-300 col-span-1 md:col-span-1">
           {title}
         </span>
-        <div className="col-span-2 md:col-span-1 flex flex-wrap gap-x-4 gap-y-1 pl-[40px] md:pl-0">
+        <div className="col-span-2 md:col-span-1 flex flex-wrap gap-x-4 gap-y-1 pl-10 md:pl-0">
           {items.map((item) => (
             <span
               key={item}
@@ -214,6 +214,7 @@ function CapabilityRow({
 
 export default function Home() {
   const siteSettings = useSiteSettings();
+  const shouldReduceMotion = useReducedMotion();
   const brandAliases = useMemo(
     () => parseBrandAliases(siteSettings.siteAliases),
     [siteSettings.siteAliases],
@@ -389,9 +390,13 @@ export default function Home() {
                 SCROLL
               </span>
               <motion.div
-                className="w-[1px] h-16 bg-steel origin-top"
-                animate={{ scaleY: [0, 1, 0] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="w-px h-16 bg-steel origin-top"
+                animate={shouldReduceMotion ? { scaleY: 1 } : { scaleY: [0, 1, 0] }}
+                transition={
+                  shouldReduceMotion
+                    ? { duration: 0 }
+                    : { duration: 2, repeat: Infinity, ease: "easeInOut" }
+                }
               />
             </motion.div>
           </ScrollParallax>
@@ -532,7 +537,7 @@ export default function Home() {
             <ScrollReveal key={post.id} delay={i * 0.08}>
               <Link
                 href="/blog"
-                className="group block border-b border-iron py-6 hover:pl-4 transition-all duration-500"
+                className="group block border-b border-iron py-6 transition-transform duration-500 hover:translate-x-4"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-8">
                   <div className="flex items-start md:items-center gap-4 md:gap-8 flex-1 min-w-0">
@@ -548,7 +553,7 @@ export default function Home() {
                       {post.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="text-[10px] tracking-[0.1em] text-iron"
+                          className="text-[10px] tracking-widest text-iron"
                         >
                           {tag}
                         </span>

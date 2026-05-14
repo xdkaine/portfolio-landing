@@ -217,6 +217,7 @@ export default function ContactPage() {
                 <label htmlFor="company">Company</label>
                 <input
                   id="company"
+                  name="company"
                   type="text"
                   autoComplete="off"
                   tabIndex={-1}
@@ -235,13 +236,15 @@ export default function ContactPage() {
                   </label>
                   <input
                     id="name"
+                    name="name"
                     type="text"
                     required
+                    autoComplete="name"
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    className="w-full bg-transparent border-b-2 border-iron focus:border-ember text-bone text-sm py-3 outline-none transition-colors duration-300 placeholder:text-iron"
+                    className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-iron"
                     placeholder="YOUR NAME"
                   />
                 </div>
@@ -257,13 +260,16 @@ export default function ContactPage() {
                   </label>
                   <input
                     id="email"
+                    name="email"
                     type="email"
                     required
+                    autoComplete="email"
+                    spellCheck={false}
                     value={formData.email}
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
                     }
-                    className="w-full bg-transparent border-b-2 border-iron focus:border-ember text-bone text-sm py-3 outline-none transition-colors duration-300 placeholder:text-iron"
+                    className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-iron"
                     placeholder="YOUR@EMAIL.COM"
                   />
                 </div>
@@ -279,13 +285,14 @@ export default function ContactPage() {
                   </label>
                   <textarea
                     id="message"
+                    name="message"
                     required
                     rows={6}
                     value={formData.message}
                     onChange={(e) =>
                       setFormData({ ...formData, message: e.target.value })
                     }
-                    className="w-full bg-transparent border-2 border-iron focus:border-ember text-bone text-sm p-4 outline-none transition-colors duration-300 resize-none placeholder:text-iron"
+                    className="w-full bg-transparent border-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm p-4 transition-colors duration-300 resize-none placeholder:text-iron"
                     placeholder="WHAT'S ON YOUR MIND?"
                   />
                 </div>
@@ -297,10 +304,10 @@ export default function ContactPage() {
                     type="checkbox"
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
-                    className="mt-0.5 accent-[#FF0066]"
+                    className="mt-0.5 accent-ember"
                     required
                   />
-                  <span className="text-[10px] tracking-[0.1em] text-ash leading-relaxed">
+                  <span className="text-[10px] tracking-widest text-ash leading-relaxed">
                     I consent to this site storing my submitted details to
                     respond to my inquiry. Read{" "}
                     <Link href="/privacy" className="text-ember hover:underline">
@@ -338,12 +345,10 @@ export default function ContactPage() {
               <ScrollReveal delay={0.25}>
                 <button
                   type="submit"
-                  disabled={
-                    submitting || Boolean(TURNSTILE_SITE_KEY && !turnstileToken)
-                  }
-                  className="group border-2 border-bone hover:border-ember hover:bg-ember text-bone hover:text-void px-8 py-4 text-xs tracking-[0.3em] transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={submitting}
+                  className="group border-2 border-bone hover:border-ember hover:bg-ember text-bone hover:text-void px-8 py-4 text-xs tracking-[0.3em] transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {submitting ? "SENDING..." : "TRANSMIT MESSAGE"}
+                  {submitting ? "SENDING…" : "TRANSMIT MESSAGE"}
                   <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">
                     &rarr;
                   </span>
@@ -409,7 +414,7 @@ export default function ContactPage() {
                 <span className="text-sm tracking-[0.15em] text-bone group-hover:text-ember transition-colors">
                   {social.label}
                 </span>
-                <span className="text-ash group-hover:text-ember group-hover:translate-x-1 transition-all text-xs">
+                <span className="text-ash group-hover:text-ember group-hover:translate-x-1 transition-[color,transform] text-xs">
                   ↗
                 </span>
               </a>

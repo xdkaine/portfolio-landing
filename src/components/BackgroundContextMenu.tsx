@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "background-paused";
 const MENU_WIDTH = 240;
@@ -25,6 +25,8 @@ export function BackgroundContextMenu() {
   const [open, setOpen] = useState(false);
   const [paused, setPaused] = useState<boolean>(() => readInitialPausedState());
   const [position, setPosition] = useState({ x: 16, y: 16 });
+  const menuItemRef = useRef<HTMLButtonElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle("bg-paused", paused);
@@ -34,14 +36,31 @@ export function BackgroundContextMenu() {
   useEffect(() => {
     const handleContextMenu = (event: MouseEvent) => {
       event.preventDefault();
+      restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setPosition(clampToViewport(event.clientX, event.clientY));
       setOpen(true);
     };
 
-    const closeMenu = () => setOpen(false);
+    const closeMenu = () => {
+      setOpen(false);
+      restoreFocusRef.current?.focus();
+    };
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
+      if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+        event.preventDefault();
+        const focusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const rect = focusedElement?.getBoundingClientRect();
+        restoreFocusRef.current = focusedElement;
+        setPosition(
+          clampToViewport(
+            rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+            rect ? rect.bottom : window.innerHeight / 2,
+          ),
+        );
+        setOpen(true);
+      }
     };
 
     document.addEventListener("contextmenu", handleContextMenu);
@@ -58,6 +77,12 @@ export function BackgroundContextMenu() {
       document.removeEventListener("keydown", handleEscape);
     };
   }, []);
+
+  useEffect(() => {
+    if (open) {
+      menuItemRef.current?.focus();
+    }
+  }, [open]);
 
   const actionLabel = useMemo(
     () => (paused ? "RESUME ANIMATED BACKGROUND" : "PAUSE BG + MAKE BLACK"),
@@ -81,6 +106,7 @@ export function BackgroundContextMenu() {
           <button
             type="button"
             role="menuitem"
+            ref={menuItemRef}
             onClick={() => {
               setPaused((value) => !value);
               setOpen(false);
@@ -91,7 +117,7 @@ export function BackgroundContextMenu() {
           </button>
 
           <p className="mt-2 px-1 text-[9px] tracking-[0.14em] text-steel">
-            RIGHT CLICK ANYWHERE TO OPEN
+            BACKGROUND CONTROLS
           </p>
         </div>
       )}

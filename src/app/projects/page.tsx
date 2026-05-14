@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { ScrollReveal } from "@/components/ScrollReveal";
-import { Marquee } from "@/components/Marquee";
+import { normalizeProjectStatus } from "@/lib/projectPresentation";
 import { useSiteSettings } from "@/lib/useSiteSettings";
 
 interface ProjectListItem {
@@ -17,12 +17,6 @@ interface ProjectListItem {
   year: string;
   status: "LIVE" | "IN PROGRESS" | "ARCHIVED";
   featured: boolean;
-}
-
-function normalizeStatus(status: unknown): ProjectListItem["status"] {
-  if (status === "IN PROGRESS" || status === "IN_PROGRESS") return "IN PROGRESS";
-  if (status === "ARCHIVED") return "ARCHIVED";
-  return "LIVE";
 }
 
 const permissionString = (status: string) => {
@@ -98,7 +92,7 @@ export default function ProjectsPage() {
               subtitle,
               tags,
               year: entry.year,
-              status: normalizeStatus(entry.status),
+              status: normalizeProjectStatus(entry.status),
               featured: Boolean(entry.featured),
             };
           })
@@ -220,7 +214,7 @@ export default function ProjectsPage() {
                 aria-label={`Open ${project.title} case study`}
               >
                 <motion.article
-                  className="border-b border-iron py-6 hover:bg-surface transition-colors duration-300"
+                  className="border-b border-iron py-6 hover:bg-surface transition-colors duration-300 [content-visibility:auto] [contain-intrinsic-size:1px_168px]"
                   whileHover={{ x: 4 }}
                   transition={{ duration: 0.2 }}
                 >
@@ -240,7 +234,7 @@ export default function ProjectsPage() {
                           {project.title}
                         </h2>
                       </div>
-                      <p className="text-ash text-xs mt-1 leading-relaxed line-clamp-1 group-hover:line-clamp-none transition-all">
+                      <p className="text-ash text-xs mt-1 leading-relaxed line-clamp-1 group-hover:line-clamp-none">
                         {project.subtitle || project.description}
                       </p>
                       <span className="inline-flex mt-2 text-[9px] tracking-[0.18em] text-steel group-hover:text-ember transition-colors">
@@ -252,7 +246,7 @@ export default function ProjectsPage() {
                       {project.tags.slice(0, 2).map((tag) => (
                         <span
                           key={tag}
-                          className="text-[9px] tracking-[0.1em] text-smoke border border-iron px-1.5 py-0.5"
+                          className="text-[9px] tracking-widest text-smoke border border-iron px-1.5 py-0.5"
                         >
                           {tag}
                         </span>
@@ -294,7 +288,7 @@ export default function ProjectsPage() {
                         </span>
                       </div>
                       <span
-                        className={`text-[9px] tracking-[0.1em] px-1.5 py-0.5 ${
+                        className={`text-[9px] tracking-widest px-1.5 py-0.5 ${
                           project.status === "LIVE"
                             ? "text-emerald-400 border border-emerald-400/30"
                             : project.status === "IN PROGRESS"
@@ -322,7 +316,7 @@ export default function ProjectsPage() {
                         {project.tags.map((tag) => (
                           <span
                             key={tag}
-                            className="text-[9px] tracking-[0.1em] text-smoke border border-iron px-1.5 py-0.5"
+                            className="text-[9px] tracking-widest text-smoke border border-iron px-1.5 py-0.5"
                           >
                             {tag}
                           </span>

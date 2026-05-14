@@ -1,23 +1,22 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { ZoomableImage } from "@/components/ui/ZoomableImage";
+import { mergeProjectCaseStudy, type ProjectCaseStudyViewModel } from "@/lib/projectCaseStudy";
 import {
-  mergeProjectCaseStudy,
-  parseProjectCaseStudy,
-  projectCaseStudySettingKey,
-  type ProjectCaseStudyViewModel,
-} from "@/lib/projectCaseStudy";
-import { prisma } from "@/lib/prisma";
+  getProjectByIdOrNumber,
+  listProjectNavigation,
+} from "@/lib/projectCatalog";
+import {
+  normalizeProjectStatus,
+  type DisplayProjectStatus,
+} from "@/lib/projectPresentation";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-type NormalizedStatus = "LIVE" | "IN PROGRESS" | "ARCHIVED";
 
 interface NormalizedProject {
   id: string;
@@ -28,17 +27,7 @@ interface NormalizedProject {
   year: string;
   url?: string | null;
   github?: string | null;
-  status: NormalizedStatus;
-}
-
-function normalizeStatus(status: string): NormalizedStatus {
-  if (status === "IN_PROGRESS" || status === "IN PROGRESS") {
-    return "IN PROGRESS";
-  }
-  if (status === "ARCHIVED") {
-    return "ARCHIVED";
-  }
-  return "LIVE";
+  status: DisplayProjectStatus;
 }
 
 function createFallbackWriteup(description: string): string[] {
@@ -58,7 +47,7 @@ function createBaseCaseStudy(project: NormalizedProject): ProjectCaseStudyViewMo
   };
 }
 
-function getStatusClass(status: NormalizedStatus): string {
+function getStatusClass(status: DisplayProjectStatus): string {
   if (status === "LIVE") {
     return "text-emerald-400 border-emerald-400/30";
   }
@@ -76,51 +65,10 @@ export default async function ProjectDetailPage({
   const { id } = await params;
   const settings = await getSiteSettings();
 
-  let project: {
-    id: string;
-    number: string;
-    title: string;
-    description: string;
-    tags: string[];
-    year: string;
-    url: string | null;
-    github: string | null;
-    status: string;
-  } | null = null;
+  let project: Awaited<ReturnType<typeof getProjectByIdOrNumber>> = null;
 
   try {
-    project = await prisma.project.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        number: true,
-        title: true,
-        description: true,
-        tags: true,
-        year: true,
-        url: true,
-        github: true,
-        status: true,
-      },
-    });
-
-    // Also support `/projects/01` style routes.
-    if (!project) {
-      project = await prisma.project.findUnique({
-        where: { number: id },
-        select: {
-          id: true,
-          number: true,
-          title: true,
-          description: true,
-          tags: true,
-          year: true,
-          url: true,
-          github: true,
-          status: true,
-        },
-      });
-    }
+    project = await getProjectByIdOrNumber(id);
   } catch {
     // DB not available.
   }
@@ -136,23 +84,12 @@ export default async function ProjectDetailPage({
     year: project.year,
     url: project.url,
     github: project.github,
-    status: normalizeStatus(project.status),
+    status: normalizeProjectStatus(project.status),
   };
-
-  let editableCaseStudy = null;
-  try {
-    const caseStudySetting = await prisma.siteSetting.findUnique({
-      where: { key: projectCaseStudySettingKey(normalizedProject.number) },
-      select: { value: true },
-    });
-    editableCaseStudy = parseProjectCaseStudy(caseStudySetting?.value);
-  } catch {
-    editableCaseStudy = null;
-  }
 
   const mergedDeepDive = mergeProjectCaseStudy(
     createBaseCaseStudy(normalizedProject),
-    editableCaseStudy,
+    project.caseStudy,
   );
   const writeupMarkdown =
     mergedDeepDive.writeupMarkdown.trim() ||
@@ -164,10 +101,7 @@ export default async function ProjectDetailPage({
 
   let projectOrder: { number: string }[] = [];
   try {
-    projectOrder = await prisma.project.findMany({
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { number: "asc" }],
-      select: { number: true },
-    });
+    projectOrder = await listProjectNavigation();
   } catch {
     projectOrder = [];
   }
@@ -286,6 +220,8 @@ export default async function ProjectDetailPage({
                     <img
                       src={src ?? ""}
                       alt={alt ?? ""}
+                      width={1600}
+                      height={1000}
                       loading="lazy"
                       className="w-full h-auto border border-iron mb-5"
                     />
@@ -346,7 +282,7 @@ export default async function ProjectDetailPage({
                         key={highlight}
                         className="text-xs text-ash leading-relaxed flex gap-2"
                       >
-                        <span className="text-ember mt-[2px]">&#8226;</span>
+                        <span className="text-ember mt-0.5">&#8226;</span>
                         <span>{highlight}</span>
                       </li>
                     ))}
@@ -397,7 +333,7 @@ export default async function ProjectDetailPage({
                 VISUAL NOTES
               </h2>
               <span className="text-steel text-[10px] tracking-[0.2em]">
-                // CLICK AN IMAGE TO ENLARGE & ZOOM
+                {"// CLICK AN IMAGE TO ENLARGE & ZOOM"}
               </span>
             </div>
           </ScrollReveal>

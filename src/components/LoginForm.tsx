@@ -58,9 +58,11 @@ export default function LoginForm() {
 
           {error && (
             <motion.div
-              className="border border-red-500/30 text-red-400 text-xs tracking-[0.1em] px-4 py-3 mb-6"
+              className="border border-red-500/30 text-red-400 text-xs tracking-widest px-4 py-3 mb-6"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
+              role="alert"
+              aria-live="polite"
             >
               ERROR: {error.toUpperCase()}
             </motion.div>
@@ -76,13 +78,15 @@ export default function LoginForm() {
               </label>
               <input
                 id="email"
+                name="email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-transparent border-b-2 border-iron focus:border-ember text-bone text-sm py-3 outline-none transition-colors duration-300 placeholder:text-iron"
+                className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-iron"
                 placeholder="satonodiamond@phao.DEV"
                 autoComplete="email"
+                spellCheck={false}
               />
             </div>
 
@@ -95,11 +99,12 @@ export default function LoginForm() {
               </label>
               <input
                 id="password"
+                name="password"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-transparent border-b-2 border-iron focus:border-ember text-bone text-sm py-3 outline-none transition-colors duration-300 placeholder:text-iron"
+                className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-iron"
                 placeholder="••••••••"
                 autoComplete="current-password"
               />
@@ -108,9 +113,9 @@ export default function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full border-2 border-bone hover:border-ember hover:bg-ember text-bone hover:text-void px-8 py-4 text-xs tracking-[0.3em] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full border-2 border-bone hover:border-ember hover:bg-ember text-bone hover:text-void px-8 py-4 text-xs tracking-[0.3em] transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "AUTHENTICATING..." : "AUTHENTICATE"}
+              {loading ? "AUTHENTICATING…" : "AUTHENTICATE"}
             </button>
           </form>
         </div>

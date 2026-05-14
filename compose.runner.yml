@@ -1,0 +1,28 @@
+# GitHub Actions self-hosted runner
+# Separate from docker-compose.yml so deploying the main stack does not stop the runner.
+#
+# One-time setup on TrueNAS:
+#   1. Create a classic PAT at https://github.com/settings/tokens with `repo` scope.
+#   2. Create .env.runner with GITHUB_ACCESS_TOKEN=ghp_...
+#   3. Run: docker compose -f compose.runner.yml --env-file .env.runner up -d
+#   4. Verify the runner appears in GitHub repo > Settings > Actions > Runners.
+
+services:
+  github-runner:
+    image: myoung34/github-runner:latest
+    container_name: portfolio-github-runner
+    restart: unless-stopped
+    environment:
+      REPO_URL: https://github.com/xdkaine/portfolio-landing
+      RUNNER_NAME: truenas-portfolio-runner
+      ACCESS_TOKEN: ${GITHUB_ACCESS_TOKEN}
+      RUNNER_WORKDIR: /mnt/Orion/docker/stacks/production-portfolio/_work
+      LABELS: self-hosted,linux,truenas,portfolio-landing
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount stacks dir at the exact host path so Docker can resolve compose paths.
+      - /mnt/Orion/docker/stacks:/mnt/Orion/docker/stacks
+      - runner-credentials:/home/runner
+
+volumes:
+  runner-credentials:

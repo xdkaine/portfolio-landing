@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Anton, DM_Mono } from "next/font/google";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -67,6 +67,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: "#0A0A0A",
+};
+
 export default async function RootLayout({
   children,
 }: {
@@ -82,8 +87,14 @@ export default async function RootLayout({
   ].filter((social) => Boolean(social.href));
 
   return (
-    <html lang="en" className={`${anton.variable} ${dmMono.variable}`}>
+    <html lang="en" className={`${anton.variable} ${dmMono.variable} [color-scheme:dark]`}>
       <body className="flex flex-col min-h-screen">
+        <a
+          href="#main-content"
+          className="fixed left-4 top-4 z-[10001] -translate-y-24 border-2 border-ember bg-void px-4 py-2 text-xs tracking-[0.2em] text-bone transition-transform focus-visible:translate-y-0"
+        >
+          SKIP TO MAIN CONTENT
+        </a>
         <TitleTypewriter
           brandName={primaryBrandName}
           brandAliases={brandAliases}
@@ -91,7 +102,9 @@ export default async function RootLayout({
         <LinkClickTracker />
         <BackgroundContextMenu />
         <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
-        <main className="flex-1">{children}</main>
+        <main id="main-content" className="flex-1 scroll-mt-20">
+          {children}
+        </main>
         <Footer
           brandName={primaryBrandName}
           brandAliases={brandAliases}

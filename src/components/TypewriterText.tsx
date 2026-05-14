@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useReducedMotion } from "motion/react";
 
 interface TypewriterTextProps {
   text: string;
@@ -24,6 +25,7 @@ export function TypewriterText({
   reserveSpace = true,
 }: TypewriterTextProps) {
   const [visibleLength, setVisibleLength] = useState(0);
+  const shouldReduceMotion = useReducedMotion();
 
   const typedText = useMemo(
     () => text.slice(0, visibleLength),
@@ -31,6 +33,10 @@ export function TypewriterText({
   );
 
   useEffect(() => {
+    if (shouldReduceMotion) {
+      return;
+    }
+
     let timeoutId: number | null = null;
     let intervalId: number | null = null;
 
@@ -56,7 +62,9 @@ export function TypewriterText({
         window.clearInterval(intervalId);
       }
     };
-  }, [text, typingSpeed, startDelay]);
+  }, [text, typingSpeed, startDelay, shouldReduceMotion]);
+
+  const displayText = shouldReduceMotion ? text : typedText;
 
   return (
     <span className={`relative inline-block ${className}`} aria-label={text}>
@@ -69,8 +77,8 @@ export function TypewriterText({
         className={reserveSpace ? "absolute inset-0" : ""}
         aria-hidden="true"
       >
-        {typedText}
-        {showCursor && (
+        {displayText}
+        {showCursor && !shouldReduceMotion && (
           <span className={`cursor-blink text-ember ${cursorClassName}`}>
             {cursor}
           </span>

@@ -26,6 +26,7 @@ yarn-error.log*
 
 # env
 .env
+.env.runner
 .env*.local
 
 # vercel
@@ -38,6 +39,9 @@ next-env.d.ts
 # agents
 .agents
 skills-lock.json
+
+# GitHub Actions self-hosted runner workspace
+_work/
 
 /src/generated/prisma
 

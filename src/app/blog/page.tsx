@@ -6,11 +6,13 @@ import {
   useContext,
   useEffect,
   useMemo,
+  Suspense,
   useState,
   type ReactNode,
 } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { useSiteSettings } from "@/lib/useSiteSettings";
 
@@ -91,8 +93,12 @@ function useBlogState(): BlogStateContextValue {
 }
 
 function BlogStateProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tagParam = searchParams.get("tag");
   const [posts, setPosts] = useState<BlogListPost[]>([]);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const activeTag = tagParam || null;
 
   const tagCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -150,13 +156,32 @@ function BlogStateProvider({ children }: { children: ReactNode }) {
     return posts.filter((post) => post.tags.includes(activeTag));
   }, [activeTag, posts]);
 
+  const replaceTagParam = useCallback(
+    (nextTag: string | null) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      if (nextTag) {
+        params.set("tag", nextTag);
+      } else {
+        params.delete("tag");
+      }
+
+      const queryString = params.toString();
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router, searchParams],
+  );
+
   const clearTagFilter = useCallback(() => {
-    setActiveTag(null);
-  }, []);
+    replaceTagParam(null);
+  }, [replaceTagParam]);
 
   const toggleTag = useCallback((tag: string) => {
-    setActiveTag((currentTag) => (currentTag === tag ? null : tag));
-  }, []);
+    const nextTag = activeTag === tag ? null : tag;
+    replaceTagParam(nextTag);
+  }, [activeTag, replaceTagParam]);
 
   const value = useMemo(
     () => ({
@@ -176,9 +201,9 @@ function BlogStateProvider({ children }: { children: ReactNode }) {
 }
 
 const activeTagClassName =
-  "text-[10px] tracking-[0.15em] px-3 py-1.5 border transition-all duration-300 border-ember text-ember bg-ember/5";
+  "text-[10px] tracking-[0.15em] px-3 py-1.5 border transition-colors duration-300 border-ember text-ember bg-ember/5";
 const inactiveTagClassName =
-  "text-[10px] tracking-[0.15em] px-3 py-1.5 border transition-all duration-300 border-iron text-ash hover:border-steel hover:text-bone";
+  "text-[10px] tracking-[0.15em] px-3 py-1.5 border transition-colors duration-300 border-iron text-ash hover:border-steel hover:text-bone";
 
 function ActiveFilterButton({
   label,
@@ -188,7 +213,7 @@ function ActiveFilterButton({
   onClick: () => void;
 }) {
   return (
-    <button onClick={onClick} className={activeTagClassName}>
+    <button type="button" onClick={onClick} className={activeTagClassName} aria-pressed={true}>
       {label}
     </button>
   );
@@ -202,7 +227,7 @@ function InactiveFilterButton({
   onClick: () => void;
 }) {
   return (
-    <button onClick={onClick} className={inactiveTagClassName}>
+    <button type="button" onClick={onClick} className={inactiveTagClassName} aria-pressed={false}>
       {label}
     </button>
   );
@@ -281,7 +306,7 @@ function BlogPostCard({ post, index }: { post: BlogListPost; index: number }) {
         className="block"
         aria-label={`Read post: ${post.title}`}
       >
-        <article className="group border-b border-iron py-8 hover:bg-surface transition-colors duration-300">
+        <article className="group border-b border-iron py-8 hover:bg-surface transition-colors duration-300 [content-visibility:auto] [contain-intrinsic-size:1px_168px]">
           <div className="flex flex-col md:flex-row gap-4 md:gap-12">
             <div className="md:w-32 shrink-0 flex md:flex-col items-center md:items-start gap-3 md:gap-1">
               <span className="text-steel text-[10px] tracking-[0.2em]">
@@ -313,7 +338,7 @@ function BlogPostCard({ post, index }: { post: BlogListPost; index: number }) {
                 {post.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="text-[9px] tracking-[0.1em] text-smoke border border-iron px-1.5 py-0.5"
+                    className="text-[9px] tracking-widest text-smoke border border-iron px-1.5 py-0.5"
                   >
                     {tag}
                   </span>
@@ -379,13 +404,31 @@ function BlogResults() {
   );
 }
 
+function BlogLoadingState({ siteName }: { siteName: string }) {
+  return (
+    <section className="pt-32 pb-24 px-6 md:px-12 lg:px-24">
+      <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
+        <span>{siteName}</span>
+        <span>/</span>
+        <span className="text-ember">TRANSMISSIONS</span>
+      </div>
+      <h1 className="font-display text-6xl md:text-8xl lg:text-9xl tracking-tighter">
+        TRANSMISSIONS
+      </h1>
+      <p className="text-steel text-[10px] tracking-[0.3em] mt-10">LOADING…</p>
+    </section>
+  );
+}
+
 export default function BlogPage() {
   const settings = useSiteSettings();
 
   return (
-    <BlogStateProvider>
-      <BlogHeader siteName={settings.siteName} />
-      <BlogResults />
-    </BlogStateProvider>
+    <Suspense fallback={<BlogLoadingState siteName={settings.siteName} />}>
+      <BlogStateProvider>
+        <BlogHeader siteName={settings.siteName} />
+        <BlogResults />
+      </BlogStateProvider>
+    </Suspense>
   );
 }

@@ -74,6 +74,19 @@ interface ActivityEvent {
   accentClass: string;
 }
 
+const shortDateFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "2-digit",
+  year: "numeric",
+});
+
+const monthFormatter = new Intl.DateTimeFormat(undefined, { month: "short" });
+const snapshotTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  hour: "numeric",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
 function parseIsoDate(value?: string): Date | null {
   if (!value) return null;
   const parsed = new Date(value);
@@ -95,15 +108,11 @@ function parseReadMinutes(readTime: string): number {
 }
 
 function formatShortDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  });
+  return shortDateFormatter.format(date);
 }
 
 function formatMonthLabel(date: Date): string {
-  return date.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+  return monthFormatter.format(date).toLocaleUpperCase();
 }
 
 function getMonthKey(date: Date): string {
@@ -121,7 +130,7 @@ function MetricCard({ metric }: { metric: DashboardMetric }) {
     >
       <p className="text-[10px] tracking-[0.2em] text-iron mb-2">{metric.label}</p>
       <p className={`font-display text-3xl ${metric.accentClass}`}>{metric.value}</p>
-      <p className="text-[10px] tracking-[0.1em] text-steel mt-2">{metric.note}</p>
+      <p className="text-[10px] tracking-widest text-steel mt-2">{metric.note}</p>
     </motion.div>
   );
 }
@@ -133,6 +142,8 @@ export function AdminMetricsDashboard({
   linkClicks,
   settings,
 }: AdminMetricsDashboardProps) {
+  const snapshotTime = useMemo(() => snapshotTimeFormatter.format(new Date()), []);
+
   const dashboard = useMemo(() => {
     const now = new Date();
     const sevenDaysAgo = new Date(now);
@@ -383,7 +394,7 @@ export function AdminMetricsDashboard({
           <p className="text-[10px] tracking-[0.2em] text-iron text-right">
             LIVE SNAPSHOT
             <br />
-            {new Date().toLocaleTimeString()}
+            <span suppressHydrationWarning>{snapshotTime}</span>
           </p>
         </div>
       </div>
@@ -434,7 +445,7 @@ export function AdminMetricsDashboard({
               );
             })}
           </div>
-          <p className="mt-4 text-[10px] tracking-[0.1em] text-iron">
+          <p className="mt-4 text-[10px] tracking-widest text-iron">
             Left bar = messages, right bar = posts.
           </p>
         </div>
@@ -495,7 +506,7 @@ export function AdminMetricsDashboard({
                 key={item.label}
                 className="flex items-center justify-between border-b border-iron/70 pb-2"
               >
-                <span className="text-xs tracking-[0.1em] text-ash">{item.label}</span>
+                <span className="text-xs tracking-widest text-ash">{item.label}</span>
                 <span
                   className={`text-[10px] tracking-[0.15em] ${
                     item.ok ? "text-emerald-400" : "text-amber-400"
@@ -506,7 +517,7 @@ export function AdminMetricsDashboard({
               </div>
             ))}
           </div>
-          <p className="mt-4 text-[10px] tracking-[0.1em] text-iron">
+          <p className="mt-4 text-[10px] tracking-widest text-iron">
             Messages in last 7 days: {dashboard.messagesLast7Days}
           </p>
         </div>
@@ -526,7 +537,7 @@ export function AdminMetricsDashboard({
                     <span className={`text-[10px] tracking-[0.15em] ${event.accentClass}`}>
                       {event.label}
                     </span>
-                    <span className="text-[9px] tracking-[0.1em] text-iron">
+                    <span className="text-[9px] tracking-widest text-iron">
                       {formatShortDate(event.timestamp)}
                     </span>
                   </div>
@@ -534,7 +545,7 @@ export function AdminMetricsDashboard({
                 </div>
               ))
             ) : (
-              <p className="text-xs tracking-[0.1em] text-iron">NO ACTIVITY AVAILABLE</p>
+              <p className="text-xs tracking-widest text-iron">NO ACTIVITY AVAILABLE</p>
             )}
           </div>
         </div>
@@ -566,7 +577,7 @@ export function AdminMetricsDashboard({
               </div>
             ))
           ) : (
-            <p className="text-xs tracking-[0.1em] text-iron">
+            <p className="text-xs tracking-widest text-iron">
               NO LINK CLICKS TRACKED YET
             </p>
           )}

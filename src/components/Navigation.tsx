@@ -58,13 +58,13 @@ export function Navigation({
     <>
       {/* Scroll Progress Bar */}
       <motion.div
-        className="fixed top-0 left-0 right-0 h-[2px] bg-ember origin-left z-[60]"
+        className="fixed top-0 left-0 right-0 h-0.5 bg-ember origin-left z-60"
         style={{ scaleX }}
       />
 
       {/* Navigation Bar */}
       <motion.nav
-        className="fixed top-[2px] left-0 right-0 z-50 h-16 border-b border-steel bg-void flex items-center justify-between px-6 md:px-12"
+        className="fixed top-0.5 left-0 right-0 z-50 h-16 border-b border-steel bg-void flex items-center justify-between px-6 md:px-12"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.3 }}
@@ -125,14 +125,14 @@ export function Navigation({
           aria-expanded={isOpen}
         >
           <motion.span
-            className="w-6 h-[2px] bg-bone block"
+            className="w-6 h-0.5 bg-bone block"
             animate={
               isOpen ? { rotate: 45, y: 5.5 } : { rotate: 0, y: 0 }
             }
             transition={{ duration: 0.2 }}
           />
           <motion.span
-            className="w-6 h-[2px] bg-bone block"
+            className="w-6 h-0.5 bg-bone block"
             animate={
               isOpen
                 ? { opacity: 0, scaleX: 0 }
@@ -141,7 +141,7 @@ export function Navigation({
             transition={{ duration: 0.2 }}
           />
           <motion.span
-            className="w-6 h-[2px] bg-bone block"
+            className="w-6 h-0.5 bg-bone block"
             animate={
               isOpen ? { rotate: -45, y: -5.5 } : { rotate: 0, y: 0 }
             }
@@ -154,10 +154,10 @@ export function Navigation({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed inset-0 bg-void z-40 flex flex-col items-start justify-center px-12 md:hidden"
-            initial={{ clipPath: "inset(0 0 100% 0)" }}
-            animate={{ clipPath: "inset(0 0 0% 0)" }}
-            exit={{ clipPath: "inset(0 0 100% 0)" }}
+            className="fixed inset-0 bg-void z-40 flex origin-top flex-col items-start justify-center overscroll-contain px-12 md:hidden"
+            initial={{ opacity: 0, scaleY: 0 }}
+            animate={{ opacity: 1, scaleY: 1 }}
+            exit={{ opacity: 0, scaleY: 0 }}
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
           >
             {navLinks.map((link, i) => {

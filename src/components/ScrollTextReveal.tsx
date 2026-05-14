@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { useRef } from "react";
 
 /**
@@ -34,6 +34,7 @@ export function ScrollTextReveal({
   endOffset = "end 20%",
 }: ScrollTextRevealProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -54,6 +55,7 @@ export function ScrollTextReveal({
           progress={scrollYProgress}
           isWord={mode === "word"}
           className={itemClassName}
+          shouldReduceMotion={Boolean(shouldReduceMotion)}
         />
       ))}
     </div>
@@ -69,9 +71,10 @@ interface WordProps {
   progress: ReturnType<typeof useScroll>["scrollYProgress"];
   isWord: boolean;
   className: string;
+  shouldReduceMotion: boolean;
 }
 
-function Word({ text, index, total, progress, isWord, className }: WordProps) {
+function Word({ text, index, total, progress, isWord, className, shouldReduceMotion }: WordProps) {
   // Divide progress evenly so tokens reveal in a predictable sequence.
   const start = index / total;
   const end = (index + 1) / total;
@@ -82,7 +85,7 @@ function Word({ text, index, total, progress, isWord, className }: WordProps) {
   return (
     <motion.span
       className={`inline-block transition-colors ${className}`}
-      style={{ opacity, y }}
+      style={shouldReduceMotion ? undefined : { opacity, y }}
     >
       {text}
       {isWord && "\u00A0"}
@@ -107,6 +110,7 @@ export function ScrollLineReveal({
   lineClassName = "",
 }: ScrollLineRevealProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -127,6 +131,7 @@ export function ScrollLineReveal({
             end={end}
             progress={scrollYProgress}
             className={lineClassName}
+            shouldReduceMotion={Boolean(shouldReduceMotion)}
           />
         );
       })}
@@ -140,19 +145,21 @@ function Line({
   end,
   progress,
   className,
+  shouldReduceMotion,
 }: {
   text: string;
   start: number;
   end: number;
   progress: ReturnType<typeof useScroll>["scrollYProgress"];
   className: string;
+  shouldReduceMotion: boolean;
 }) {
   const opacity = useTransform(progress, [start, end], [0, 1]);
   const y = useTransform(progress, [start, end], [30, 0]);
   const x = useTransform(progress, [start, end], [-10, 0]);
 
   return (
-    <motion.p className={className} style={{ opacity, y, x }}>
+    <motion.p className={className} style={shouldReduceMotion ? undefined : { opacity, y, x }}>
       {text}
     </motion.p>
   );

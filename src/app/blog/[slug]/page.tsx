@@ -1,14 +1,11 @@
-import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/siteSettings";
+import { getPostByIdOrSlug, listPosts } from "@/lib/postEditorial";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
 export async function generateStaticParams() {
   try {
-    const posts = await prisma.post.findMany({
-      where: { published: true },
-      select: { slug: true },
-    });
+    const posts = await listPosts();
     return posts.map((p) => ({ slug: p.slug }));
   } catch {
     return [];
@@ -23,26 +20,9 @@ export default async function BlogPostPage({
   const { slug } = await params;
   const settings = await getSiteSettings();
 
-  let post:
-    | {
-        title: string;
-        date: string;
-        readTime: string;
-        tags: string[];
-        content?: string | null;
-        excerpt: string;
-      }
-    | undefined;
+  let post: Awaited<ReturnType<typeof getPostByIdOrSlug>> = null;
   try {
-    const dbPost = await prisma.post.findFirst({
-      where: {
-        slug,
-        published: true,
-      },
-    });
-    if (dbPost) {
-      post = dbPost;
-    }
+    post = await getPostByIdOrSlug(slug);
   } catch {
     // DB not available.
   }

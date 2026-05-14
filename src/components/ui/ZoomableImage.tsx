@@ -84,9 +84,11 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
 
   return (
     <>
-      <div 
-        className="relative group cursor-zoom-in"
+      <button
+        type="button"
+        className="relative group block w-full cursor-zoom-in appearance-none border-0 bg-transparent p-0 text-left"
         onClick={() => setIsOpen(true)}
+        aria-label={`Enlarge image: ${alt}`}
       >
         <Image
           src={src}
@@ -98,11 +100,11 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
         />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
           <div className="bg-surface/80 text-bone px-3 py-2 rounded-full backdrop-blur-sm border border-iron flex items-center gap-2 text-xs tracking-[0.2em]">
-            <ZoomIn className="w-4 h-4" />
+            <ZoomIn className="w-4 h-4" aria-hidden="true" />
             <span>ENLARGE</span>
           </div>
         </div>
-      </div>
+      </button>
 
       <AnimatePresence>
         {isOpen && (
@@ -111,10 +113,13 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center overflow-hidden"
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center overflow-hidden overscroll-contain"
             onClick={() => setIsOpen(false)} // Click background to close
             onWheel={handleWheel}
             ref={containerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Expanded image: ${alt}`}
           >
             {/* Controls */}
             <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
@@ -129,7 +134,7 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
                 className="bg-surface/50 hover:bg-surface text-bone p-3 rounded-full border border-iron transition-colors"
                 aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
@@ -140,6 +145,8 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
               <motion.img
                 src={src}
                 alt={alt}
+                width={1600}
+                height={1000}
                 style={{ x, y, scale }}
                 drag
                 dragMomentum={false} // Prevents sliding away endlessly

@@ -1,123 +1,62 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AdminMetricsDashboard } from "@/components/AdminMetricsDashboard";
 import {
+  deletePostRecord,
+  deleteProjectRecord,
+  fetchAdminDashboardData,
+  savePostRecord,
+  saveProjectRecord,
+  saveSiteSettings,
+  type ContactMsg,
+  type EditablePost,
+  type EditableProject,
+  type LinkClickMetric,
+  type Post,
+  type Project,
+} from "@/lib/adminDashboardData";
+import {
+  compareProjectNumbers,
+  compareProjectsByDisplayOrder,
+  toTimestamp,
+} from "@/lib/projectPresentation";
+import {
   DEFAULT_SITE_SETTINGS,
   type SiteSettings,
 } from "@/lib/siteSettings-schema";
 
-// Client-side models mirror the payload shapes returned by admin APIs.
-
-interface Project {
-  id: string;
-  number: string;
-  title: string;
-  description: string;
-  tags: string[];
-  year: string;
-  url?: string;
-  github?: string;
-  status: string;
-  featured: boolean;
-  sortOrder: number;
-  createdAt?: string;
-  updatedAt?: string;
-  caseStudy?: {
-    subtitle?: string;
-    // Backward compatibility for legacy payloads.
-    pitch?: string;
-    role?: string;
-    timeline?: string;
-    challenge?: string;
-    concept?: string;
-    writeupMarkdown?: string;
-    writeup?: string[];
-    highlights?: string[];
-    demoSummary?: string;
-    demoUrl?: string;
-    repoUrl?: string;
-    gallery?: {
-      title: string;
-      caption: string;
-      image: string;
-      alt: string;
-    }[];
-  } | null;
-}
-
-interface Post {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string;
-  content?: string;
-  date: string;
-  readTime: string;
-  tags: string[];
-  published: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface ContactMsg {
-  id: string;
-  name: string;
-  email: string;
-  message: string;
-  read: boolean;
-  createdAt: string;
-}
-
-interface LinkClickMetric {
-  key: string;
-  destination: string;
-  sourcePath: string;
-  label: string;
-  external: boolean;
-  count: number;
-  firstClickedAt: string;
-  lastClickedAt: string;
-}
-
-function compareProjectNumbers(a: string, b: string): number {
-  return a.localeCompare(b, undefined, {
-    numeric: true,
-    sensitivity: "base",
-  });
-}
-
-function toTimestamp(value?: string): number {
-  if (!value) return 0;
-
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
-function compareProjectsByDisplayOrder(a: Project, b: Project): number {
-  const sortOrderDifference = a.sortOrder - b.sortOrder;
-  if (sortOrderDifference !== 0) {
-    return sortOrderDifference;
-  }
-
-  const createdAtDifference = toTimestamp(a.createdAt) - toTimestamp(b.createdAt);
-  if (createdAtDifference !== 0) {
-    return createdAtDifference;
-  }
-
-  return compareProjectNumbers(a.number, b.number);
-}
-
 type Tab = "metrics" | "projects" | "posts" | "messages" | "settings";
+
+const TAB_KEYS: Tab[] = ["metrics", "projects", "posts", "messages", "settings"];
+
+const messageDateFormatter = new Intl.DateTimeFormat(undefined);
+
+function isTab(value: string | null): value is Tab {
+  return value !== null && TAB_KEYS.includes(value as Tab);
+}
 
 export default function AdminDashboardClient() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isMountedRef = useRef(true);
-  const [tab, setTab] = useState<Tab>("metrics");
+  const [tab, setTab] = useState<Tab>(() => {
+    const queryTab = searchParams.get("tab");
+    return isTab(queryTab) ? queryTab : "metrics";
+  });
   const [projects, setProjects] = useState<Project[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [messages, setMessages] = useState<ContactMsg[]>([]);
@@ -148,50 +87,17 @@ export default function AdminDashboardClient() {
 
     setLoading(true);
     try {
-      const [projectsResponse, postsResponse, messagesResponse, settingsResponse, linkClicksResponse] =
-        await Promise.all([
-          fetch("/api/projects"),
-          fetch("/api/posts?all=true"),
-          fetch("/api/contact"),
-          fetch("/api/settings?all=true"),
-          fetch("/api/analytics/link-click"),
-        ]);
-
-      // Parse only successful responses to avoid JSON errors from failed requests.
-      const [projectsPayload, postsPayload, messagesPayload, settingsPayload, linkClicksPayload] =
-        await Promise.all([
-          projectsResponse.ok ? projectsResponse.json() : Promise.resolve(null),
-          postsResponse.ok ? postsResponse.json() : Promise.resolve(null),
-          messagesResponse.ok ? messagesResponse.json() : Promise.resolve(null),
-          settingsResponse.ok ? settingsResponse.json() : Promise.resolve(null),
-          linkClicksResponse.ok ? linkClicksResponse.json() : Promise.resolve(null),
-        ]);
+      const data = await fetchAdminDashboardData();
 
       if (!isMountedRef.current) {
         return;
       }
 
-      if (Array.isArray(projectsPayload)) {
-        setProjects(projectsPayload as Project[]);
-      }
-
-      if (Array.isArray(postsPayload)) {
-        setPosts(postsPayload as Post[]);
-      }
-
-      if (Array.isArray(messagesPayload)) {
-        setMessages(messagesPayload as ContactMsg[]);
-      }
-
-      if (settingsPayload && typeof settingsPayload === "object") {
-        const payload = settingsPayload as Partial<SiteSettings>;
-        setSettings({ ...DEFAULT_SITE_SETTINGS, ...payload });
-      }
-
-      if (linkClicksPayload && typeof linkClicksPayload === "object") {
-        const payload = linkClicksPayload as { items?: LinkClickMetric[] };
-        setLinkClicks(Array.isArray(payload.items) ? payload.items : []);
-      }
+      setProjects(data.projects);
+      setPosts(data.posts);
+      setMessages(data.messages);
+      setSettings(data.settings);
+      setLinkClicks(data.linkClicks);
     } catch (e) {
       console.error("Failed to fetch:", e);
     } finally {
@@ -204,6 +110,30 @@ export default function AdminDashboardClient() {
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    const queryTab = searchParams.get("tab");
+    setTab(isTab(queryTab) ? queryTab : "metrics");
+  }, [searchParams]);
+
+  const updateTab = useCallback(
+    (nextTab: Tab) => {
+      setTab(nextTab);
+
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextTab === "metrics") {
+        params.delete("tab");
+      } else {
+        params.set("tab", nextTab);
+      }
+
+      const queryString = params.toString();
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router, searchParams],
+  );
 
   const updateSetting = useCallback(
     (name: keyof SiteSettings, value: string) => {
@@ -218,15 +148,8 @@ export default function AdminDashboardClient() {
   };
 
   // Keep form components simple by centralizing create/update/delete here.
-  const saveProject = async (project: Partial<Project> & { id?: string }) => {
-    const method = project.id ? "PUT" : "POST";
-    const url = project.id ? `/api/projects/${project.id}` : "/api/projects";
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(project),
-    });
-    if (res.ok) {
+  const saveProject = async (project: EditableProject) => {
+    if (await saveProjectRecord(project)) {
       setEditingProject(null);
       setShowNewProject(false);
       await fetchData();
@@ -235,21 +158,13 @@ export default function AdminDashboardClient() {
 
   const deleteProject = async (id: string) => {
     if (!confirm("Delete this project?")) return;
-    const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
-    if (res.ok) {
+    if (await deleteProjectRecord(id)) {
       await fetchData();
     }
   };
 
-  const savePost = async (post: Partial<Post> & { id?: string }) => {
-    const method = post.id ? "PUT" : "POST";
-    const url = post.id ? `/api/posts/${post.id}` : "/api/posts";
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(post),
-    });
-    if (res.ok) {
+  const savePost = async (post: EditablePost) => {
+    if (await savePostRecord(post)) {
       setEditingPost(null);
       setShowNewPost(false);
       await fetchData();
@@ -258,8 +173,7 @@ export default function AdminDashboardClient() {
 
   const deletePost = async (id: string) => {
     if (!confirm("Delete this post?")) return;
-    const res = await fetch(`/api/posts/${id}`, { method: "DELETE" });
-    if (res.ok) {
+    if (await deletePostRecord(id)) {
       await fetchData();
     }
   };
@@ -269,22 +183,16 @@ export default function AdminDashboardClient() {
     setSettingsNotice("");
 
     try {
-      const res = await fetch("/api/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
-      });
+      const result = await saveSiteSettings(settings);
 
-      if (!res.ok) {
-        const payload = (await res.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        setSettingsNotice(payload.error || "Failed to update settings.");
+      if (!result.ok) {
+        setSettingsNotice(result.error || "Failed to update settings.");
         return;
       }
 
-      const updated = (await res.json()) as SiteSettings;
-      setSettings(updated);
+      if (result.settings) {
+        setSettings(result.settings);
+      }
       setSettingsNotice("Settings saved.");
     } catch {
       setSettingsNotice("Network error while saving settings.");
@@ -450,20 +358,26 @@ export default function AdminDashboardClient() {
           <h1 className="font-display text-5xl md:text-7xl">DASHBOARD</h1>
         </div>
         <button
+          type="button"
           onClick={handleLogout}
-          className="text-[10px] tracking-[0.2em] text-ash hover:text-ember border border-iron hover:border-ember px-4 py-2 transition-all"
+          className="text-[10px] tracking-[0.2em] text-ash hover:text-ember border border-iron hover:border-ember px-4 py-2 transition-colors"
         >
           LOGOUT
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b-2 border-iron mb-8">
+      <div className="flex gap-2 border-b-2 border-iron mb-8" role="tablist" aria-label="Dashboard sections">
         {tabs.map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`text-[10px] tracking-[0.2em] px-4 py-3 border-b-2 -mb-[2px] transition-colors ${
+            type="button"
+            role="tab"
+            id={`admin-tab-${t.key}`}
+            aria-selected={tab === t.key}
+            aria-controls={`admin-panel-${t.key}`}
+            onClick={() => updateTab(t.key)}
+            className={`text-[10px] tracking-[0.2em] px-4 py-3 border-b-2 -mb-0.5 transition-colors ${
               tab === t.key
                 ? "border-ember text-ember"
                 : "border-transparent text-ash hover:text-bone"
@@ -476,7 +390,7 @@ export default function AdminDashboardClient() {
 
       {loading ? (
         <div className="text-center py-12">
-          <span className="text-steel text-[10px] tracking-[0.3em]">LOADING...</span>
+          <span className="text-steel text-[10px] tracking-[0.3em]">LOADING…</span>
         </div>
       ) : (
         <AnimatePresence mode="wait">
@@ -486,6 +400,9 @@ export default function AdminDashboardClient() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
+            role="tabpanel"
+            id={`admin-panel-${tab}`}
+            aria-labelledby={`admin-tab-${tab}`}
           >
             {/* Metrics */}
             {tab === "metrics" && (
@@ -503,7 +420,7 @@ export default function AdminDashboardClient() {
               <div>
                 <div className="flex justify-between items-center mb-6">
                   <div>
-                    <span className="text-ash text-xs tracking-[0.1em]">
+                    <span className="text-ash text-xs tracking-widest">
                       {orderedProjects.length} projects
                     </span>
                     <p className="text-[10px] tracking-[0.18em] text-iron mt-2">
@@ -513,6 +430,7 @@ export default function AdminDashboardClient() {
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <button
+                      type="button"
                       onClick={() => void applyProjectOrderPreset("number")}
                       disabled={orderingProjects || orderedProjects.length < 2}
                       className="text-[10px] tracking-[0.18em] text-ash border border-iron px-3 py-2 hover:text-bone hover:border-ash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -520,6 +438,7 @@ export default function AdminDashboardClient() {
                       ORDER BY #
                     </button>
                     <button
+                      type="button"
                       onClick={() => void applyProjectOrderPreset("newest")}
                       disabled={orderingProjects || orderedProjects.length < 2}
                       className="text-[10px] tracking-[0.18em] text-ash border border-iron px-3 py-2 hover:text-bone hover:border-ash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -527,18 +446,19 @@ export default function AdminDashboardClient() {
                       NEWEST FIRST
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         setShowNewProject(true);
                         setEditingProject(null);
                       }}
-                      className="text-[10px] tracking-[0.2em] text-ember border border-ember px-4 py-2 hover:bg-ember hover:text-void transition-all"
+                      className="text-[10px] tracking-[0.2em] text-ember border border-ember px-4 py-2 hover:bg-ember hover:text-void transition-colors"
                     >
                       + NEW PROJECT
                     </button>
                   </div>
                 </div>
                 {projectOrderNotice ? (
-                  <p className="text-[10px] tracking-[0.16em] text-ash mb-4">
+                  <p className="text-[10px] tracking-[0.16em] text-ash mb-4" aria-live="polite">
                     {projectOrderNotice}
                   </p>
                 ) : null}
@@ -569,7 +489,7 @@ export default function AdminDashboardClient() {
                         <span className="text-iron text-[10px] w-6">{p.number}</span>
                         <span className="text-bone text-sm truncate">{p.title}</span>
                         <span
-                          className={`text-[9px] tracking-[0.1em] px-1.5 py-0.5 border ${
+                          className={`text-[9px] tracking-widest px-1.5 py-0.5 border ${
                             p.status === "LIVE"
                               ? "text-emerald-400 border-emerald-400/30"
                               : p.status === "IN PROGRESS"
@@ -580,11 +500,12 @@ export default function AdminDashboardClient() {
                           {p.status}
                         </span>
                         {p.featured && (
-                          <span className="text-[9px] text-ember tracking-[0.1em]">FEATURED</span>
+                          <span className="text-[9px] text-ember tracking-widest">FEATURED</span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
                         <button
+                          type="button"
                           onClick={() => void moveProject(p.id, -1)}
                           disabled={orderingProjects || index === 0}
                           className="text-[10px] text-ash hover:text-bone px-2 py-1 border border-iron disabled:opacity-40 disabled:cursor-not-allowed"
@@ -592,6 +513,7 @@ export default function AdminDashboardClient() {
                           UP
                         </button>
                         <button
+                          type="button"
                           onClick={() => void moveProject(p.id, 1)}
                           disabled={
                             orderingProjects || index === orderedProjects.length - 1
@@ -601,6 +523,7 @@ export default function AdminDashboardClient() {
                           DOWN
                         </button>
                         <button
+                          type="button"
                           onClick={() => {
                             setEditingProject(p);
                             setShowNewProject(false);
@@ -610,6 +533,7 @@ export default function AdminDashboardClient() {
                           EDIT
                         </button>
                         <button
+                          type="button"
                           onClick={() => deleteProject(p.id)}
                           className="text-[10px] text-ash hover:text-red-400 px-2 py-1"
                         >
@@ -626,15 +550,16 @@ export default function AdminDashboardClient() {
             {tab === "posts" && (
               <div>
                 <div className="flex justify-between items-center mb-6">
-                  <span className="text-ash text-xs tracking-[0.1em]">
+                  <span className="text-ash text-xs tracking-widest">
                     {posts.length} posts
                   </span>
                   <button
+                    type="button"
                     onClick={() => {
                       setShowNewPost(true);
                       setEditingPost(null);
                     }}
-                    className="text-[10px] tracking-[0.2em] text-ember border border-ember px-4 py-2 hover:bg-ember hover:text-void transition-all"
+                    className="text-[10px] tracking-[0.2em] text-ember border border-ember px-4 py-2 hover:bg-ember hover:text-void transition-colors"
                   >
                     + NEW POST
                   </button>
@@ -662,13 +587,14 @@ export default function AdminDashboardClient() {
                         <span className="text-steel text-[10px] w-20">{p.date}</span>
                         <span className="text-bone text-sm truncate">{p.title}</span>
                         {!p.published && (
-                          <span className="text-[9px] text-amber-400 tracking-[0.1em] border border-amber-400/30 px-1.5 py-0.5">
+                          <span className="text-[9px] text-amber-400 tracking-widest border border-amber-400/30 px-1.5 py-0.5">
                             DRAFT
                           </span>
                         )}
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
+                          type="button"
                           onClick={() => {
                             setEditingPost(p);
                             setShowNewPost(false);
@@ -678,6 +604,7 @@ export default function AdminDashboardClient() {
                           EDIT
                         </button>
                         <button
+                          type="button"
                           onClick={() => deletePost(p.id)}
                           className="text-[10px] text-ash hover:text-red-400 px-2 py-1"
                         >
@@ -694,7 +621,7 @@ export default function AdminDashboardClient() {
             {tab === "messages" && (
               <div className="space-y-4">
                 {messages.length === 0 ? (
-                  <p className="text-iron text-sm tracking-[0.1em] py-12 text-center">
+                  <p className="text-iron text-sm tracking-widest py-12 text-center">
                     NO MESSAGES YET
                   </p>
                 ) : (
@@ -709,8 +636,8 @@ export default function AdminDashboardClient() {
                           <span className="text-bone text-sm">{m.name}</span>
                           <span className="text-ash text-[10px]">&lt;{m.email}&gt;</span>
                         </div>
-                        <span className="text-iron text-[10px] tracking-[0.1em]">
-                          {new Date(m.createdAt).toLocaleDateString()}
+                        <span className="text-iron text-[10px] tracking-widest">
+                          {messageDateFormatter.format(new Date(m.createdAt))}
                         </span>
                       </div>
                       <p className="text-ash text-xs leading-relaxed">{m.message}</p>
@@ -728,94 +655,108 @@ export default function AdminDashboardClient() {
                 animate={{ opacity: 1, y: 0 }}
               >
                 <div className="grid md:grid-cols-2 gap-4">
-                  <AdminInput
+                  <AdminTextInput
                     label="SITE NAME"
                     value={settings.siteName}
                     onChange={(v) => updateSetting("siteName", v)}
                     placeholder="Kaine"
                   />
-                  <AdminInput
+                  <AdminTextInput
                     label="SITE ALIASES (comma separated)"
                     value={settings.siteAliases}
                     onChange={(v) => updateSetting("siteAliases", v)}
                     placeholder="Kaine, Tommy"
                   />
-                  <AdminInput
+                  <AdminTextInput
                     label="CONTACT EMAIL"
                     value={settings.contactEmail}
                     onChange={(v) => updateSetting("contactEmail", v)}
                     placeholder="hello@example.com"
+                    type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    spellCheck={false}
                   />
                   <div className="md:col-span-2">
-                    <AdminInput
+                    <AdminTextarea
                       label="SITE DESCRIPTION"
                       value={settings.siteDescription}
                       onChange={(v) => updateSetting("siteDescription", v)}
-                      placeholder="Search/meta description text..."
-                      multiline
+                      placeholder="Search/meta description text…"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <AdminInput
+                    <AdminTextInput
                       label="HERO SUBTITLE"
                       value={settings.heroSubtitle}
                       onChange={(v) => updateSetting("heroSubtitle", v)}
                       placeholder="DEVELOPER - DESIGNER - BUILDER"
                     />
                   </div>
-                  <AdminInput
+                  <AdminTextInput
                     label="GITHUB URL"
                     value={settings.socialGithub}
                     onChange={(v) => updateSetting("socialGithub", v)}
-                    placeholder="https://github.com/..."
+                    placeholder="https://github.com/…"
+                    type="url"
+                    autoComplete="url"
+                    inputMode="url"
                   />
-                  <AdminInput
+                  <AdminTextInput
                     label="TWITTER/X URL"
                     value={settings.socialTwitter}
                     onChange={(v) => updateSetting("socialTwitter", v)}
-                    placeholder="https://x.com/..."
+                    placeholder="https://x.com/…"
+                    type="url"
+                    autoComplete="url"
+                    inputMode="url"
                   />
-                  <AdminInput
+                  <AdminTextInput
                     label="LINKEDIN URL"
                     value={settings.socialLinkedin}
                     onChange={(v) => updateSetting("socialLinkedin", v)}
-                    placeholder="https://linkedin.com/in/..."
+                    placeholder="https://linkedin.com/in/…"
+                    type="url"
+                    autoComplete="url"
+                    inputMode="url"
                   />
-                  <AdminInput
+                  <AdminTextInput
                     label="RESPONSE TIME HOURS"
                     value={settings.responseTimeHours}
                     onChange={(v) => updateSetting("responseTimeHours", v)}
                     placeholder="24"
+                    inputMode="numeric"
                   />
-                  <AdminInput
+                  <AdminTextInput
                     label="FOOTER CHUCKLES GIF URL"
                     value={settings.footerChucklesGifUrl}
                     onChange={(v) => updateSetting("footerChucklesGifUrl", v)}
-                    placeholder="https://..."
+                    placeholder="https://…"
+                    type="url"
+                    autoComplete="url"
+                    inputMode="url"
                   />
-                  <AdminInput
+                  <AdminTextInput
                     label="LEGAL EFFECTIVE DATE"
                     value={settings.legalEffectiveDate}
                     onChange={(v) => updateSetting("legalEffectiveDate", v)}
                     placeholder="2026-03-12"
                   />
                   <div className="md:col-span-2">
-                    <AdminInput
+                    <AdminTextarea
                       label="PRIVACY POLICY"
                       value={settings.privacyPolicy}
                       onChange={(v) => updateSetting("privacyPolicy", v)}
-                      placeholder="Privacy policy content..."
-                      multiline
+                      placeholder="Privacy policy content…"
                       rows={8}
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <AdminInput
+                    <AdminTextarea
                       label="TERMS OF SERVICE"
                       value={settings.termsOfService}
                       onChange={(v) => updateSetting("termsOfService", v)}
-                      placeholder="Terms of service content..."
-                      multiline
+                      placeholder="Terms of service content…"
                       rows={8}
                     />
                   </div>
@@ -827,10 +768,10 @@ export default function AdminDashboardClient() {
                     disabled={savingSettings}
                     className="text-[10px] tracking-[0.2em] bg-ember text-void px-6 py-2 hover:bg-ember/80 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {savingSettings ? "SAVING..." : "SAVE SETTINGS"}
+                    {savingSettings ? "SAVING…" : "SAVE SETTINGS"}
                   </button>
                   {settingsNotice && (
-                    <span className="text-[10px] tracking-[0.15em] text-ash">
+                    <span className="text-[10px] tracking-[0.15em] text-ash" aria-live="polite">
                       {settingsNotice}
                     </span>
                   )}
@@ -883,7 +824,7 @@ function ProjectForm({
 }: {
   project: Project | null;
   defaultSortOrder: number;
-  onSave: (p: Partial<Project>) => void;
+  onSave: (p: EditableProject) => void;
   onCancel: () => void;
 }) {
   const [form, setForm] = useState({
@@ -1088,18 +1029,22 @@ function ProjectForm({
       animate={{ opacity: 1, y: 0 }}
     >
       <div className="grid md:grid-cols-2 gap-4">
-        <AdminInput label="NUMBER" value={form.number} onChange={(v) => setForm({ ...form, number: v })} placeholder="07" />
-        <AdminInput label="TITLE" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="PROJECT NAME" />
-        <AdminInput label="TAGS (comma separated)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} placeholder="REACT, TYPESCRIPT" />
-        <AdminInput label="YEAR" value={form.year} onChange={(v) => setForm({ ...form, year: v })} placeholder="2025" />
+        <AdminTextInput label="NUMBER" value={form.number} onChange={(v) => setForm({ ...form, number: v })} placeholder="07" inputMode="numeric" />
+        <AdminTextInput label="TITLE" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="PROJECT NAME" />
+        <AdminTextInput label="TAGS (comma separated)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} placeholder="REACT, TYPESCRIPT" />
+        <AdminTextInput label="YEAR" value={form.year} onChange={(v) => setForm({ ...form, year: v })} placeholder="2025" inputMode="numeric" />
         <div>
-          <label className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+          <label htmlFor="project-sort-order" className="text-[10px] tracking-[0.2em] text-steel block mb-2">
             DISPLAY ORDER
           </label>
           <input
+            id="project-sort-order"
+            name="project-sort-order"
             type="number"
             min={0}
             step={1}
+            autoComplete="off"
+            inputMode="numeric"
             value={form.sortOrder}
             onChange={(event) =>
               setForm({
@@ -1112,35 +1057,38 @@ function ProjectForm({
                 ),
               })
             }
-            className="w-full bg-void border border-iron text-bone text-xs py-2 px-3 outline-none focus:border-ember"
+            className="w-full bg-void border border-iron text-bone text-xs py-2 px-3 focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40"
           />
           <p className="text-[10px] tracking-[0.15em] text-iron mt-2">
             Lower numbers display first.
           </p>
         </div>
-        <AdminInput label="URL" value={form.url} onChange={(v) => setForm({ ...form, url: v })} placeholder="https://..." />
-        <AdminInput label="GITHUB" value={form.github} onChange={(v) => setForm({ ...form, github: v })} placeholder="https://github.com/..." />
+        <AdminTextInput label="URL" value={form.url} onChange={(v) => setForm({ ...form, url: v })} placeholder="https://…" type="url" inputMode="url" autoComplete="url" />
+        <AdminTextInput label="GITHUB" value={form.github} onChange={(v) => setForm({ ...form, github: v })} placeholder="https://github.com/…" type="url" inputMode="url" autoComplete="url" />
         <div>
-          <label className="text-[10px] tracking-[0.2em] text-steel block mb-2">STATUS</label>
+          <label htmlFor="project-status" className="text-[10px] tracking-[0.2em] text-steel block mb-2">STATUS</label>
           <select
+            id="project-status"
+            name="project-status"
             value={form.status}
             onChange={(e) => setForm({ ...form, status: e.target.value })}
-            className="w-full bg-void border border-iron text-bone text-xs py-2 px-3 outline-none focus:border-ember"
+            className="w-full bg-void border border-iron text-bone text-xs py-2 px-3 focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40"
           >
             <option value="LIVE">LIVE</option>
             <option value="IN PROGRESS">IN PROGRESS</option>
             <option value="ARCHIVED">ARCHIVED</option>
           </select>
         </div>
-        <div className="flex items-center gap-3 pt-6">
+        <label className="flex items-center gap-3 pt-6 cursor-pointer">
           <input
             type="checkbox"
+            name="featured"
             checked={form.featured}
             onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-            className="accent-[#FF0066]"
+            className="accent-ember"
           />
-          <label className="text-[10px] tracking-[0.2em] text-ash">FEATURED</label>
-        </div>
+          <span className="text-[10px] tracking-[0.2em] text-ash">FEATURED</span>
+        </label>
 
         <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
           <span className="text-[10px] tracking-[0.25em] text-ember block mb-4">
@@ -1149,40 +1097,36 @@ function ProjectForm({
         </div>
 
         <div className="md:col-span-2">
-          <AdminInput
+          <AdminTextarea
             label="SUBTITLE"
             value={form.subtitle}
             onChange={(v) => setForm({ ...form, subtitle: v })}
-            placeholder="One-line framing under the project title..."
-            multiline
+            placeholder="One-line framing under the project title…"
           />
         </div>
 
         <div className="md:col-span-2">
-          <AdminInput
+          <AdminTextarea
             label="CHALLENGE"
             value={form.challenge}
             onChange={(v) => setForm({ ...form, challenge: v })}
             placeholder="Optional: what was hard about this project?"
-            multiline
           />
         </div>
         <div className="md:col-span-2">
-          <AdminInput
+          <AdminTextarea
             label="CONCEPT"
             value={form.concept}
             onChange={(v) => setForm({ ...form, concept: v })}
             placeholder="Optional: how did you approach the solution?"
-            multiline
           />
         </div>
         <div className="md:col-span-2">
-          <AdminInput
+          <AdminTextarea
             label="WRITE-UP MARKDOWN"
             value={form.writeup}
             onChange={(v) => setForm({ ...form, writeup: v })}
-            placeholder="# What You Built\n\nUse markdown: headings, lists, links, code, and images..."
-            multiline
+            placeholder="# What You Built\n\nUse markdown: headings, lists, links, code, and images…"
             rows={12}
           />
         </div>
@@ -1234,6 +1178,8 @@ function ProjectForm({
                   <img
                     src={src ?? ""}
                     alt={alt ?? ""}
+                    width={1600}
+                    height={1000}
                     loading="lazy"
                     className="w-full h-auto border border-iron mb-3"
                   />
@@ -1264,25 +1210,24 @@ function ProjectForm({
             SNAPSHOT
           </span>
         </div>
-        <AdminInput
+        <AdminTextInput
           label="ROLE"
           value={form.role}
           onChange={(v) => setForm({ ...form, role: v })}
-          placeholder="Architecture, frontend, backend..."
+          placeholder="Architecture, frontend, backend…"
         />
-        <AdminInput
+        <AdminTextInput
           label="TIMELINE"
           value={form.timeline}
           onChange={(v) => setForm({ ...form, timeline: v })}
           placeholder="8 weeks"
         />
         <div className="md:col-span-2">
-          <AdminInput
+          <AdminTextarea
             label="HIGHLIGHTS (one per line)"
             value={form.highlights}
             onChange={(v) => setForm({ ...form, highlights: v })}
             placeholder="Key outcomes, architecture wins, etc."
-            multiline
             rows={5}
           />
         </div>
@@ -1294,8 +1239,9 @@ function ProjectForm({
             </span>
             <div className="flex items-center gap-2">
               <label className="text-[10px] tracking-[0.2em] text-ember border border-ember px-3 py-1 hover:bg-ember hover:text-void transition-colors cursor-pointer">
-                {bulkUploading ? "UPLOADING..." : "+ BULK UPLOAD"}
+                {bulkUploading ? "UPLOADING…" : "+ BULK UPLOAD"}
                 <input
+                  name="bulk-visual-notes"
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
                   multiple
@@ -1346,20 +1292,20 @@ function ProjectForm({
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-3">
-                    <AdminInput
+                    <AdminTextInput
                       label="NOTE TITLE"
                       value={note.title}
                       onChange={(value) => updateVisualNote(index, "title", value)}
                       placeholder="SYSTEM FLOW"
                     />
-                    <AdminInput
+                    <AdminTextInput
                       label="ALT TEXT"
                       value={note.alt}
                       onChange={(value) => updateVisualNote(index, "alt", value)}
-                      placeholder="Short accessible image description..."
+                      placeholder="Short accessible image description…"
                     />
                     <div className="md:col-span-2">
-                      <AdminInput
+                      <AdminTextInput
                         label="IMAGE PATH OR URL"
                         value={note.image}
                         onChange={(value) => updateVisualNote(index, "image", value)}
@@ -1367,11 +1313,13 @@ function ProjectForm({
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+                      <label htmlFor={`visual-note-upload-${index}`} className="text-[10px] tracking-[0.2em] text-steel block mb-2">
                         UPLOAD IMAGE
                       </label>
                       <div className="flex items-center gap-3">
                         <input
+                          id={`visual-note-upload-${index}`}
+                          name={`visual-note-upload-${index}`}
                           type="file"
                           accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
                           onChange={(event) => {
@@ -1385,18 +1333,17 @@ function ProjectForm({
                         />
                         {uploadingVisualNoteIndex === index ? (
                           <span className="text-[10px] tracking-[0.15em] text-steel">
-                            UPLOADING...
+                            UPLOADING…
                           </span>
                         ) : null}
                       </div>
                     </div>
                     <div className="md:col-span-2">
-                      <AdminInput
+                      <AdminTextarea
                         label="CAPTION"
                         value={note.caption}
                         onChange={(value) => updateVisualNote(index, "caption", value)}
-                        placeholder="Explain what this visual shows..."
-                        multiline
+                        placeholder="Explain what this visual shows…"
                       />
                     </div>
                   </div>
@@ -1417,32 +1364,37 @@ function ProjectForm({
           </span>
         </div>
         <div className="md:col-span-2">
-          <AdminInput
+          <AdminTextarea
             label="DEMO SUMMARY"
             value={form.demoSummary}
             onChange={(v) => setForm({ ...form, demoSummary: v })}
-            placeholder="Optional summary for the demo section..."
-            multiline
+            placeholder="Optional summary for the demo section…"
           />
         </div>
-        <AdminInput
+        <AdminTextInput
           label="DEMO URL"
           value={form.demoUrl}
           onChange={(v) => setForm({ ...form, demoUrl: v })}
-          placeholder="https://..."
+          placeholder="https://…"
+          type="url"
+          inputMode="url"
+          autoComplete="url"
         />
-        <AdminInput
+        <AdminTextInput
           label="REPO URL"
           value={form.repoUrl}
           onChange={(v) => setForm({ ...form, repoUrl: v })}
-          placeholder="https://github.com/..."
+          placeholder="https://github.com/…"
+          type="url"
+          inputMode="url"
+          autoComplete="url"
         />
       </div>
       <div className="flex gap-3 mt-6">
-        <button onClick={handleSave} className="text-[10px] tracking-[0.2em] bg-ember text-void px-6 py-2 hover:bg-ember/80 transition-colors">
+        <button type="button" onClick={handleSave} className="text-[10px] tracking-[0.2em] bg-ember text-void px-6 py-2 hover:bg-ember/80 transition-colors">
           SAVE
         </button>
-        <button onClick={onCancel} className="text-[10px] tracking-[0.2em] text-ash hover:text-bone px-6 py-2 border border-iron">
+        <button type="button" onClick={onCancel} className="text-[10px] tracking-[0.2em] text-ash hover:text-bone px-6 py-2 border border-iron">
           CANCEL
         </button>
       </div>
@@ -1458,7 +1410,7 @@ function PostForm({
   onCancel,
 }: {
   post: Post | null;
-  onSave: (p: Partial<Post>) => void;
+  onSave: (p: EditablePost) => void;
   onCancel: () => void;
 }) {
   const [form, setForm] = useState({
@@ -1494,32 +1446,33 @@ function PostForm({
       animate={{ opacity: 1, y: 0 }}
     >
       <div className="grid md:grid-cols-2 gap-4">
-        <AdminInput label="SLUG" value={form.slug} onChange={(v) => setForm({ ...form, slug: v })} placeholder="my-post-slug" />
-        <AdminInput label="TITLE" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="POST TITLE" />
+        <AdminTextInput label="SLUG" value={form.slug} onChange={(v) => setForm({ ...form, slug: v })} placeholder="my-post-slug" />
+        <AdminTextInput label="TITLE" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="POST TITLE" />
         <div className="md:col-span-2">
-          <AdminInput label="EXCERPT" value={form.excerpt} onChange={(v) => setForm({ ...form, excerpt: v })} placeholder="Brief description..." multiline />
+          <AdminTextarea label="EXCERPT" value={form.excerpt} onChange={(v) => setForm({ ...form, excerpt: v })} placeholder="Brief description…" />
         </div>
         <div className="md:col-span-2">
-          <AdminInput label="CONTENT (optional, markdown)" value={form.content} onChange={(v) => setForm({ ...form, content: v })} placeholder="Full post content..." multiline rows={10} />
+          <AdminTextarea label="CONTENT (optional, markdown)" value={form.content} onChange={(v) => setForm({ ...form, content: v })} placeholder="Full post content…" rows={10} />
         </div>
-        <AdminInput label="DATE" value={form.date} onChange={(v) => setForm({ ...form, date: v })} placeholder="2025.11.15" />
-        <AdminInput label="READ TIME" value={form.readTime} onChange={(v) => setForm({ ...form, readTime: v })} placeholder="5 MIN" />
-        <AdminInput label="TAGS (comma separated)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} placeholder="DESIGN, OPINION" />
-        <div className="flex items-center gap-3 pt-6">
+        <AdminTextInput label="DATE" value={form.date} onChange={(v) => setForm({ ...form, date: v })} placeholder="2025.11.15" inputMode="numeric" />
+        <AdminTextInput label="READ TIME" value={form.readTime} onChange={(v) => setForm({ ...form, readTime: v })} placeholder="5 MIN" />
+        <AdminTextInput label="TAGS (comma separated)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} placeholder="DESIGN, OPINION" />
+        <label className="flex items-center gap-3 pt-6 cursor-pointer">
           <input
             type="checkbox"
+            name="published"
             checked={form.published}
             onChange={(e) => setForm({ ...form, published: e.target.checked })}
-            className="accent-[#FF0066]"
+            className="accent-ember"
           />
-          <label className="text-[10px] tracking-[0.2em] text-ash">PUBLISHED</label>
-        </div>
+          <span className="text-[10px] tracking-[0.2em] text-ash">PUBLISHED</span>
+        </label>
       </div>
       <div className="flex gap-3 mt-6">
-        <button onClick={handleSave} className="text-[10px] tracking-[0.2em] bg-ember text-void px-6 py-2 hover:bg-ember/80 transition-colors">
+        <button type="button" onClick={handleSave} className="text-[10px] tracking-[0.2em] bg-ember text-void px-6 py-2 hover:bg-ember/80 transition-colors">
           SAVE
         </button>
-        <button onClick={onCancel} className="text-[10px] tracking-[0.2em] text-ash hover:text-bone px-6 py-2 border border-iron">
+        <button type="button" onClick={onCancel} className="text-[10px] tracking-[0.2em] text-ash hover:text-bone px-6 py-2 border border-iron">
           CANCEL
         </button>
       </div>
@@ -1527,47 +1480,110 @@ function PostForm({
   );
 }
 
-// Shared text input used by both project and post forms.
-
-function AdminInput({
-  label,
-  value,
-  onChange,
-  placeholder,
-  multiline,
-  rows,
-}: {
+type AdminFieldProps = {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  multiline?: boolean;
+  name?: string;
+  autoComplete?: string;
+};
+
+type AdminTextInputProps = AdminFieldProps & {
+  type?: "text" | "email" | "url" | "number";
+  inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
+  spellCheck?: boolean;
+};
+
+type AdminTextareaProps = AdminFieldProps & {
   rows?: number;
+};
+
+const adminControlClassName =
+  "w-full bg-void border border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-xs py-2 px-3 transition-colors";
+
+function toFieldName(label: string): string {
+  return (
+    label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "admin-field"
+  );
+}
+
+function AdminField({
+  label,
+  fieldId,
+  children,
+}: {
+  label: string;
+  fieldId: string;
+  children: ReactNode;
 }) {
-  const cls =
-    "w-full bg-void border border-iron focus:border-ember text-bone text-xs py-2 px-3 outline-none transition-colors";
   return (
     <div>
-      <label className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+      <label htmlFor={fieldId} className="text-[10px] tracking-[0.2em] text-steel block mb-2">
         {label}
       </label>
-      {multiline ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          rows={rows || 3}
-          className={`${cls} resize-none`}
-        />
-      ) : (
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className={cls}
-        />
-      )}
+      {children}
     </div>
+  );
+}
+
+function AdminTextInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  name,
+  autoComplete = "off",
+  type = "text",
+  inputMode,
+  spellCheck,
+}: AdminTextInputProps) {
+  const fieldId = useId();
+
+  return (
+    <AdminField label={label} fieldId={fieldId}>
+      <input
+        id={fieldId}
+        name={name ?? toFieldName(label)}
+        type={type}
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        spellCheck={spellCheck}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className={adminControlClassName}
+      />
+    </AdminField>
+  );
+}
+
+function AdminTextarea({
+  label,
+  value,
+  onChange,
+  placeholder,
+  name,
+  autoComplete = "off",
+  rows = 3,
+}: AdminTextareaProps) {
+  const fieldId = useId();
+
+  return (
+    <AdminField label={label} fieldId={fieldId}>
+      <textarea
+        id={fieldId}
+        name={name ?? toFieldName(label)}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className={`${adminControlClassName} resize-none`}
+      />
+    </AdminField>
   );
 }

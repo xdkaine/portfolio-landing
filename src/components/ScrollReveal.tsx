@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "motion/react";
+import { motion, useInView, useReducedMotion } from "motion/react";
 import { useRef, type ReactNode } from "react";
 
 interface ScrollRevealProps {
@@ -27,7 +27,8 @@ export function ScrollReveal({
 }: ScrollRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once, margin: "-80px" });
-  const hidden = { opacity: 0, ...offsets[direction] };
+  const shouldReduceMotion = useReducedMotion();
+  const hidden = shouldReduceMotion ? { opacity: 1, x: 0, y: 0 } : { opacity: 0, ...offsets[direction] };
   const visible = { opacity: 1, x: 0, y: 0 };
 
   return (
@@ -36,7 +37,7 @@ export function ScrollReveal({
       initial={hidden}
       animate={isInView ? visible : hidden}
       transition={{
-        duration: 0.7,
+        duration: shouldReduceMotion ? 0 : 0.7,
         delay: isInView ? delay : 0,
         ease: [0.25, 0.1, 0.25, 1],
       }}

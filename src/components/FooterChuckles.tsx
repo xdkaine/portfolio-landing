@@ -36,6 +36,8 @@ export function FooterChuckles({ gifUrl = "" }: FooterChucklesProps) {
           <img
             src={normalizedGifUrl}
             alt="Chuckles GIF"
+            width={64}
+            height={32}
             className="block h-8 w-auto"
           />
         </button>

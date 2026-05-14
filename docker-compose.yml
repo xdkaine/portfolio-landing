@@ -32,24 +32,32 @@ services:
   #   restart: "no"
   # ─── Next.js App ─────────────────────────────────────
   app:
+    image: "${APP_IMAGE:-portfolio-landing-app:local}"
     build:
       context: .
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_SITE_URL: "${NEXT_PUBLIC_SITE_URL:-https://phao.dev}"
-        NEXT_PUBLIC_TURNSTILE_SITE_KEY: "${NEXT_PUBLIC_TURNSTILE_SITE_KEY}"
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: "${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}"
+        DATABASE_URL: "${DATABASE_URL:-postgresql://xtomm:xtomm_secret@db:5432/portfolio?schema=public}"
     restart: unless-stopped
     environment:
       DATABASE_URL: "postgresql://xtomm:xtomm_secret@db:5432/portfolio?schema=public"
-      JWT_SECRET: "${JWT_SECRET}"
+      JWT_SECRET: "${JWT_SECRET:-}"
       NEXT_PUBLIC_SITE_URL: "${NEXT_PUBLIC_SITE_URL:-https://phao.dev}"
       GOOGLE_SITE_VERIFICATION: "${GOOGLE_SITE_VERIFICATION:-}"
-      NEXT_PUBLIC_TURNSTILE_SITE_KEY: "${NEXT_PUBLIC_TURNSTILE_SITE_KEY}"
-      TURNSTILE_SECRET_KEY: "${TURNSTILE_SECRET_KEY}"
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: "${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}"
+      TURNSTILE_SECRET_KEY: "${TURNSTILE_SECRET_KEY:-}"
     expose:
       - "3000"
     volumes:
       - public_data:/app/public
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     depends_on:
       db:
         condition: service_healthy
@@ -66,7 +74,8 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/fallback-404.html:/usr/share/nginx/html/fallback-404.html:ro
     depends_on:
-      - app
+      app:
+        condition: service_healthy
 
   # ─── Cloudflare Tunnel (edge ingress) ───────────────
   cloudflared:
@@ -74,7 +83,7 @@ services:
     restart: unless-stopped
     command: ["tunnel", "--no-autoupdate", "run"]
     environment:
-      TUNNEL_TOKEN: "${CLOUDFLARED_TUNNEL_TOKEN}"
+      TUNNEL_TOKEN: "${CLOUDFLARED_TUNNEL_TOKEN:-}"
     depends_on:
       - nginx
 

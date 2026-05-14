@@ -1,41 +1,15 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 import {
-  normalizeProjectCaseStudyInput,
-  parseProjectCaseStudy,
-  projectCaseStudySettingKey,
-  serializeProjectCaseStudy,
-} from "@/lib/projectCaseStudy";
+  createProject,
+  listProjects,
+  ProjectCatalogError,
+} from "@/lib/projectCatalog";
 
 // Public: list all projects
 export async function GET() {
   try {
-    const [projects, caseStudySettings] = await Promise.all([
-      prisma.project.findMany({
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { number: "asc" }],
-      }),
-      prisma.siteSetting.findMany({
-        where: { key: { startsWith: "project_case_" } },
-        select: { key: true, value: true },
-      }),
-    ]);
-
-    const caseStudyMap = new Map(
-      caseStudySettings.map((setting) => [
-        setting.key,
-        parseProjectCaseStudy(setting.value),
-      ]),
-    );
-
-    // Map DB status enum to display string
-    const mapped = projects.map((p) => ({
-      ...p,
-      status: p.status === "IN_PROGRESS" ? "IN PROGRESS" : p.status,
-      caseStudy: caseStudyMap.get(projectCaseStudySettingKey(p.number)) ?? null,
-    }));
-
-    return NextResponse.json(mapped);
+    return NextResponse.json(await listProjects());
   } catch {
     return NextResponse.json(
       { error: "Failed to fetch projects" },
@@ -52,76 +26,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const {
-      number,
-      title,
-      description,
-      tags,
-      year,
-      url,
-      github,
-      status,
-      featured,
-      sortOrder,
-      caseStudy,
-    } = body;
-
-    if (!number || !title || !description) {
+    return NextResponse.json(await createProject(await request.json()), {
+      status: 201,
+    });
+  } catch (error) {
+    if (error instanceof ProjectCatalogError) {
       return NextResponse.json(
-        { error: "number, title, and description are required" },
-        { status: 400 }
+        { error: error.message },
+        { status: error.status },
       );
     }
 
-    const parsedSortOrder =
-      typeof sortOrder === "number" && Number.isFinite(sortOrder)
-        ? Math.max(0, Math.trunc(sortOrder))
-        : null;
-
-    const resolvedSortOrder =
-      parsedSortOrder ??
-      ((await prisma.project.aggregate({
-        _max: { sortOrder: true },
-      }))._max.sortOrder ?? -1) +
-        1;
-
-    const project = await prisma.project.create({
-      data: {
-        number,
-        title,
-        description,
-        tags: tags || [],
-        year: year || new Date().getFullYear().toString(),
-        url,
-        github,
-        status: status === "IN PROGRESS" ? "IN_PROGRESS" : (status || "LIVE"),
-        featured: featured ?? false,
-        sortOrder: resolvedSortOrder,
-      },
-    });
-
-    const normalizedCaseStudy = normalizeProjectCaseStudyInput(caseStudy);
-    if (normalizedCaseStudy) {
-      await prisma.siteSetting.upsert({
-        where: { key: projectCaseStudySettingKey(project.number) },
-        update: { value: serializeProjectCaseStudy(normalizedCaseStudy) },
-        create: {
-          key: projectCaseStudySettingKey(project.number),
-          value: serializeProjectCaseStudy(normalizedCaseStudy),
-        },
-      });
-    }
-
-    return NextResponse.json(
-      {
-        ...project,
-        status: project.status === "IN_PROGRESS" ? "IN PROGRESS" : project.status,
-        caseStudy: normalizedCaseStudy,
-      },
-      { status: 201 },
-    );
-  } catch (error) {
     console.error("[api/projects] POST error:", error);
     return NextResponse.json(
       { error: "Failed to create project" },

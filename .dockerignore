@@ -11,7 +11,11 @@ Dockerfile*
 docker-compose*.yml
 README.md
 .env
+.env.runner
 .env.local
 .env.development
 .env.test
 .env.production
+_work
+public/uploads
+src/generated/prisma

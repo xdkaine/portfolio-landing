@@ -37,6 +37,7 @@ body {
 }
 
 html {
+  color-scheme: dark;
   scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-color: #444444 #0A0A0A;
@@ -60,6 +61,11 @@ summary {
 input,
 textarea {
   cursor: text;
+}
+
+:where(a, button, [role="button"], input, textarea, select, summary):focus-visible {
+  outline: 2px solid #FF0066;
+  outline-offset: 3px;
 }
 
 /* Scrollbar */
@@ -210,5 +216,6 @@ html.bg-paused .grain-overlay {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
