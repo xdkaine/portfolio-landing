@@ -85,7 +85,7 @@ export function BackgroundContextMenu() {
   }, [open]);
 
   const actionLabel = useMemo(
-    () => (paused ? "RESUME ANIMATED BACKGROUND" : "PAUSE BG + MAKE BLACK"),
+    () => (paused ? "RESUME BACKGROUND TEXTURE" : "PAUSE BACKGROUND TEXTURE"),
     [paused],
   );
 

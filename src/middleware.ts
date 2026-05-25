@@ -25,6 +25,12 @@ const CONTENT_SECURITY_POLICY = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // All mutations in this app use Route Handlers; do not let Server Action
+  // probe traffic reach the App Router request decoder.
+  if (request.headers.has("next-action")) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   // --- Auth-aware routing ---
   const token = request.cookies.get(COOKIE_NAME)?.value;
   let isAuthenticated = false;

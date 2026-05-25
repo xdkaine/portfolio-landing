@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion, useScroll, useSpring, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
+import { ThemeControl } from "@/components/ThemeControl";
 import { TypewriterText } from "@/components/TypewriterText";
 
 const LINKS = [
@@ -90,7 +91,7 @@ export function Navigation({
         </Link>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-4 lg:gap-8">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             const isAdminTab = link.href === "/admin";
@@ -115,6 +116,7 @@ export function Navigation({
               </Link>
             );
           })}
+          <ThemeControl />
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -195,6 +197,8 @@ export function Navigation({
             >
               NAVIGATION
             </motion.div>
+
+            <ThemeControl className="absolute bottom-10 right-12" />
           </motion.div>
         )}
       </AnimatePresence>

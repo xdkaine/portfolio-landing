@@ -23,6 +23,28 @@ const dmMono = DM_Mono({
   display: "swap",
 });
 
+const themeInitializationScript = `
+(function () {
+  try {
+    var preference = localStorage.getItem("site-theme");
+    var explicitTheme = preference === "light" || preference === "dark";
+    if (explicitTheme) {
+      document.documentElement.setAttribute("data-theme", preference);
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+    var resolvedTheme = explicitTheme
+      ? preference
+      : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    document.documentElement.style.colorScheme = resolvedTheme;
+    var colorMeta = document.querySelector('meta[data-site-theme-color="true"]');
+    if (colorMeta) {
+      colorMeta.setAttribute("content", resolvedTheme === "light" ? "#F5F1E8" : "#0A0A0A");
+    }
+  } catch (error) {}
+})();
+`;
+
 function resolveSiteUrl(): string {
   const fallback = "https://phao.dev";
   const raw = process.env.NEXT_PUBLIC_SITE_URL;
@@ -68,8 +90,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
-  colorScheme: "dark",
-  themeColor: "#0A0A0A",
+  colorScheme: "light dark",
 };
 
 export default async function RootLayout({
@@ -87,7 +108,11 @@ export default async function RootLayout({
   ].filter((social) => Boolean(social.href));
 
   return (
-    <html lang="en" className={`${anton.variable} ${dmMono.variable} [color-scheme:dark]`}>
+    <html lang="en" className={`${anton.variable} ${dmMono.variable}`} suppressHydrationWarning>
+      <head>
+        <meta name="theme-color" content="#0A0A0A" data-site-theme-color="true" />
+        <script dangerouslySetInnerHTML={{ __html: themeInitializationScript }} />
+      </head>
       <body className="flex flex-col min-h-screen">
         <a
           href="#main-content"

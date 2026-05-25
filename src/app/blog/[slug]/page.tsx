@@ -1,16 +1,10 @@
 import { getSiteSettings } from "@/lib/siteSettings";
-import { getPostByIdOrSlug, listPosts } from "@/lib/postEditorial";
+import { getPostByIdOrSlug } from "@/lib/postEditorial";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
-export async function generateStaticParams() {
-  try {
-    const posts = await listPosts();
-    return posts.map((p) => ({ slug: p.slug }));
-  } catch {
-    return [];
-  }
-}
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function BlogPostPage({
   params,
