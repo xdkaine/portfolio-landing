@@ -76,6 +76,10 @@ This repository includes `compose.runner.yml`, modeled after the Repairte runner
 cd /mnt/Orion/docker/stacks/production-portfolio
 ```
 
+If the runner is offline, update `compose.runner.yml` in that directory
+manually before restarting it. The CI deploy job cannot sync an updated runner
+definition until a runner is online to execute that job.
+
 Create a host-only `.env.runner` for the runner:
 
 ```env
@@ -95,15 +99,19 @@ services:
       container_name: portfolio-github-runner
       restart: unless-stopped
       environment:
+         RUNNER_SCOPE: "repo"
          REPO_URL: "https://github.com/xdkaine/portfolio-landing"
          RUNNER_NAME: "truenas-portfolio-runner"
          ACCESS_TOKEN: "${GITHUB_ACCESS_TOKEN}"
          RUNNER_WORKDIR: "/mnt/Orion/docker/stacks/production-portfolio/_work"
          LABELS: "self-hosted,linux,truenas,portfolio-landing"
+         CONFIGURED_ACTIONS_RUNNER_FILES_DIR: "/runner/data"
+         DISABLE_AUTOMATIC_DEREGISTRATION: "true"
+         UNSET_CONFIG_VARS: "true"
       volumes:
          - /var/run/docker.sock:/var/run/docker.sock
          - /mnt/Orion/docker/stacks:/mnt/Orion/docker/stacks
-         - runner-credentials:/home/runner
+         - runner-credentials:/runner/data
 ```
 
 Start it:
@@ -114,6 +122,46 @@ docker compose -f compose.runner.yml --env-file .env.runner logs -f github-runne
 ```
 
 The runner should appear in GitHub with the `self-hosted`, `linux`, `truenas`, and `portfolio-landing` labels. The deploy workflow requires all four labels.
+
+`CONFIGURED_ACTIONS_RUNNER_FILES_DIR` is required when registration should survive a
+container or host restart. Keep `DISABLE_AUTOMATIC_DEREGISTRATION` enabled with
+that persistence mode; otherwise a normal container stop can unregister the
+runner while leaving local reusable settings behind.
+
+If an older runner container is looping with `Cannot configure the runner
+because it is already configured`, repair it once before bringing up the
+persistent configuration:
+
+```bash
+cd /mnt/Orion/docker/stacks/production-portfolio
+docker compose -f compose.runner.yml --env-file .env.runner down
+docker volume rm portfolio-runner_runner-credentials
+```
+
+In GitHub, remove the offline `truenas-portfolio-runner` registration under
+Settings -> Actions -> Runners, then start the container again:
+
+```bash
+docker compose -f compose.runner.yml --env-file .env.runner pull
+docker compose -f compose.runner.yml --env-file .env.runner up -d
+docker compose -f compose.runner.yml --env-file .env.runner logs --tail=100 -f github-runner
+```
+
+Deleting this runner-only credential volume does not delete the application
+database or uploaded application files. Do not delete `pgdata` or
+`public_data`.
+
+If it stops again after clean registration, capture the container reason before
+recreating it:
+
+```bash
+docker inspect portfolio-github-runner --format '{{json .State}}'
+docker inspect portfolio-github-runner --format '{{.RestartCount}}'
+docker logs --tail=200 portfolio-github-runner
+```
+
+An exit code, an out-of-memory marker, or a host-reboot timestamp separates a
+runner lifecycle problem from a TrueNAS resource or Docker daemon problem.
 
 Do not run the app stack with `--remove-orphans` from this directory unless the runner is isolated with the `name: portfolio-runner` compose project. Otherwise Compose can treat the runner as an orphan and stop the job that is currently deploying.
 

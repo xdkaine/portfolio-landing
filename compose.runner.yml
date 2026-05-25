@@ -15,16 +15,21 @@ services:
     container_name: portfolio-github-runner
     restart: unless-stopped
     environment:
+      RUNNER_SCOPE: repo
       REPO_URL: https://github.com/xdkaine/portfolio-landing
       RUNNER_NAME: truenas-portfolio-runner
       ACCESS_TOKEN: ${GITHUB_ACCESS_TOKEN}
       RUNNER_WORKDIR: /mnt/Orion/docker/stacks/production-portfolio/_work
       LABELS: self-hosted,linux,truenas,portfolio-landing
+      # Persist registration and reuse it after container/host restarts.
+      CONFIGURED_ACTIONS_RUNNER_FILES_DIR: /runner/data
+      DISABLE_AUTOMATIC_DEREGISTRATION: "true"
+      UNSET_CONFIG_VARS: "true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       # Mount stacks dir at the exact host path so Docker can resolve compose paths.
       - /mnt/Orion/docker/stacks:/mnt/Orion/docker/stacks
-      - runner-credentials:/home/runner
+      - runner-credentials:/runner/data
 
 volumes:
   runner-credentials:
