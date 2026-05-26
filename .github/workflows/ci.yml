@@ -193,7 +193,12 @@ jobs:
             APP_IMAGE="$APP_IMAGE" compose exec -T db pg_dump -U xtomm portfolio | gzip > "$DEPLOY_PATH/backups/portfolio-before-${GITHUB_SHA}.sql.gz"
           fi
 
-          APP_IMAGE="$APP_IMAGE" compose up -d --no-build
+          if ! APP_IMAGE="$APP_IMAGE" compose up -d --no-build; then
+            echo "Docker Compose startup failed; service status and migration logs follow." >&2
+            APP_IMAGE="$APP_IMAGE" compose ps -a || true
+            APP_IMAGE="$APP_IMAGE" compose logs --tail=200 migrate app || true
+            exit 1
+          fi
 
           attempt=1
           while [ "$attempt" -le 30 ]; do
