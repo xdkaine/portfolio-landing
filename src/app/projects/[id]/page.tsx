@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ScrollReveal } from "@/components/ScrollReveal";
@@ -13,10 +15,20 @@ import {
   normalizeProjectStatus,
   type DisplayProjectStatus,
 } from "@/lib/projectPresentation";
+import { DEFAULT_SOCIAL_IMAGE } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const loadProject = cache(async (id: string) => {
+  try {
+    return await getProjectByIdOrNumber(id);
+  } catch {
+    return null;
+  }
+});
+const loadSiteSettings = cache(getSiteSettings);
 
 interface NormalizedProject {
   id: string;
@@ -57,25 +69,10 @@ function getStatusClass(status: DisplayProjectStatus): string {
   return "text-steel border-iron";
 }
 
-export default async function ProjectDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const settings = await getSiteSettings();
-
-  let project: Awaited<ReturnType<typeof getProjectByIdOrNumber>> = null;
-
-  try {
-    project = await getProjectByIdOrNumber(id);
-  } catch {
-    // DB not available.
-  }
-
-  if (!project) notFound();
-
-  const normalizedProject: NormalizedProject = {
+function normalizeProject(
+  project: NonNullable<Awaited<ReturnType<typeof getProjectByIdOrNumber>>>,
+): NormalizedProject {
+  return {
     id: project.id,
     number: project.number,
     title: project.title,
@@ -86,6 +83,72 @@ export default async function ProjectDetailPage({
     github: project.github,
     status: normalizeProjectStatus(project.status),
   };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const [project, settings] = await Promise.all([
+    loadProject(id),
+    loadSiteSettings(),
+  ]);
+  if (!project) return {};
+
+  const normalizedProject = normalizeProject(project);
+  const caseStudy = mergeProjectCaseStudy(
+    createBaseCaseStudy(normalizedProject),
+    project.caseStudy,
+  );
+  const title = `${normalizedProject.title} | Projects`;
+  const description = caseStudy.subtitle || normalizedProject.description;
+  const canonical = `/projects/${normalizedProject.number}`;
+  const previewImage = caseStudy.gallery[0];
+  const socialImage = previewImage
+    ? { url: previewImage.image, alt: previewImage.alt }
+    : DEFAULT_SOCIAL_IMAGE;
+
+  return {
+    title,
+    description,
+    authors: [{ name: settings.siteName }],
+    alternates: { canonical },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: canonical,
+      siteName: settings.siteName,
+      authors: [settings.siteName],
+      section: "Projects",
+      tags: normalizedProject.tags,
+      images: [socialImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [socialImage],
+    },
+  };
+}
+
+export default async function ProjectDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const [settings, project] = await Promise.all([
+    loadSiteSettings(),
+    loadProject(id),
+  ]);
+
+  if (!project) notFound();
+
+  const normalizedProject = normalizeProject(project);
 
   const mergedDeepDive = mergeProjectCaseStudy(
     createBaseCaseStudy(normalizedProject),

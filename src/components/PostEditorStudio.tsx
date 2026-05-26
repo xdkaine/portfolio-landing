@@ -286,7 +286,7 @@ export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
           <EditorTextarea label="EXCERPT" value={fields.excerpt} maxLength={400} onChange={(value) => updateField("excerpt", value)} />
           <EditorField label="TAGS" value={fields.tags} placeholder="DESIGN, SYSTEMS" onChange={(value) => updateField("tags", value)} />
           <div>
-            <span className="editor-label">COVER IMAGE</span>
+            <span className="editor-label">COVER IMAGE // LANDSCAPE 16:9</span>
             {fields.coverImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={fields.coverImage} alt="" className="w-full aspect-[16/9] object-cover border border-iron mb-3" />
@@ -299,6 +299,9 @@ export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
                 event.currentTarget.value = "";
               }} />
             </label>
+            <p className="mt-3 text-[9px] leading-relaxed tracking-[0.16em] text-steel">
+              USE A WIDE TECHNICAL VISUAL OR ARCHITECTURE FRAME.
+            </p>
           </div>
           {fields.coverImage ? <EditorField label="COVER ALT TEXT" value={fields.coverAlt} onChange={(value) => updateField("coverAlt", value)} /> : null}
           <label className="flex items-center gap-3 text-[10px] tracking-[0.2em] text-ash">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LegacyPostBody, PostDocumentBody } from "@/components/blog/PostBody";
+import { PostContents } from "@/components/blog/PostContents";
 import { getPostHeadings } from "@/lib/postContent";
 import type { Post } from "@/lib/adminDashboardData";
 
@@ -54,43 +55,40 @@ export function PostArticle({
         </div>
       </header>
 
-      {post.coverImage ? (
-        <figure className="px-6 md:px-12 lg:px-24 mb-12">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={post.coverImage} alt={post.coverAlt ?? ""} className="article-cover" />
-        </figure>
-      ) : null}
+      <section className="article-layout px-6 md:px-12 lg:px-24 pb-20 grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,760px)_260px] gap-10 lg:gap-16">
+        {headings.length > 0 ? <PostContents headings={headings} /> : null}
 
-      <section className="px-6 md:px-12 lg:px-24 pb-20 grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,760px)_240px] gap-10 lg:gap-16">
-        <article className="min-w-0">
-          {post.bodyJson ? (
-            <PostDocumentBody document={post.bodyJson} />
-          ) : post.content ? (
-            <LegacyPostBody content={post.content} />
-          ) : (
-            <div className="article-prose">
-              <p>{post.excerpt}</p>
-              <p className="border border-iron bg-surface/40 p-6 text-smoke">
-                This legacy transmission has not yet been expanded into a full article.
-              </p>
-            </div>
-          )}
-        </article>
-
-        <aside className="hidden lg:block">
-          {headings.length > 0 ? (
-            <nav aria-label="Contents" className="sticky top-28 border-l border-iron pl-5">
-              <p className="text-[10px] tracking-[0.3em] text-steel mb-5">CONTENTS //</p>
-              <div className="space-y-3">
-                {headings.map((heading) => (
-                  <a key={heading.id} href={`#${heading.id}`} className="block text-[11px] leading-relaxed text-ash hover:text-ember">
-                    {heading.text}
-                  </a>
-                ))}
-              </div>
-            </nav>
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+          {post.coverImage ? (
+            <figure className="article-cover-frame mb-12">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={post.coverImage}
+                alt={post.coverAlt ?? ""}
+                className="article-cover"
+                width={1600}
+                height={900}
+                fetchPriority="high"
+                decoding="async"
+              />
+            </figure>
           ) : null}
-        </aside>
+
+          <article className="min-w-0">
+            {post.bodyJson ? (
+              <PostDocumentBody document={post.bodyJson} />
+            ) : post.content ? (
+              <LegacyPostBody content={post.content} />
+            ) : (
+              <div className="article-prose">
+                <p>{post.excerpt}</p>
+                <p className="border border-iron bg-surface/40 p-6 text-smoke">
+                  This legacy transmission has not yet been expanded into a full article.
+                </p>
+              </div>
+            )}
+          </article>
+        </div>
       </section>
 
       {!preview ? (

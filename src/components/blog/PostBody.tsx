@@ -53,8 +53,10 @@ export function PostDocumentBody({ document }: { document: PostDocument }) {
       const caption = String(node.attrs?.caption ?? "");
       return (
         <figure key={key}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt={alt} loading="lazy" />
+          <div className="article-media-frame">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt={alt} width={1600} height={1000} loading="lazy" decoding="async" className="article-media" />
+          </div>
           {caption ? <figcaption>{caption}</figcaption> : null}
         </figure>
       );
@@ -76,7 +78,7 @@ export function LegacyPostBody({ content }: { content: string }) {
             : <span>{children}</span>,
           img: ({ src, alt }) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={src ?? ""} alt={alt ?? ""} loading="lazy" />
+            <img src={src ?? ""} alt={alt ?? ""} width={1600} height={1000} loading="lazy" decoding="async" className="article-media article-media-legacy" />
           ),
         }}
       >

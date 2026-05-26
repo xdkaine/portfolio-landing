@@ -1,15 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { listPublishedPosts, listPublishedTags } from "@/lib/postEditorial";
+import { createPublicPageMetadata } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: "Transmissions | Journal",
-  description: "Writing on design, engineering, performance, and systems.",
-  alternates: { canonical: "/blog" },
+  ...createPublicPageMetadata({
+    title: "Transmissions | Journal",
+    description:
+      "Notes from the build on systems, interfaces, experiments, engineering, and the decisions behind them.",
+    path: "/blog",
+    imageAlt: "Transmissions journal of engineering and interface notes.",
+  }),
+  alternates: {
+    canonical: "/blog",
+    types: {
+      "application/rss+xml": [
+        { url: "/feed.xml", title: "Transmissions RSS Feed" },
+      ],
+    },
+  },
 };
 
 export default async function BlogPage({

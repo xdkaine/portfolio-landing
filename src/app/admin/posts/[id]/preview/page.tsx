@@ -3,11 +3,12 @@ import { notFound, redirect } from "next/navigation";
 import { PostArticle } from "@/components/blog/PostArticle";
 import { verifySession } from "@/lib/auth";
 import { getAdminPostById } from "@/lib/postEditorial";
+import { PRIVATE_ROUTE_ROBOTS } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export const metadata: Metadata = {
   title: "Private Transmission Preview",
-  robots: { index: false, follow: false },
+  robots: PRIVATE_ROUTE_ROBOTS,
 };
 
 export default async function PreviewPostPage({

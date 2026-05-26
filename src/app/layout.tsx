@@ -6,6 +6,7 @@ import { TitleTypewriter } from "@/components/TitleTypewriter";
 import { LinkClickTracker } from "@/components/LinkClickTracker";
 import { BackgroundContextMenu } from "@/components/BackgroundContextMenu";
 import { parseBrandAliases } from "@/lib/brandAliases";
+import { DEFAULT_SOCIAL_IMAGE } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
 import "./globals.css";
 
@@ -74,18 +75,33 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(siteUrl),
     title: fullTitle,
     description: settings.siteDescription,
-    alternates: { canonical: "/" },
+    applicationName: `${settings.siteName} Portfolio`,
+    authors: [{ name: settings.siteName, url: siteUrl }],
+    creator: settings.siteName,
+    publisher: settings.siteName,
+    referrer: "strict-origin-when-cross-origin",
+    alternates: {
+      canonical: "/",
+      types: {
+        "application/rss+xml": [
+          { url: "/feed.xml", title: `${settings.siteName} Transmissions RSS Feed` },
+        ],
+      },
+    },
     openGraph: {
       title: fullTitle,
       description: settings.siteDescription,
       url: siteUrl,
       siteName: settings.siteName,
+      locale: "en_US",
       type: "website",
+      images: [DEFAULT_SOCIAL_IMAGE],
     },
     twitter: {
       card: "summary_large_image",
       title: fullTitle,
       description: settings.siteDescription,
+      images: [DEFAULT_SOCIAL_IMAGE],
     },
     verification: googleVerification
       ? {

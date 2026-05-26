@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const loadPost = cache(getPublishedPostBySlug);
+const loadSiteSettings = cache(getSiteSettings);
 
 export async function generateMetadata({
   params,
@@ -16,20 +17,27 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = await loadPost(slug);
+  const [post, settings] = await Promise.all([
+    loadPost(slug),
+    loadSiteSettings(),
+  ]);
   if (!post) return {};
 
   return {
     title: `${post.title} | Transmissions`,
     description: post.excerpt,
+    authors: [{ name: settings.siteName }],
     alternates: { canonical: `/blog/${post.slug}` },
     openGraph: {
       type: "article",
       title: post.title,
       description: post.excerpt,
       url: `/blog/${post.slug}`,
+      siteName: settings.siteName,
       publishedTime: post.publishedAt ?? undefined,
       modifiedTime: post.updatedAt,
+      authors: [settings.siteName],
+      section: "Transmissions",
       tags: post.tags,
       images: [{ url: `/blog/${post.slug}/opengraph-image` }],
     },
@@ -52,7 +60,7 @@ export default async function BlogPostPage({
   if (!post) notFound();
 
   const [settings, connections] = await Promise.all([
-    getSiteSettings(),
+    loadSiteSettings(),
     getPostConnections(post.id, post.tags),
   ]);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://phao.dev";

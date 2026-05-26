@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { createPublicPageMetadata } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPublicPageMetadata({
   title: "Privacy Policy",
-  description: "Privacy policy and data handling practices.",
-};
+  description: "Privacy policy and data handling practices for this portfolio website and its contact form.",
+  path: "/privacy",
+  imageAlt: "Privacy policy for this portfolio website.",
+});
 
 export default async function PrivacyPage() {
   const settings = await getSiteSettings();
@@ -49,4 +52,3 @@ export default async function PrivacyPage() {
     </section>
   );
 }
-

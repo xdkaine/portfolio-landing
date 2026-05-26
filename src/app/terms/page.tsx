@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { createPublicPageMetadata } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPublicPageMetadata({
   title: "Terms of Service",
-  description: "Terms and conditions for using this website.",
-};
+  description: "Terms and conditions for using this portfolio website and viewing its published content.",
+  path: "/terms",
+  imageAlt: "Terms of service for this portfolio website.",
+});
 
 export default async function TermsPage() {
   const settings = await getSiteSettings();
@@ -49,4 +52,3 @@ export default async function TermsPage() {
     </section>
   );
 }
-
