@@ -2,6 +2,7 @@ import {
   DEFAULT_SITE_SETTINGS,
   type SiteSettings,
 } from "@/lib/siteSettings-schema";
+import type { PostDocument } from "@/lib/postContent";
 
 export interface Project {
   id: string;
@@ -44,11 +45,18 @@ export interface Post {
   slug: string;
   title: string;
   excerpt: string;
-  content?: string;
+  content?: string | null;
+  bodyJson?: PostDocument | null;
   date: string;
   readTime: string;
   tags: string[];
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   published: boolean;
+  publishedAt?: string | null;
+  coverImage?: string | null;
+  coverAlt?: string | null;
+  featured: boolean;
+  needsContent?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -82,7 +90,6 @@ export interface AdminDashboardData {
 }
 
 export type EditableProject = Partial<Project> & { id?: string };
-export type EditablePost = Partial<Post> & { id?: string };
 
 export async function fetchAdminDashboardData(): Promise<AdminDashboardData> {
   const [
@@ -93,7 +100,7 @@ export async function fetchAdminDashboardData(): Promise<AdminDashboardData> {
     linkClicksResponse,
   ] = await Promise.all([
     fetch("/api/projects"),
-    fetch("/api/posts?all=true"),
+    fetch("/api/admin/posts"),
     fetch("/api/contact"),
     fetch("/api/settings?all=true"),
     fetch("/api/analytics/link-click"),
@@ -143,22 +150,6 @@ export async function saveProjectRecord(project: EditableProject): Promise<boole
 
 export async function deleteProjectRecord(id: string): Promise<boolean> {
   const response = await fetch(`/api/projects/${id}`, { method: "DELETE" });
-  return response.ok;
-}
-
-export async function savePostRecord(post: EditablePost): Promise<boolean> {
-  const method = post.id ? "PUT" : "POST";
-  const url = post.id ? `/api/posts/${post.id}` : "/api/posts";
-  const response = await fetch(url, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(post),
-  });
-  return response.ok;
-}
-
-export async function deletePostRecord(id: string): Promise<boolean> {
-  const response = await fetch(`/api/posts/${id}`, { method: "DELETE" });
   return response.ok;
 }
 

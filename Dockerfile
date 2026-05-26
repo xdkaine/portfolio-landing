@@ -55,7 +55,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public-seed
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma artifacts needed at runtime
+# Include Prisma tooling so the same immutable image can run migrate deploy.
+COPY --from=prisma --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=prisma /app/src/generated ./src/generated
 COPY prisma ./prisma
 COPY prisma.config.ts ./

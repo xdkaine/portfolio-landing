@@ -1,10 +1,46 @@
-import { getSiteSettings } from "@/lib/siteSettings";
-import { getPostByIdOrSlug } from "@/lib/postEditorial";
+import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import { PostArticle } from "@/components/blog/PostArticle";
+import { getPostConnections, getPublishedPostBySlug } from "@/lib/postEditorial";
+import { getSiteSettings } from "@/lib/siteSettings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const loadPost = cache(getPublishedPostBySlug);
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await loadPost(slug);
+  if (!post) return {};
+
+  return {
+    title: `${post.title} | Transmissions`,
+    description: post.excerpt,
+    alternates: { canonical: `/blog/${post.slug}` },
+    openGraph: {
+      type: "article",
+      title: post.title,
+      description: post.excerpt,
+      url: `/blog/${post.slug}`,
+      publishedTime: post.publishedAt ?? undefined,
+      modifiedTime: post.updatedAt,
+      tags: post.tags,
+      images: [{ url: `/blog/${post.slug}/opengraph-image` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt,
+      images: [`/blog/${post.slug}/opengraph-image`],
+    },
+  };
+}
 
 export default async function BlogPostPage({
   params,
@@ -12,74 +48,41 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const settings = await getSiteSettings();
-
-  let post: Awaited<ReturnType<typeof getPostByIdOrSlug>> = null;
-  try {
-    post = await getPostByIdOrSlug(slug);
-  } catch {
-    // DB not available.
-  }
-
+  const post = await loadPost(slug);
   if (!post) notFound();
+
+  const [settings, connections] = await Promise.all([
+    getSiteSettings(),
+    getPostConnections(post.id, post.tags),
+  ]);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://phao.dev";
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt,
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt,
+    mainEntityOfPage: `${siteUrl}/blog/${post.slug}`,
+    image: post.coverImage ? `${siteUrl}${post.coverImage}` : undefined,
+    author: { "@type": "Person", name: settings.siteName },
+  };
 
   return (
     <>
-      <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
-        <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
-          <Link href="/" className="hover:text-bone transition-colors">{settings.siteName}</Link>
-          <span>/</span>
-          <Link href="/blog" className="hover:text-bone transition-colors">TRANSMISSIONS</Link>
-          <span>/</span>
-          <span className="text-ember">{slug.toUpperCase()}</span>
-        </div>
-
-        <h1 className="font-display text-4xl md:text-6xl lg:text-7xl tracking-tighter mb-6">
-          {post.title}
-        </h1>
-
-        <div className="flex flex-wrap items-center gap-6 mb-8 border-b border-iron pb-6">
-          <span className="text-steel text-[10px] tracking-[0.2em]">{post.date}</span>
-          <span className="text-iron text-[10px] tracking-[0.15em]">{post.readTime}</span>
-          <div className="flex gap-2">
-            {post.tags.map((tag) => (
-              <span
-                key={tag}
-                className="text-[10px] tracking-[0.1em] text-smoke border border-iron px-2 py-0.5"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="px-6 md:px-12 lg:px-24 pb-24 max-w-3xl">
-        {"content" in post && typeof post.content === "string" && post.content ? (
-          <div className="text-ash text-sm leading-relaxed whitespace-pre-wrap">
-            {post.content}
-          </div>
-        ) : (
-          <div className="text-ash text-sm leading-relaxed">
-            <p className="mb-6">{post.excerpt}</p>
-            <div className="border-2 border-iron p-8 text-center">
-              <p className="text-steel text-[10px] tracking-[0.3em] mb-2">FULL CONTENT</p>
-              <p className="text-bone text-xs">
-                This post is still being written. Check back soon.
-              </p>
-            </div>
-          </div>
-        )}
-
-        <div className="mt-16 border-t border-iron pt-8">
-          <Link
-            href="/blog"
-            className="text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors"
-          >
-            &larr; ALL TRANSMISSIONS
-          </Link>
-        </div>
-      </section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+        }}
+      />
+      <PostArticle
+        post={post}
+        siteName={settings.siteName}
+        previous={connections.previous}
+        next={connections.next}
+        related={connections.related}
+      />
     </>
   );
 }

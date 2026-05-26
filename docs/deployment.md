@@ -1,6 +1,25 @@
 # Deployment
 
-Production deploys are designed for free home infrastructure. GitHub Actions builds the app image, then a self-hosted GitHub Actions runner on the home server restarts Docker Compose locally.
+Production deploys are designed for free home infrastructure. GitHub Actions builds the app image, then a self-hosted GitHub Actions runner on the home server updates the application stack locally. The runner is a separate long-lived service and is not restarted for normal application deploys.
+
+## Normal Operation
+
+Leave both Compose projects running on the home server:
+
+- `portfolio-runner` keeps the GitHub Actions runner online so it can receive deploy jobs.
+- The application stack keeps the website, database, proxy, and tunnel running.
+
+After the one-time runner setup, pushing to `main` is enough to deploy. GitHub Actions builds a new immutable app image, and the online runner pulls that image and runs `docker compose up -d` for the application stack. The `app` container is recreated when its image changes, so a brief application handoff on deployment is expected; the runner should remain online throughout.
+
+Changes to `compose.runner.yml` cannot apply themselves: a runner cannot safely replace the container executing its current deploy job. When runner configuration changes, copy or sync the updated file and recreate the runner once from the host. After that one-time step, manual restarts should not be required for ordinary pushes.
+
+After an updated runner definition is present on the host and no deploy job is running, apply it once:
+
+```bash
+cd /mnt/Orion/docker/stacks/production-portfolio
+docker compose -f compose.runner.yml --env-file .env.runner up -d --force-recreate github-runner
+docker compose -f compose.runner.yml --env-file .env.runner ps
+```
 
 ## Pipeline
 
@@ -11,7 +30,7 @@ The workflow in `.github/workflows/ci.yml` does the following:
 3. On `main`, builds the Docker image and pushes two GHCR tags:
    - `ghcr.io/xdkaine/portfolio-landing:<commit-sha>`
    - `ghcr.io/xdkaine/portfolio-landing:latest`
-4. On `main`, runs the deploy job on the home server runner labeled `truenas` and `portfolio-landing`, syncs the compose/nginx deployment bundle into `DEPLOY_PATH`, pulls the exact commit image, restarts the stack, and verifies `/api/health` from inside the app container.
+4. On `main`, runs the deploy job on the home server runner labeled `truenas` and `portfolio-landing`, syncs the compose/nginx deployment bundle into `DEPLOY_PATH`, backs up a running PostgreSQL database, runs pending Prisma migrations through the `migrate` service, restarts the stack, and verifies `/api/health` from inside the app container.
 
 This avoids paid hosting and does not require opening inbound SSH to GitHub Actions. The runner maintains an outbound connection to GitHub instead.
 
@@ -201,7 +220,22 @@ From the server deploy directory, deploy any previously built image tag with:
 
 ```bash
 APP_IMAGE=ghcr.io/xdkaine/portfolio-landing:<commit-sha> docker compose pull app
-APP_IMAGE=ghcr.io/xdkaine/portfolio-landing:<commit-sha> docker compose up -d --no-build --remove-orphans
+APP_IMAGE=ghcr.io/xdkaine/portfolio-landing:<commit-sha> docker compose up -d --no-build
 ```
 
 The `pgdata` and `public_data` Docker volumes are kept across deploys.
+
+## Database Migration Baseline
+
+The application now uses checked-in Prisma migrations. Production was originally initialized without migration history, so baseline it once before the first deployment containing the blog publication studio. Copy the updated `docker-compose.yml` to the host first so the `migrate` service exists there:
+
+```bash
+cd /mnt/Orion/docker/stacks/production-portfolio
+mkdir -p backups
+docker compose exec -T db pg_dump -U xtomm portfolio | gzip > backups/portfolio-before-prisma-baseline.sql.gz
+APP_IMAGE=ghcr.io/xdkaine/portfolio-landing:<new-image-tag> docker compose pull migrate
+APP_IMAGE=ghcr.io/xdkaine/portfolio-landing:<new-image-tag> docker compose run --rm migrate npx prisma migrate resolve --applied 20260525000000_baseline
+APP_IMAGE=ghcr.io/xdkaine/portfolio-landing:<new-image-tag> docker compose run --rm migrate npx prisma migrate deploy
+```
+
+After the baseline is registered, routine deployments run `prisma migrate deploy` automatically before the updated app starts. Uploaded project and post media remain in the existing `public_data` volume.

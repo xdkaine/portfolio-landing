@@ -55,19 +55,31 @@ enum ProjectStatus {
 // ─── Blog Posts ────────────────────────────────────────
 
 model Post {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  title     String
-  excerpt   String
-  content   String?  @db.Text
-  date      String
-  readTime  String   @map("read_time")
-  tags      String[]
-  published Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  title       String
+  excerpt     String
+  content     String?    @db.Text
+  bodyJson    Json?      @map("body_json")
+  date        String
+  readTime    String     @map("read_time")
+  tags        String[]
+  published   Boolean    @default(true)
+  status      PostStatus @default(DRAFT)
+  publishedAt DateTime?  @map("published_at")
+  coverImage  String?    @map("cover_image")
+  coverAlt    String?    @map("cover_alt")
+  featured    Boolean    @default(false)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
 
   @@map("posts")
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
 
 // ─── Contact Messages ──────────────────────────────────

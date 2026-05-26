@@ -536,7 +536,7 @@ export default function Home() {
           {recentPosts.map((post, i) => (
             <ScrollReveal key={post.id} delay={i * 0.08}>
               <Link
-                href="/blog"
+                href={`/blog/${post.slug}`}
                 className="group block border-b border-iron py-6 transition-transform duration-500 hover:translate-x-4"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-8">

@@ -48,6 +48,10 @@ html[data-theme="light"] {
   font-family: var(--font-anton), Impact, "Arial Black", sans-serif;
 }
 
+@utility font-editorial {
+  font-family: var(--font-literata), Georgia, serif;
+}
+
 /* ===================================================
    BASE STYLES
    =================================================== */
@@ -246,6 +250,262 @@ html.bg-paused .grain-overlay {
 /* Tabular nums for counters */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* ===================================================
+   TRANSMISSIONS EDITORIAL SYSTEM
+   =================================================== */
+
+.post-action,
+.post-tool {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-iron);
+  padding: 0.48rem 0.72rem;
+  color: var(--color-ash);
+  font-size: 0.625rem;
+  letter-spacing: 0.17em;
+  transition: border-color 180ms ease, color 180ms ease, background-color 180ms ease;
+}
+
+.post-action:hover,
+.post-tool:hover {
+  border-color: var(--color-ember);
+  color: var(--color-ember);
+}
+
+.post-action:disabled,
+.post-tool:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.blog-filter {
+  border: 1px solid var(--color-iron);
+  padding: 0.45rem 0.75rem;
+  color: var(--color-ash);
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  transition: border-color 180ms ease, color 180ms ease;
+}
+
+.blog-filter:hover {
+  color: var(--color-ember);
+  border-color: var(--color-ember);
+}
+
+.article-deck {
+  color: var(--color-smoke);
+  font-family: var(--font-literata), Georgia, serif;
+  font-size: clamp(1.02rem, 1.7vw, 1.18rem);
+  line-height: 1.75;
+}
+
+.article-prose {
+  color: var(--color-smoke);
+  font-family: var(--font-literata), Georgia, serif;
+  font-size: clamp(1rem, 1.4vw, 1.1rem);
+  line-height: 1.88;
+}
+
+.article-prose p,
+.article-prose ul,
+.article-prose ol,
+.article-prose blockquote,
+.article-prose pre,
+.article-prose figure {
+  margin-bottom: 1.6rem;
+}
+
+.article-prose h2,
+.article-prose h3,
+.article-prose h4 {
+  color: var(--color-bone);
+  font-family: var(--font-anton), Impact, "Arial Black", sans-serif;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+  scroll-margin-top: 6.5rem;
+}
+
+.article-prose h2 {
+  font-size: clamp(2rem, 4vw, 2.7rem);
+  margin: 3.4rem 0 1.25rem;
+}
+
+.article-prose h3 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin: 2.8rem 0 1rem;
+}
+
+.article-prose h4 {
+  font-size: 1.3rem;
+  margin: 2.3rem 0 0.85rem;
+}
+
+.article-prose a {
+  color: var(--color-ember);
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+}
+
+.article-prose ul,
+.article-prose ol {
+  padding-left: 1.5rem;
+}
+
+.article-prose ul {
+  list-style: square;
+}
+
+.article-prose ol {
+  list-style: decimal;
+}
+
+.article-prose blockquote {
+  border-left: 2px solid var(--color-ember);
+  color: var(--color-bone);
+  font-style: italic;
+  padding: 0.3rem 0 0.3rem 1.4rem;
+}
+
+.article-prose code {
+  background: var(--color-surface);
+  border: 1px solid var(--color-iron);
+  color: var(--color-bone);
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 0.86em;
+  padding: 0.1rem 0.3rem;
+}
+
+.article-prose pre {
+  background: var(--color-surface);
+  border: 1px solid var(--color-iron);
+  overflow-x: auto;
+  padding: 1.25rem;
+}
+
+.article-prose pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.article-prose hr {
+  border: 0;
+  border-top: 1px solid var(--color-iron);
+  margin: 3rem 0;
+}
+
+.article-prose img {
+  border: 1px solid var(--color-iron);
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.article-prose figcaption {
+  border-left: 1px solid var(--color-iron);
+  color: var(--color-ash);
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  margin-top: 0.75rem;
+  padding-left: 0.75rem;
+}
+
+.editor-label {
+  color: var(--color-steel);
+  display: block;
+  font-size: 0.625rem;
+  letter-spacing: 0.2em;
+  margin-bottom: 0.5rem;
+}
+
+.editor-control {
+  background: var(--color-void);
+  border: 1px solid var(--color-iron);
+  color: var(--color-bone);
+  font-size: 0.75rem;
+  padding: 0.7rem 0.75rem;
+  width: 100%;
+}
+
+.post-editor .ProseMirror {
+  color: var(--color-smoke);
+  font-family: var(--font-literata), Georgia, serif;
+  font-size: 1.04rem;
+  line-height: 1.85;
+  min-height: min(72vh, 780px);
+  padding: clamp(1.5rem, 5vw, 3.5rem);
+}
+
+.post-editor .ProseMirror:focus {
+  outline: none;
+}
+
+.post-editor .ProseMirror p {
+  margin-bottom: 1.25rem;
+}
+
+.post-editor .ProseMirror h2,
+.post-editor .ProseMirror h3,
+.post-editor .ProseMirror h4 {
+  color: var(--color-bone);
+  font-family: var(--font-anton), Impact, sans-serif;
+  line-height: 1.16;
+  margin: 2.2rem 0 1rem;
+}
+
+.post-editor .ProseMirror h2 {
+  font-size: 2.2rem;
+}
+
+.post-editor .ProseMirror h3 {
+  font-size: 1.7rem;
+}
+
+.post-editor .ProseMirror h4 {
+  font-size: 1.35rem;
+}
+
+.post-editor .ProseMirror ul,
+.post-editor .ProseMirror ol {
+  margin: 0 0 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.post-editor .ProseMirror ul {
+  list-style: square;
+}
+
+.post-editor .ProseMirror ol {
+  list-style: decimal;
+}
+
+.post-editor .ProseMirror blockquote {
+  border-left: 2px solid var(--color-ember);
+  margin: 1.5rem 0;
+  padding-left: 1.2rem;
+}
+
+.post-editor .ProseMirror pre {
+  background: var(--color-void);
+  border: 1px solid var(--color-iron);
+  color: var(--color-smoke);
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 0.76rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  padding: 1rem;
+}
+
+.post-editor .ProseMirror img {
+  border: 1px solid var(--color-iron);
+  display: block;
+  margin: 1.5rem 0 0.5rem;
+  max-height: 520px;
+  object-fit: cover;
+  width: 100%;
 }
 
 /* ===================================================

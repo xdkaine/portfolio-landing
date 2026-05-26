@@ -120,6 +120,8 @@ async function main() {
       date: "2025.11.15",
       readTime: "5 MIN",
       tags: ["DESIGN", "OPINION"],
+      status: "PUBLISHED" as const,
+      publishedAt: new Date("2025-11-15T00:00:00.000Z"),
       published: true,
     },
     {
@@ -130,6 +132,8 @@ async function main() {
       date: "2025.10.22",
       readTime: "12 MIN",
       tags: ["WEBGL", "TUTORIAL"],
+      status: "PUBLISHED" as const,
+      publishedAt: new Date("2025-10-22T00:00:00.000Z"),
       published: true,
     },
     {
@@ -140,6 +144,8 @@ async function main() {
       date: "2025.09.08",
       readTime: "8 MIN",
       tags: ["RUST", "LANGUAGES"],
+      status: "PUBLISHED" as const,
+      publishedAt: new Date("2025-09-08T00:00:00.000Z"),
       published: true,
     },
     {
@@ -150,6 +156,8 @@ async function main() {
       date: "2025.08.14",
       readTime: "6 MIN",
       tags: ["PERFORMANCE", "ENGINEERING"],
+      status: "PUBLISHED" as const,
+      publishedAt: new Date("2025-08-14T00:00:00.000Z"),
       published: true,
     },
     {
@@ -160,6 +168,8 @@ async function main() {
       date: "2025.07.30",
       readTime: "7 MIN",
       tags: ["DESIGN", "OPINION"],
+      status: "PUBLISHED" as const,
+      publishedAt: new Date("2025-07-30T00:00:00.000Z"),
       published: true,
     },
   ];

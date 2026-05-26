@@ -186,6 +186,13 @@ jobs:
           cd "$DEPLOY_PATH"
 
           APP_IMAGE="$APP_IMAGE" compose pull app
+          APP_IMAGE="$APP_IMAGE" compose pull migrate
+
+          install -d "$DEPLOY_PATH/backups"
+          if APP_IMAGE="$APP_IMAGE" compose ps --status running --services | grep -qx db; then
+            APP_IMAGE="$APP_IMAGE" compose exec -T db pg_dump -U xtomm portfolio | gzip > "$DEPLOY_PATH/backups/portfolio-before-${GITHUB_SHA}.sql.gz"
+          fi
+
           APP_IMAGE="$APP_IMAGE" compose up -d --no-build
 
           attempt=1

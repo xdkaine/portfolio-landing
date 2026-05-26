@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, DM_Mono } from "next/font/google";
+import { Anton, DM_Mono, Literata } from "next/font/google";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { TitleTypewriter } from "@/components/TitleTypewriter";
@@ -20,6 +20,12 @@ const dmMono = DM_Mono({
   weight: ["300", "400", "500"],
   subsets: ["latin"],
   variable: "--font-dm-mono",
+  display: "swap",
+});
+
+const literata = Literata({
+  subsets: ["latin"],
+  variable: "--font-literata",
   display: "swap",
 });
 
@@ -108,7 +114,7 @@ export default async function RootLayout({
   ].filter((social) => Boolean(social.href));
 
   return (
-    <html lang="en" className={`${anton.variable} ${dmMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${anton.variable} ${dmMono.variable} ${literata.variable}`} suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#0A0A0A" data-site-theme-color="true" />
         <script dangerouslySetInnerHTML={{ __html: themeInitializationScript }} />

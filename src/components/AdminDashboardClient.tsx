@@ -14,15 +14,13 @@ import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AdminMetricsDashboard } from "@/components/AdminMetricsDashboard";
+import { AdminPostLibrary } from "@/components/AdminPostLibrary";
 import {
-  deletePostRecord,
   deleteProjectRecord,
   fetchAdminDashboardData,
-  savePostRecord,
   saveProjectRecord,
   saveSiteSettings,
   type ContactMsg,
-  type EditablePost,
   type EditableProject,
   type LinkClickMetric,
   type Post,
@@ -68,9 +66,7 @@ export default function AdminDashboardClient() {
   const [orderingProjects, setOrderingProjects] = useState(false);
   const [projectOrderNotice, setProjectOrderNotice] = useState("");
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [showNewProject, setShowNewProject] = useState(false);
-  const [showNewPost, setShowNewPost] = useState(false);
 
   // Shared unmount guard for async callbacks (fetching + save actions).
   useEffect(() => {
@@ -159,21 +155,6 @@ export default function AdminDashboardClient() {
   const deleteProject = async (id: string) => {
     if (!confirm("Delete this project?")) return;
     if (await deleteProjectRecord(id)) {
-      await fetchData();
-    }
-  };
-
-  const savePost = async (post: EditablePost) => {
-    if (await savePostRecord(post)) {
-      setEditingPost(null);
-      setShowNewPost(false);
-      await fetchData();
-    }
-  };
-
-  const deletePost = async (id: string) => {
-    if (!confirm("Delete this post?")) return;
-    if (await deletePostRecord(id)) {
       await fetchData();
     }
   };
@@ -548,73 +529,7 @@ export default function AdminDashboardClient() {
 
             {/* Posts */}
             {tab === "posts" && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <span className="text-ash text-xs tracking-widest">
-                    {posts.length} posts
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowNewPost(true);
-                      setEditingPost(null);
-                    }}
-                    className="text-[10px] tracking-[0.2em] text-ember border border-ember px-4 py-2 hover:bg-ember hover:text-void transition-colors"
-                  >
-                    + NEW POST
-                  </button>
-                </div>
-
-                {(showNewPost || editingPost) && (
-                  <PostForm
-                    key={editingPost?.id ?? "new-post"}
-                    post={editingPost}
-                    onSave={savePost}
-                    onCancel={() => {
-                      setEditingPost(null);
-                      setShowNewPost(false);
-                    }}
-                  />
-                )}
-
-                <div className="space-y-1">
-                  {posts.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center justify-between py-3 border-b border-iron group hover:bg-surface/50 px-2 -mx-2"
-                    >
-                      <div className="flex items-center gap-4 min-w-0">
-                        <span className="text-steel text-[10px] w-20">{p.date}</span>
-                        <span className="text-bone text-sm truncate">{p.title}</span>
-                        {!p.published && (
-                          <span className="text-[9px] text-amber-400 tracking-widest border border-amber-400/30 px-1.5 py-0.5">
-                            DRAFT
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingPost(p);
-                            setShowNewPost(false);
-                          }}
-                          className="text-[10px] text-ash hover:text-bone px-2 py-1"
-                        >
-                          EDIT
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deletePost(p.id)}
-                          className="text-[10px] text-ash hover:text-red-400 px-2 py-1"
-                        >
-                          DELETE
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <AdminPostLibrary posts={posts} onRefresh={fetchData} />
             )}
 
             {/* Messages */}
@@ -1389,84 +1304,6 @@ function ProjectForm({
           inputMode="url"
           autoComplete="url"
         />
-      </div>
-      <div className="flex gap-3 mt-6">
-        <button type="button" onClick={handleSave} className="text-[10px] tracking-[0.2em] bg-ember text-void px-6 py-2 hover:bg-ember/80 transition-colors">
-          SAVE
-        </button>
-        <button type="button" onClick={onCancel} className="text-[10px] tracking-[0.2em] text-ash hover:text-bone px-6 py-2 border border-iron">
-          CANCEL
-        </button>
-      </div>
-    </motion.div>
-  );
-}
-
-// Post editor follows the same pattern: text inputs in UI, normalized payload on save.
-
-function PostForm({
-  post,
-  onSave,
-  onCancel,
-}: {
-  post: Post | null;
-  onSave: (p: EditablePost) => void;
-  onCancel: () => void;
-}) {
-  const [form, setForm] = useState({
-    id: post?.id || "",
-    slug: post?.slug || "",
-    title: post?.title || "",
-    excerpt: post?.excerpt || "",
-    content: post?.content || "",
-    date: post?.date || new Date().toISOString().slice(0, 10).replace(/-/g, "."),
-    readTime: post?.readTime || "5 MIN",
-    tags: post?.tags?.join(", ") || "",
-    published: post?.published ?? true,
-  });
-
-  const handleSave = () => {
-    onSave({
-      ...(form.id ? { id: form.id } : {}),
-      slug: form.slug,
-      title: form.title,
-      excerpt: form.excerpt,
-      content: form.content || undefined,
-      date: form.date,
-      readTime: form.readTime,
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-      published: form.published,
-    });
-  };
-
-  return (
-    <motion.div
-      className="border-2 border-iron p-6 mb-6"
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      <div className="grid md:grid-cols-2 gap-4">
-        <AdminTextInput label="SLUG" value={form.slug} onChange={(v) => setForm({ ...form, slug: v })} placeholder="my-post-slug" />
-        <AdminTextInput label="TITLE" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="POST TITLE" />
-        <div className="md:col-span-2">
-          <AdminTextarea label="EXCERPT" value={form.excerpt} onChange={(v) => setForm({ ...form, excerpt: v })} placeholder="Brief description…" />
-        </div>
-        <div className="md:col-span-2">
-          <AdminTextarea label="CONTENT (optional, markdown)" value={form.content} onChange={(v) => setForm({ ...form, content: v })} placeholder="Full post content…" rows={10} />
-        </div>
-        <AdminTextInput label="DATE" value={form.date} onChange={(v) => setForm({ ...form, date: v })} placeholder="2025.11.15" inputMode="numeric" />
-        <AdminTextInput label="READ TIME" value={form.readTime} onChange={(v) => setForm({ ...form, readTime: v })} placeholder="5 MIN" />
-        <AdminTextInput label="TAGS (comma separated)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} placeholder="DESIGN, OPINION" />
-        <label className="flex items-center gap-3 pt-6 cursor-pointer">
-          <input
-            type="checkbox"
-            name="published"
-            checked={form.published}
-            onChange={(e) => setForm({ ...form, published: e.target.checked })}
-            className="accent-ember"
-          />
-          <span className="text-[10px] tracking-[0.2em] text-ash">PUBLISHED</span>
-        </label>
       </div>
       <div className="flex gap-3 mt-6">
         <button type="button" onClick={handleSave} className="text-[10px] tracking-[0.2em] bg-ember text-void px-6 py-2 hover:bg-ember/80 transition-colors">
