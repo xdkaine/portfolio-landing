@@ -57,12 +57,12 @@ export function PostArticle({
       {post.coverImage ? (
         <figure className="px-6 md:px-12 lg:px-24 mb-12">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={post.coverImage} alt={post.coverAlt ?? ""} className="w-full max-h-[68vh] object-cover border border-iron" />
+          <img src={post.coverImage} alt={post.coverAlt ?? ""} className="article-cover" />
         </figure>
       ) : null}
 
-      <section className="px-6 md:px-12 lg:px-24 pb-20 grid lg:grid-cols-[minmax(0,760px)_240px] gap-10 lg:gap-16">
-        <article>
+      <section className="px-6 md:px-12 lg:px-24 pb-20 grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,760px)_240px] gap-10 lg:gap-16">
+        <article className="min-w-0">
           {post.bodyJson ? (
             <PostDocumentBody document={post.bodyJson} />
           ) : post.content ? (

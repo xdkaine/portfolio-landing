@@ -273,7 +273,7 @@ export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
       {message ? <p className="border border-iron bg-surface/30 px-4 py-3 text-xs text-amber-400 mb-6" aria-live="polite">{message}</p> : null}
 
       <div className="grid xl:grid-cols-[minmax(0,1fr)_340px] gap-6">
-        <div className="border border-iron bg-surface/20">
+        <div className="min-w-0 border border-iron bg-surface/20">
           <EditorToolbar editor={editor} uploading={uploading} onImage={insertImage} />
           <EditorContent editor={editor} className="post-editor" />
         </div>
