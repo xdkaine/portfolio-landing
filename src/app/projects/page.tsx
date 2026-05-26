@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import Link from "next/link";
-import { ScrollReveal } from "@/components/ScrollReveal";
+import { JourneyAwareScrollReveal, ScrollReveal } from "@/components/ScrollReveal";
 import { JourneyLink } from "@/components/JourneyTransition";
 import { normalizeProjectStatus } from "@/lib/projectPresentation";
 import { useSiteSettings } from "@/lib/useSiteSettings";
@@ -208,7 +208,7 @@ export default function ProjectsPage() {
           </div>
         ) : (
           projects.map((project, i) => (
-            <ScrollReveal key={project.id} delay={i * 0.06}>
+            <JourneyAwareScrollReveal key={project.id} delay={i * 0.06}>
               <JourneyLink
                 href={`/projects/${project.number}`}
                 className="group block"
@@ -219,6 +219,7 @@ export default function ProjectsPage() {
                   marker: `CASE FILE // ${project.number}`,
                   detail: `${project.status} / ${project.year}`,
                 }}
+                arrivalTarget={{ href: "/projects", key: project.number }}
               >
                 <motion.article
                   className="border-b border-iron py-6 hover:bg-surface transition-colors duration-300 [content-visibility:auto] [contain-intrinsic-size:1px_168px]"
@@ -336,7 +337,7 @@ export default function ProjectsPage() {
                   </div>
                 </motion.article>
               </JourneyLink>
-            </ScrollReveal>
+            </JourneyAwareScrollReveal>
           ))
         )}
 

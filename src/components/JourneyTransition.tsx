@@ -8,13 +8,18 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ComponentProps,
   type MouseEventHandler,
   type ReactNode,
 } from "react";
-import { shouldAnimateJourneyActivation } from "@/lib/journeyTransition";
+import {
+  shouldAnimateJourneyActivation,
+  transformFrameWithinStage,
+  type JourneyFrame,
+} from "@/lib/journeyTransition";
 
 export interface JourneyLinkData {
   kind: "project" | "transmission";
@@ -25,22 +30,19 @@ export interface JourneyLinkData {
   imageAlt?: string | null;
 }
 
+type JourneyDirection = "open" | "return";
+
 interface JourneyDescriptor extends JourneyLinkData {
   href: string;
-}
-
-interface Frame {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
+  direction: JourneyDirection;
+  targetKey?: string;
 }
 
 interface JourneyState {
   descriptor: JourneyDescriptor;
-  origin: Frame;
-  stage: Frame;
-  arrival?: Frame;
+  origin: JourneyFrame;
+  stage: JourneyFrame;
+  arrival?: JourneyFrame;
   sourcePath: string;
   destinationPath: string;
   keyboardInitiated: boolean;
@@ -51,10 +53,14 @@ interface JourneyTransitionContextValue {
   active: boolean;
   beginJourney: (
     descriptor: JourneyDescriptor,
-    origin: Frame,
+    origin: JourneyFrame,
     keyboardInitiated: boolean,
   ) => boolean;
-  registerArrival: (href: string, target: HTMLElement) => void;
+  registerArrival: (
+    href: string,
+    target: HTMLElement,
+    targetKey?: string,
+  ) => void;
 }
 
 const JourneyTransitionContext =
@@ -64,7 +70,7 @@ function destinationPathFor(href: string): string {
   return href.split(/[?#]/, 1)[0] || "/";
 }
 
-function frameFromRect(rect: DOMRect): Frame {
+function frameFromRect(rect: DOMRect): JourneyFrame {
   return {
     top: rect.top,
     left: rect.left,
@@ -73,7 +79,7 @@ function frameFromRect(rect: DOMRect): Frame {
   };
 }
 
-function stageFrame(): Frame {
+function stageFrame(): JourneyFrame {
   const margin = window.innerWidth < 768 ? 16 : 48;
   const top = window.innerWidth < 768 ? 74 : 86;
 
@@ -88,21 +94,31 @@ function stageFrame(): Frame {
 function HandoffCard({
   descriptor,
   phase,
+  stageHeight,
 }: {
   descriptor: JourneyDescriptor;
   phase: JourneyState["phase"];
+  stageHeight: number;
 }) {
   const isTransmission = descriptor.kind === "transmission";
+  const isReturn = descriptor.direction === "return";
+  const scanStart = Math.round(stageHeight * 0.09);
+  const scanEnd = Math.round(stageHeight * 0.92);
 
   return (
-    <div className="relative h-full overflow-hidden border border-ember bg-void shadow-[0_0_0_1px_var(--color-ember),0_28px_100px_rgba(0,0,0,0.48)]">
+    <div className="relative h-full overflow-hidden border border-ember bg-void shadow-[0_0_0_1px_var(--color-ember),0_20px_62px_rgba(0,0,0,0.38)]">
       <motion.div
-        className="absolute left-0 right-0 h-px bg-ember/75"
-        initial={{ top: "9%", opacity: 0 }}
+        className="absolute left-0 right-0 top-0 h-px bg-ember/75 will-change-transform"
+        initial={{ y: scanStart, opacity: 0 }}
         animate={
           phase === "resolving"
             ? { opacity: 0 }
-            : { top: ["9%", "92%"], opacity: [0, 1, 0.35] }
+            : {
+                y: isReturn
+                  ? [scanEnd, scanStart]
+                  : [scanStart, scanEnd],
+                opacity: [0, 1, 0.35],
+              }
         }
         transition={{ duration: 0.56, ease: "easeInOut" }}
       />
@@ -130,7 +146,7 @@ function HandoffCard({
             <img
               src={descriptor.imageSrc}
               alt={descriptor.imageAlt ?? ""}
-              className="h-full w-full object-cover grayscale"
+              className="h-full w-full object-cover"
             />
           </div>
         ) : null}
@@ -139,12 +155,22 @@ function HandoffCard({
           <div className="flex items-center justify-between gap-5 text-[9px] tracking-[0.3em] text-ember md:text-[10px]">
             <span>{descriptor.marker}</span>
             <span className="hidden text-steel sm:inline">
-              {isTransmission ? "RECEIVING" : "ACCESSING"}
+              {isReturn
+                ? "FILING"
+                : isTransmission
+                  ? "RECEIVING"
+                  : "ACCESSING"}
             </span>
           </div>
           <div className="py-8">
             <p className="mb-4 text-[9px] tracking-[0.34em] text-steel">
-              {isTransmission ? "TRANSMISSION RECORD" : "PROJECT RECORD"}
+              {isReturn
+                ? isTransmission
+                  ? "CLOSING TRANSMISSION"
+                  : "CLOSING CASE FILE"
+                : isTransmission
+                  ? "TRANSMISSION RECORD"
+                  : "PROJECT RECORD"}
             </p>
             <h2 className="font-display text-4xl leading-[0.94] tracking-tight text-bone sm:text-6xl lg:text-7xl">
               {descriptor.title}
@@ -152,7 +178,9 @@ function HandoffCard({
           </div>
           <div className="flex items-center justify-between gap-4 border-t border-iron pt-5 text-[9px] tracking-[0.2em] text-steel md:text-[10px]">
             <span>{descriptor.detail}</span>
-            <span className="text-ember">OPENING //////////</span>
+            <span className="text-ember">
+              {isReturn ? "RETURN TO INDEX //" : "OPENING //////////"}
+            </span>
           </div>
         </div>
       </motion.div>
@@ -201,7 +229,7 @@ export function JourneyTransitionProvider({ children }: { children: ReactNode })
   const beginJourney = useCallback(
     (
       descriptor: JourneyDescriptor,
-      origin: Frame,
+      origin: JourneyFrame,
       keyboardInitiated: boolean,
     ) => {
       if (journeyRef.current) return false;
@@ -225,13 +253,16 @@ export function JourneyTransitionProvider({ children }: { children: ReactNode })
   );
 
   const registerArrival = useCallback(
-    (href: string, target: HTMLElement) => {
+    (href: string, target: HTMLElement, targetKey?: string) => {
       const current = journeyRef.current;
       if (
         !current ||
         current.phase !== "waiting" ||
         !navigationStartedRef.current ||
-        current.destinationPath !== destinationPathFor(href)
+        current.destinationPath !== destinationPathFor(href) ||
+        (current.descriptor.targetKey
+          ? current.descriptor.targetKey !== targetKey
+          : Boolean(targetKey))
       ) {
         return;
       }
@@ -241,9 +272,9 @@ export function JourneyTransitionProvider({ children }: { children: ReactNode })
         releaseTimerRef.current = null;
       }
 
-      focusTargetRef.current = target.querySelector<HTMLElement>(
-        "[data-journey-focus]",
-      );
+      focusTargetRef.current = target.matches("[data-journey-focus]")
+        ? target
+        : target.querySelector<HTMLElement>("[data-journey-focus]");
       updateJourney({
         ...current,
         arrival: frameFromRect(target.getBoundingClientRect()),
@@ -280,7 +311,7 @@ export function JourneyTransitionProvider({ children }: { children: ReactNode })
         if (waiting?.phase === "waiting") {
           updateJourney({ ...waiting, arrival: waiting.stage, phase: "resolving" });
         }
-      }, 240);
+      }, current.descriptor.direction === "return" ? 850 : 240);
       return;
     }
 
@@ -293,8 +324,10 @@ export function JourneyTransitionProvider({ children }: { children: ReactNode })
     if (!journey) return;
 
     const overflow = document.body.style.overflow;
+    document.documentElement.classList.add("journey-transition-active");
     document.body.style.overflow = "hidden";
     return () => {
+      document.documentElement.classList.remove("journey-transition-active");
       document.body.style.overflow = overflow;
     };
   }, [journey]);
@@ -311,42 +344,61 @@ export function JourneyTransitionProvider({ children }: { children: ReactNode })
     [],
   );
 
-  const value: JourneyTransitionContextValue = {
-    active: Boolean(journey),
-    beginJourney,
-    registerArrival,
-  };
+  const journeyActive = Boolean(journey);
+  const value = useMemo<JourneyTransitionContextValue>(
+    () => ({
+      active: journeyActive,
+      beginJourney,
+      registerArrival,
+    }),
+    [beginJourney, journeyActive, registerArrival],
+  );
   const destinationFrame = journey?.arrival ?? journey?.stage;
+  const originTransform = journey
+    ? transformFrameWithinStage(journey.stage, journey.origin)
+    : null;
+  const destinationTransform =
+    journey && destinationFrame
+      ? transformFrameWithinStage(journey.stage, destinationFrame)
+      : null;
 
   return (
     <JourneyTransitionContext.Provider value={value}>
       {children}
       <div className="sr-only" aria-live="polite">
-        {journey ? `Opening ${journey.descriptor.title}` : ""}
+        {journey
+          ? `${journey.descriptor.direction === "return" ? "Returning from" : "Opening"} ${journey.descriptor.title}`
+          : ""}
       </div>
-      {journey && destinationFrame ? (
+      {journey && destinationFrame && originTransform && destinationTransform ? (
         <div className="pointer-events-auto fixed inset-0 z-[10002]" aria-hidden="true">
           <motion.div
-            className="absolute inset-0 bg-void/92 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-void/94"
             initial={{ opacity: 0 }}
             animate={{ opacity: journey.phase === "resolving" ? 0 : 1 }}
             transition={{ duration: journey.phase === "resolving" ? 0.22 : 0.16 }}
           />
           <motion.div
-            className="absolute"
+            className="absolute will-change-transform [contain:layout_paint]"
+            style={{
+              top: journey.stage.top,
+              left: journey.stage.left,
+              width: journey.stage.width,
+              height: journey.stage.height,
+              transformOrigin: "top left",
+            }}
             initial={{
-              top: journey.origin.top,
-              left: journey.origin.left,
-              width: journey.origin.width,
-              height: journey.origin.height,
+              x: originTransform.x,
+              y: originTransform.y,
+              scaleX: originTransform.scaleX,
+              scaleY: originTransform.scaleY,
             }}
             animate={{
-              top: destinationFrame.top,
-              left: destinationFrame.left,
-              width: destinationFrame.width,
-              height: destinationFrame.height,
+              x: destinationTransform.x,
+              y: destinationTransform.y,
+              scaleX: destinationTransform.scaleX,
+              scaleY: destinationTransform.scaleY,
               opacity: journey.phase === "resolving" ? 0 : 1,
-              scale: journey.phase === "resolving" ? 1.01 : 1,
             }}
             transition={{
               duration: journey.phase === "resolving" ? 0.24 : 0.44,
@@ -354,7 +406,11 @@ export function JourneyTransitionProvider({ children }: { children: ReactNode })
             }}
             onAnimationComplete={handlePanelAnimationComplete}
           >
-            <HandoffCard descriptor={journey.descriptor} phase={journey.phase} />
+            <HandoffCard
+              descriptor={journey.descriptor}
+              phase={journey.phase}
+              stageHeight={journey.stage.height}
+            />
           </motion.div>
         </div>
       ) : null}
@@ -366,16 +422,32 @@ type JourneyLinkProps = Omit<ComponentProps<typeof Link>, "href" | "onClick"> & 
   href: string;
   journey: JourneyLinkData;
   onClick?: MouseEventHandler<HTMLAnchorElement>;
+  arrivalTarget?: { href: string; key: string };
+  direction?: JourneyDirection;
+  targetKey?: string;
 };
 
 export function JourneyLink({
   href,
   journey,
   onClick,
+  arrivalTarget,
+  direction = "open",
+  targetKey,
   ...linkProps
 }: JourneyLinkProps) {
   const context = useContext(JourneyTransitionContext);
   const reducedMotion = useReducedMotion();
+  const linkRef = useRef<HTMLAnchorElement>(null);
+  const arrivalHref = arrivalTarget?.href;
+  const arrivalKey = arrivalTarget?.key;
+
+  useEffect(() => {
+    const target = linkRef.current;
+    if (target && arrivalHref && arrivalKey) {
+      context?.registerArrival(arrivalHref, target, arrivalKey);
+    }
+  }, [arrivalHref, arrivalKey, context]);
 
   const handleClick: MouseEventHandler<HTMLAnchorElement> = (event) => {
     onClick?.(event);
@@ -399,7 +471,7 @@ export function JourneyLink({
     }
 
     const started = context.beginJourney(
-      { ...journey, href },
+      { ...journey, href, direction, targetKey },
       frameFromRect(event.currentTarget.getBoundingClientRect()),
       event.detail === 0,
     );
@@ -409,7 +481,19 @@ export function JourneyLink({
     }
   };
 
-  return <Link {...linkProps} href={href} onClick={handleClick} />;
+  return (
+    <Link
+      {...linkProps}
+      ref={linkRef}
+      href={href}
+      onClick={handleClick}
+      data-journey-focus={arrivalTarget ? "" : undefined}
+    />
+  );
+}
+
+export function JourneyReturnLink(props: JourneyLinkProps) {
+  return <JourneyLink {...props} direction="return" />;
 }
 
 export function JourneyArrivalTarget({

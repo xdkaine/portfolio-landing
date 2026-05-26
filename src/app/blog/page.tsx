@@ -99,11 +99,21 @@ export default async function BlogPage({
               imageSrc: featured.coverImage,
               imageAlt: featured.coverAlt,
             }}
+            arrivalTarget={{ href: "/blog", key: featured.slug }}
           >
-            <div className="h-64 md:h-80 lg:h-[26rem] bg-surface overflow-hidden">
+            <div className="relative h-64 md:h-80 lg:h-[26rem] bg-surface overflow-hidden">
               {featured.coverImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={featured.coverImage} alt={featured.coverAlt ?? ""} className="w-full h-full object-contain grayscale group-hover:grayscale-0 transition-all duration-500" />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={featured.coverImage} alt={featured.coverAlt ?? ""} className="w-full h-full object-contain grayscale" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={featured.coverImage}
+                    alt=""
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 h-full w-full object-contain opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                  />
+                </>
               ) : (
                 <div className="h-full grid place-items-center font-display text-6xl text-iron">01//</div>
               )}
@@ -135,6 +145,7 @@ export default async function BlogPage({
                 imageSrc: post.coverImage,
                 imageAlt: post.coverAlt,
               }}
+              arrivalTarget={{ href: "/blog", key: post.slug }}
             >
               {post.coverImage ? (
                 // eslint-disable-next-line @next/next/no-img-element

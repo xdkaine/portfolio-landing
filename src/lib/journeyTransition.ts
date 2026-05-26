@@ -11,6 +11,35 @@ export interface JourneyActivationInput {
   download?: boolean;
 }
 
+export interface JourneyFrame {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+export interface JourneyFrameTransform {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+}
+
+export function transformFrameWithinStage(
+  stage: JourneyFrame,
+  frame: JourneyFrame,
+): JourneyFrameTransform {
+  const stageWidth = Math.max(stage.width, 1);
+  const stageHeight = Math.max(stage.height, 1);
+
+  return {
+    x: frame.left - stage.left,
+    y: frame.top - stage.top,
+    scaleX: Math.max(frame.width, 1) / stageWidth,
+    scaleY: Math.max(frame.height, 1) / stageHeight,
+  };
+}
+
 export function shouldAnimateJourneyActivation(
   input: JourneyActivationInput,
 ): boolean {

@@ -4,8 +4,14 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ScrollReveal } from "@/components/ScrollReveal";
-import { JourneyArrivalTarget } from "@/components/JourneyTransition";
+import {
+  JourneyAwareScrollReveal,
+  ScrollReveal,
+} from "@/components/ScrollReveal";
+import {
+  JourneyArrivalTarget,
+  JourneyReturnLink,
+} from "@/components/JourneyTransition";
 import { ZoomableImage } from "@/components/ui/ZoomableImage";
 import { mergeProjectCaseStudy, type ProjectCaseStudyViewModel } from "@/lib/projectCaseStudy";
 import {
@@ -182,21 +188,31 @@ export default async function ProjectDetailPage({
   return (
     <>
       <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
-        <ScrollReveal suppressDuringJourneyArrival>
+        <JourneyAwareScrollReveal>
           <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
             <Link href="/" className="hover:text-bone transition-colors">
               {settings.siteName}
             </Link>
             <span>/</span>
-            <Link href="/projects" className="hover:text-bone transition-colors">
+            <JourneyReturnLink
+              href="/projects"
+              className="hover:text-bone transition-colors"
+              targetKey={normalizedProject.number}
+              journey={{
+                kind: "project",
+                title: normalizedProject.title,
+                marker: `CASE FILE // ${normalizedProject.number}`,
+                detail: `${normalizedProject.status} / ${normalizedProject.year}`,
+              }}
+            >
               PROJECTS
-            </Link>
+            </JourneyReturnLink>
             <span>/</span>
             <span className="text-ember">{normalizedProject.number}</span>
           </div>
-        </ScrollReveal>
+        </JourneyAwareScrollReveal>
 
-        <ScrollReveal delay={0.05} suppressDuringJourneyArrival>
+        <JourneyAwareScrollReveal delay={0.05}>
           <JourneyArrivalTarget href={`/projects/${normalizedProject.number}`}>
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 mb-10">
               <div className="max-w-4xl">
@@ -218,9 +234,9 @@ export default async function ProjectDetailPage({
               </span>
             </div>
           </JourneyArrivalTarget>
-        </ScrollReveal>
+        </JourneyAwareScrollReveal>
 
-        <ScrollReveal delay={0.1} suppressDuringJourneyArrival>
+        <JourneyAwareScrollReveal delay={0.1}>
           <div className="flex flex-wrap gap-3 mb-8">
             {normalizedProject.tags.map((tag) => (
               <span
@@ -231,7 +247,7 @@ export default async function ProjectDetailPage({
               </span>
             ))}
           </div>
-        </ScrollReveal>
+        </JourneyAwareScrollReveal>
       </section>
 
       <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
@@ -480,12 +496,19 @@ export default async function ProjectDetailPage({
 
       <section className="px-6 md:px-12 lg:px-24 pb-24 pt-10 border-t border-iron">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-          <Link
+          <JourneyReturnLink
             href="/projects"
             className="text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors"
+            targetKey={normalizedProject.number}
+            journey={{
+              kind: "project",
+              title: normalizedProject.title,
+              marker: `CASE FILE // ${normalizedProject.number}`,
+              detail: `${normalizedProject.status} / ${normalizedProject.year}`,
+            }}
           >
             &larr; ALL PROJECTS
-          </Link>
+          </JourneyReturnLink>
 
           <div className="flex items-center gap-6 text-[10px] tracking-[0.2em]">
             {previousProject ? (

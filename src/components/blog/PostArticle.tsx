@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { JourneyArrivalTarget } from "@/components/JourneyTransition";
+import {
+  JourneyArrivalTarget,
+  JourneyReturnLink,
+} from "@/components/JourneyTransition";
 import { LegacyPostBody, PostDocumentBody } from "@/components/blog/PostBody";
 import { PostContents } from "@/components/blog/PostContents";
 import { getPostHeadings } from "@/lib/postContent";
@@ -27,6 +30,14 @@ export function PostArticle({
   related?: RelatedPost[];
 }) {
   const headings = getPostHeadings(post.bodyJson ?? null);
+  const returnJourney = {
+    kind: "transmission" as const,
+    title: post.title,
+    marker: "TRANSMISSION //",
+    detail: `${post.date} / ${post.readTime}`,
+    imageSrc: post.coverImage,
+    imageAlt: post.coverAlt,
+  };
 
   return (
     <>
@@ -39,7 +50,18 @@ export function PostArticle({
         <div className="text-steel text-[10px] tracking-[0.3em] flex flex-wrap items-center gap-3 mb-8">
           <Link href="/" className="hover:text-bone">{siteName}</Link>
           <span>/</span>
-          <Link href="/blog" className="hover:text-bone">TRANSMISSIONS</Link>
+          {preview ? (
+            <Link href="/blog" className="hover:text-bone">TRANSMISSIONS</Link>
+          ) : (
+            <JourneyReturnLink
+              href="/blog"
+              className="hover:text-bone"
+              targetKey={post.slug}
+              journey={returnJourney}
+            >
+              TRANSMISSIONS
+            </JourneyReturnLink>
+          )}
           <span>/</span>
           <span className="text-ember">{post.slug.toUpperCase()}</span>
         </div>
@@ -112,7 +134,14 @@ export function PostArticle({
             </div>
           ) : null}
           <div className="flex flex-col md:flex-row justify-between gap-6 text-[10px] tracking-[0.2em]">
-            <Link href="/blog" className="text-ash hover:text-ember">&larr; ALL TRANSMISSIONS</Link>
+            <JourneyReturnLink
+              href="/blog"
+              className="text-ash hover:text-ember"
+              targetKey={post.slug}
+              journey={returnJourney}
+            >
+              &larr; ALL TRANSMISSIONS
+            </JourneyReturnLink>
             <div className="flex gap-6">
               {previous ? <Link href={`/blog/${previous.slug}`} className="text-ash hover:text-ember">PREV: {previous.title}</Link> : null}
               {next ? <Link href={`/blog/${next.slug}`} className="text-ash hover:text-ember">NEXT: {next.title}</Link> : null}
