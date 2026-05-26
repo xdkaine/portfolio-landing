@@ -75,12 +75,12 @@ export default async function BlogPage({
       {featured ? (
         <section className="px-6 md:px-12 lg:px-24 pb-12">
           <Link href={`/blog/${featured.slug}`} className="group grid lg:grid-cols-[1.08fr_0.92fr] border border-iron bg-surface/20 hover:border-ember transition-colors">
-            <div className="min-h-60 lg:min-h-96 bg-surface overflow-hidden">
+            <div className="h-64 md:h-80 lg:h-[26rem] bg-surface overflow-hidden">
               {featured.coverImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={featured.coverImage} alt={featured.coverAlt ?? ""} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                <img src={featured.coverImage} alt={featured.coverAlt ?? ""} className="w-full h-full object-contain grayscale group-hover:grayscale-0 transition-all duration-500" />
               ) : (
-                <div className="h-full min-h-60 grid place-items-center font-display text-6xl text-iron">01//</div>
+                <div className="h-full grid place-items-center font-display text-6xl text-iron">01//</div>
               )}
             </div>
             <article className="p-6 md:p-10 flex flex-col justify-between">
