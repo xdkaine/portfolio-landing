@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { JourneyArrivalTarget } from "@/components/JourneyTransition";
 import { LegacyPostBody, PostDocumentBody } from "@/components/blog/PostBody";
 import { PostContents } from "@/components/blog/PostContents";
 import { getPostHeadings } from "@/lib/postContent";
@@ -42,12 +43,16 @@ export function PostArticle({
           <span>/</span>
           <span className="text-ember">{post.slug.toUpperCase()}</span>
         </div>
-        <div className="max-w-5xl">
-          <h1 className="font-display text-5xl md:text-7xl lg:text-[5.5rem] tracking-tighter leading-[0.95]">
+        <JourneyArrivalTarget href={`/blog/${post.slug}`} className="max-w-5xl">
+          <h1
+            className="font-display text-5xl md:text-7xl lg:text-[5.5rem] tracking-tighter leading-[0.95]"
+            data-journey-focus
+            tabIndex={-1}
+          >
             {post.title}
           </h1>
           <p className="article-deck mt-7 max-w-3xl">{post.excerpt}</p>
-        </div>
+        </JourneyArrivalTarget>
         <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-iron py-5 text-[10px] tracking-[0.18em]">
           <span className="text-steel">{post.date}</span>
           <span className="text-smoke">{post.readTime}</span>

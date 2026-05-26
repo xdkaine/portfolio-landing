@@ -5,6 +5,7 @@ import { cache } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import { JourneyArrivalTarget } from "@/components/JourneyTransition";
 import { ZoomableImage } from "@/components/ui/ZoomableImage";
 import { mergeProjectCaseStudy, type ProjectCaseStudyViewModel } from "@/lib/projectCaseStudy";
 import {
@@ -181,7 +182,7 @@ export default async function ProjectDetailPage({
   return (
     <>
       <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
-        <ScrollReveal>
+        <ScrollReveal suppressDuringJourneyArrival>
           <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
             <Link href="/" className="hover:text-bone transition-colors">
               {settings.siteName}
@@ -195,25 +196,31 @@ export default async function ProjectDetailPage({
           </div>
         </ScrollReveal>
 
-        <ScrollReveal delay={0.05}>
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 mb-10">
-            <div className="max-w-4xl">
-              <h1 className="font-display text-5xl md:text-7xl lg:text-8xl tracking-tighter">
-                {normalizedProject.title}
-              </h1>
-              <p className="text-bone/80 text-sm md:text-base leading-relaxed mt-6 max-w-3xl">
-                {mergedDeepDive.subtitle || normalizedProject.description}
-              </p>
+        <ScrollReveal delay={0.05} suppressDuringJourneyArrival>
+          <JourneyArrivalTarget href={`/projects/${normalizedProject.number}`}>
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 mb-10">
+              <div className="max-w-4xl">
+                <h1
+                  className="font-display text-5xl md:text-7xl lg:text-8xl tracking-tighter"
+                  data-journey-focus
+                  tabIndex={-1}
+                >
+                  {normalizedProject.title}
+                </h1>
+                <p className="text-bone/80 text-sm md:text-base leading-relaxed mt-6 max-w-3xl">
+                  {mergedDeepDive.subtitle || normalizedProject.description}
+                </p>
+              </div>
+              <span
+                className={`text-[10px] tracking-[0.15em] px-3 py-1 border shrink-0 mt-2 lg:mt-4 ${getStatusClass(normalizedProject.status)}`}
+              >
+                {normalizedProject.status}
+              </span>
             </div>
-            <span
-              className={`text-[10px] tracking-[0.15em] px-3 py-1 border shrink-0 mt-2 lg:mt-4 ${getStatusClass(normalizedProject.status)}`}
-            >
-              {normalizedProject.status}
-            </span>
-          </div>
+          </JourneyArrivalTarget>
         </ScrollReveal>
 
-        <ScrollReveal delay={0.1}>
+        <ScrollReveal delay={0.1} suppressDuringJourneyArrival>
           <div className="flex flex-wrap gap-3 mb-8">
             {normalizedProject.tags.map((tag) => (
               <span

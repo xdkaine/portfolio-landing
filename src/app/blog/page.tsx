@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { JourneyLink } from "@/components/JourneyTransition";
 import { listPublishedPosts, listPublishedTags } from "@/lib/postEditorial";
 import { createPublicPageMetadata } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
@@ -87,7 +88,18 @@ export default async function BlogPage({
 
       {featured ? (
         <section className="px-6 md:px-12 lg:px-24 pb-12">
-          <Link href={`/blog/${featured.slug}`} className="group grid lg:grid-cols-[1.08fr_0.92fr] border border-iron bg-surface/20 hover:border-ember transition-colors">
+          <JourneyLink
+            href={`/blog/${featured.slug}`}
+            className="group grid lg:grid-cols-[1.08fr_0.92fr] border border-iron bg-surface/20 hover:border-ember transition-colors"
+            journey={{
+              kind: "transmission",
+              title: featured.title,
+              marker: "FEATURED TRANSMISSION //",
+              detail: `${featured.date} / ${featured.readTime}`,
+              imageSrc: featured.coverImage,
+              imageAlt: featured.coverAlt,
+            }}
+          >
             <div className="h-64 md:h-80 lg:h-[26rem] bg-surface overflow-hidden">
               {featured.coverImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -104,14 +116,26 @@ export default async function BlogPage({
               </div>
               <span className="text-[10px] tracking-[0.2em] text-steel">{featured.date} / {featured.readTime}</span>
             </article>
-          </Link>
+          </JourneyLink>
         </section>
       ) : null}
 
       <section className="px-6 md:px-12 lg:px-24 pb-24">
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
           {remaining.map((post) => (
-            <Link key={post.id} href={`/blog/${post.slug}`} className="group border border-iron hover:border-ember bg-surface/15 transition-colors">
+            <JourneyLink
+              key={post.id}
+              href={`/blog/${post.slug}`}
+              className="group border border-iron hover:border-ember bg-surface/15 transition-colors"
+              journey={{
+                kind: "transmission",
+                title: post.title,
+                marker: "TRANSMISSION //",
+                detail: `${post.date} / ${post.readTime}`,
+                imageSrc: post.coverImage,
+                imageAlt: post.coverAlt,
+              }}
+            >
               {post.coverImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={post.coverImage} alt={post.coverAlt ?? ""} className="w-full aspect-[16/8] object-cover border-b border-iron" />
@@ -124,7 +148,7 @@ export default async function BlogPage({
                   {post.tags.map((tag) => <span key={tag} className="text-[9px] tracking-wider text-steel">{tag}</span>)}
                 </div>
               </article>
-            </Link>
+            </JourneyLink>
           ))}
         </div>
         {posts.length === 0 ? (

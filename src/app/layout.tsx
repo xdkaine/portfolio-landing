@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { TitleTypewriter } from "@/components/TitleTypewriter";
 import { LinkClickTracker } from "@/components/LinkClickTracker";
 import { BackgroundContextMenu } from "@/components/BackgroundContextMenu";
+import { JourneyTransitionProvider } from "@/components/JourneyTransition";
 import { parseBrandAliases } from "@/lib/brandAliases";
 import { DEFAULT_SOCIAL_IMAGE } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
@@ -148,17 +149,19 @@ export default async function RootLayout({
         />
         <LinkClickTracker />
         <BackgroundContextMenu />
-        <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
-        <main id="main-content" className="flex-1 scroll-mt-20">
-          {children}
-        </main>
-        <Footer
-          brandName={primaryBrandName}
-          brandAliases={brandAliases}
-          socials={footerSocials}
-          legalEffectiveDate={settings.legalEffectiveDate}
-          chucklesGifUrl={settings.footerChucklesGifUrl}
-        />
+        <JourneyTransitionProvider>
+          <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
+          <main id="main-content" className="flex-1 scroll-mt-20">
+            {children}
+          </main>
+          <Footer
+            brandName={primaryBrandName}
+            brandAliases={brandAliases}
+            socials={footerSocials}
+            legalEffectiveDate={settings.legalEffectiveDate}
+            chucklesGifUrl={settings.footerChucklesGifUrl}
+          />
+        </JourneyTransitionProvider>
         <div className="grain-overlay" aria-hidden="true" />
       </body>
     </html>
