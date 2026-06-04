@@ -131,7 +131,7 @@ export default async function RootLayout({
   ].filter((social) => Boolean(social.href));
 
   return (
-    <html lang="en" className={`${anton.variable} ${dmMono.variable} ${literata.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${anton.variable} ${dmMono.variable} ${literata.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#0A0A0A" data-site-theme-color="true" />
         <script dangerouslySetInnerHTML={{ __html: themeInitializationScript }} />
