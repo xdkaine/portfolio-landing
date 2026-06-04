@@ -45,3 +45,16 @@ test("deployment recreates nginx after syncing mounted config", () => {
     /compose up -d --no-build --force-recreate --no-deps nginx/,
   );
 });
+
+test("nginx re-resolves the app service after container replacement", () => {
+  assert.match(nginxConfig, /resolver\s+127\.0\.0\.11\s+valid=1s\s+ipv6=off;/);
+  assert.match(nginxConfig, /set\s+\$nextjs_upstream\s+http:\/\/app:3000;/);
+  assert.doesNotMatch(nginxConfig, /upstream\s+nextjs/);
+});
+
+test("deployment verifies app health through nginx", () => {
+  assert.match(
+    workflowConfig,
+    /compose exec -T nginx wget -q -O - http:\/\/127\.0\.0\.1\/api\/health \| grep -q '"status":"ok"'/,
+  );
+});
