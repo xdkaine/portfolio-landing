@@ -243,3 +243,7 @@ APP_IMAGE=ghcr.io/xdkaine/portfolio-landing:<new-image-tag> docker compose run -
 ```
 
 After the baseline is registered, routine deployments run `prisma migrate deploy` automatically as part of the stack update. New project and post media are written to `project_uploads` and `post_uploads`; existing media in `public_data` remains available through the read-only legacy fallback.
+
+## Seed Safety
+
+Do not run `npm run db:seed` against an existing production database. The seed script is only for explicit local bootstrap scenarios, and demo content is disabled unless `ALLOW_DEMO_SEED=true` is set.

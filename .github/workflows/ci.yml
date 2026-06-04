@@ -108,6 +108,7 @@ jobs:
             NEXT_PUBLIC_SITE_URL=${{ env.NEXT_PUBLIC_SITE_URL }}
             NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ env.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
             DATABASE_URL=${{ env.DATABASE_URL }}
+            APP_REVISION=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -185,6 +186,14 @@ jobs:
 
           cd "$DEPLOY_PATH"
 
+          case "$APP_IMAGE" in
+            ghcr.io/*:"$GITHUB_SHA") ;;
+            *)
+              echo "Refusing to deploy without the immutable GHCR image for this commit: $APP_IMAGE" >&2
+              exit 1
+              ;;
+          esac
+
           APP_IMAGE="$APP_IMAGE" compose pull app
           APP_IMAGE="$APP_IMAGE" compose pull migrate
 
@@ -200,14 +209,26 @@ jobs:
             exit 1
           fi
 
+          running_app_container="$(APP_IMAGE="$APP_IMAGE" compose ps -q app)"
+          running_app_image="$(docker inspect "$running_app_container" --format '{{.Config.Image}}')"
+          if [ "$running_app_image" != "$APP_IMAGE" ]; then
+            echo "App container is not running the image that was just built." >&2
+            echo "Expected: $APP_IMAGE" >&2
+            echo "Actual:   $running_app_image" >&2
+            exit 1
+          fi
+
           # nginx reads its config once at startup; the file is a bind mount
-          # that was just synced into place, so recreate only nginx to reload it.
-          APP_IMAGE="$APP_IMAGE" compose up -d --no-build --force-recreate --no-deps nginx
+          # that was just synced into place, so reload in place instead of
+          # restarting the proxy on every app deployment.
+          APP_IMAGE="$APP_IMAGE" compose exec -T nginx nginx -t
+          APP_IMAGE="$APP_IMAGE" compose exec -T nginx nginx -s reload
 
           attempt=1
           while [ "$attempt" -le 30 ]; do
-            if APP_IMAGE="$APP_IMAGE" compose exec -T app node -e "fetch('http://127.0.0.1:3000/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))" && \
-               APP_IMAGE="$APP_IMAGE" compose exec -T nginx wget -q -O - http://127.0.0.1/api/health | grep -q '"status":"ok"'; then
+            if APP_IMAGE="$APP_IMAGE" compose exec -T app node -e "const expected = process.env.APP_REVISION; fetch('http://127.0.0.1:3000/api/health').then((response) => response.json()).then((body) => process.exit(body.status === 'ok' && body.revision === expected ? 0 : 1)).catch(() => process.exit(1))" && \
+               APP_IMAGE="$APP_IMAGE" compose exec -T nginx wget -q -O - http://127.0.0.1/api/health | grep -q "\"revision\":\"$GITHUB_SHA\"" && \
+               curl -fsS "$NEXT_PUBLIC_SITE_URL/api/health" | grep -q "\"revision\":\"$GITHUB_SHA\""; then
               APP_IMAGE="$APP_IMAGE" compose ps
               exit 0
             fi

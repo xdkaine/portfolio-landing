@@ -5,6 +5,8 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import bcrypt from "bcryptjs";
 
 const connectionString = process.env.DATABASE_URL;
+const allowDemoSeed = process.env.ALLOW_DEMO_SEED === "true";
+const allowDefaultAdminSeed = process.env.ALLOW_DEFAULT_ADMIN_SEED === "true";
 
 if (!connectionString) {
   throw new Error("DATABASE_URL must be set to run the seed script.");
@@ -18,18 +20,31 @@ async function main() {
   console.log("Seeding database...");
 
   // Seed admin account used to access the dashboard.
-  const hashedPassword = await bcrypt.hash("admin123", 12);
-  await prisma.user.upsert({
-    where: { email: "admin@xtomm.dev" },
-    update: {},
-    create: {
-      email: "admin@xtomm.dev",
-      password: hashedPassword,
-      name: "XTOMM",
-      role: "ADMIN",
-    },
-  });
-  console.log("  Admin user created (admin@xtomm.dev / admin123)");
+  if (allowDefaultAdminSeed) {
+    const hashedPassword = await bcrypt.hash("admin123", 12);
+    await prisma.user.upsert({
+      where: { email: "admin@xtomm.dev" },
+      update: {},
+      create: {
+        email: "admin@xtomm.dev",
+        password: hashedPassword,
+        name: "XTOMM",
+        role: "ADMIN",
+      },
+    });
+    console.log("  Default admin ensured (admin@xtomm.dev / admin123)");
+  } else {
+    console.log(
+      "  Skipping default admin seed. Set ALLOW_DEFAULT_ADMIN_SEED=true to enable it.",
+    );
+  }
+
+  if (!allowDemoSeed) {
+    console.log(
+      "  Skipping demo content seed. Set ALLOW_DEMO_SEED=true to enable it.",
+    );
+    return;
+  }
 
   // Seed portfolio projects.
   const projectsData = [
@@ -104,7 +119,7 @@ async function main() {
   for (const project of projectsData) {
     await prisma.project.upsert({
       where: { number: project.number },
-      update: project,
+      update: {},
       create: project,
     });
   }
@@ -177,7 +192,7 @@ async function main() {
   for (const post of postsData) {
     await prisma.post.upsert({
       where: { slug: post.slug },
-      update: post,
+      update: {},
       create: post,
     });
   }
@@ -214,7 +229,7 @@ async function main() {
   for (const setting of settings) {
     await prisma.siteSetting.upsert({
       where: { key: setting.key },
-      update: { value: setting.value },
+      update: {},
       create: setting,
     });
   }

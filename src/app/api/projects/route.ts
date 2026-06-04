@@ -6,6 +6,9 @@ import {
   ProjectCatalogError,
 } from "@/lib/projectCatalog";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // Public: list all projects
 export async function GET() {
   try {

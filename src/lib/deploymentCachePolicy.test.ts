@@ -11,6 +11,14 @@ const workflowConfig = readFileSync(
   path.join(process.cwd(), ".github", "workflows", "ci.yml"),
   "utf8",
 );
+const projectApiRoute = readFileSync(
+  path.join(process.cwd(), "src", "app", "api", "projects", "route.ts"),
+  "utf8",
+);
+const projectApiDetailRoute = readFileSync(
+  path.join(process.cwd(), "src", "app", "api", "projects", "[id]", "route.ts"),
+  "utf8",
+);
 
 function locationBlock(location: string) {
   const escapedLocation = location.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -39,11 +47,10 @@ test("nginx prevents stale dynamic responses from browser or edge caches", () =>
   }
 });
 
-test("deployment recreates nginx after syncing mounted config", () => {
-  assert.match(
-    workflowConfig,
-    /compose up -d --no-build --force-recreate --no-deps nginx/,
-  );
+test("deployment reloads nginx in place after syncing mounted config", () => {
+  assert.match(workflowConfig, /compose exec -T nginx nginx -t/);
+  assert.match(workflowConfig, /compose exec -T nginx nginx -s reload/);
+  assert.doesNotMatch(workflowConfig, /force-recreate --no-deps nginx/);
 });
 
 test("nginx re-resolves the app service after container replacement", () => {
@@ -55,6 +62,25 @@ test("nginx re-resolves the app service after container replacement", () => {
 test("deployment verifies app health through nginx", () => {
   assert.match(
     workflowConfig,
-    /compose exec -T nginx wget -q -O - http:\/\/127\.0\.0\.1\/api\/health \| grep -q '"status":"ok"'/,
+    /compose exec -T nginx wget -q -O - http:\/\/127\.0\.0\.1\/api\/health \| grep -q "\\"revision\\":\\"\$GITHUB_SHA\\""/,
   );
+});
+
+test("deployment verifies the public route reaches the same revision", () => {
+  assert.match(
+    workflowConfig,
+    /curl -fsS "\$NEXT_PUBLIC_SITE_URL\/api\/health" \| grep -q "\\"revision\\":\\"\$GITHUB_SHA\\""/,
+  );
+});
+
+test("deployment refuses local fallback images in production", () => {
+  assert.match(workflowConfig, /Refusing to deploy without the immutable GHCR image/);
+  assert.match(workflowConfig, /running_app_image/);
+});
+
+test("project API routes opt out of Next route caching", () => {
+  for (const route of [projectApiRoute, projectApiDetailRoute]) {
+    assert.match(route, /export const dynamic = "force-dynamic";/);
+    assert.match(route, /export const revalidate = 0;/);
+  }
 });

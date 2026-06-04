@@ -36,6 +36,9 @@ ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY
 ARG DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
 ENV DATABASE_URL=$DATABASE_URL
 
+ARG APP_REVISION=local
+ENV APP_REVISION=$APP_REVISION
+
 RUN npm run build
 
 # ─── Stage 4: Production ─────────────────────────────
@@ -44,6 +47,9 @@ WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+
+ARG APP_REVISION=local
+ENV APP_REVISION=$APP_REVISION
 
 RUN addgroup -S -g 1001 nodejs && \
     adduser -S -u 1001 -G nodejs nextjs && \
