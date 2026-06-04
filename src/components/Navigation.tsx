@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, useScroll, useSpring, AnimatePresence } from "motion/react";
+import { motion, useReducedMotion, useScroll, useSpring, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
+import { PublicLink } from "@/components/PublicTransition";
 import { ThemeControl } from "@/components/ThemeControl";
 import { TypewriterText } from "@/components/TypewriterText";
 
@@ -30,6 +31,7 @@ export function Navigation({
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const shouldReduceMotion = Boolean(useReducedMotion());
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
@@ -58,21 +60,27 @@ export function Navigation({
   return (
     <>
       {/* Scroll Progress Bar */}
-      <motion.div
-        className="fixed top-0 left-0 right-0 h-0.5 bg-ember origin-left z-60"
-        style={{ scaleX }}
-      />
+      {shouldReduceMotion ? null : (
+        <motion.div
+          className="fixed top-0 left-0 right-0 h-0.5 bg-ember origin-left z-60"
+          style={{ scaleX }}
+        />
+      )}
 
       {/* Navigation Bar */}
       <motion.nav
         className="fixed top-0.5 left-0 right-0 z-50 h-16 border-b border-steel bg-void flex items-center justify-between px-6 md:px-12"
-        initial={{ opacity: 0 }}
+        initial={shouldReduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
+        transition={{
+          duration: shouldReduceMotion ? 0 : 0.5,
+          delay: shouldReduceMotion ? 0 : 0.3,
+        }}
       >
         {/* Logo */}
-        <Link
+        <PublicLink
           href="/"
+          intent="section"
           className="font-display text-xl md:text-2xl text-bone tracking-widest hover:text-ember transition-colors duration-300"
         >
           {brandAliases.length > 1 ? (
@@ -88,7 +96,7 @@ export function Navigation({
               cursorClassName="text-xs"
             />
           )}
-        </Link>
+        </PublicLink>
 
         {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-4 lg:gap-8">
@@ -96,24 +104,34 @@ export function Navigation({
             const isActive = pathname === link.href;
             const isAdminTab = link.href === "/admin";
             return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`relative group text-xs tracking-[0.2em] uppercase transition-colors duration-300 ${
-                  isAdminTab
-                    ? isActive
-                      ? "text-ember"
-                      : "text-ember/60 hover:text-ember"
-                    : isActive
-                      ? "text-ember"
-                      : "text-ash hover:text-bone"
-                }`}
-              >
-                {isAdminTab ? "⌘ ADMIN" : isActive ? `[${link.label}]` : link.label}
-                {!isActive && (
-                  <span className="absolute left-0 -bottom-1 w-full h-px bg-ember origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
-                )}
-              </Link>
+              isAdminTab ? (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`relative group text-xs tracking-[0.2em] uppercase transition-colors duration-300 ${
+                    isActive ? "text-ember" : "text-ember/60 hover:text-ember"
+                  }`}
+                >
+                  {"\u2318 ADMIN"}
+                  {!isActive && (
+                    <span className="absolute left-0 -bottom-1 w-full h-px bg-ember origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+                  )}
+                </Link>
+              ) : (
+                <PublicLink
+                  key={link.href}
+                  href={link.href}
+                  intent="section"
+                  className={`relative group text-xs tracking-[0.2em] uppercase transition-colors duration-300 ${
+                    isActive ? "text-ember" : "text-ash hover:text-bone"
+                  }`}
+                >
+                  {isActive ? `[${link.label}]` : link.label}
+                  {!isActive && (
+                    <span className="absolute left-0 -bottom-1 w-full h-px bg-ember origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+                  )}
+                </PublicLink>
+              )
             );
           })}
           <ThemeControl />
@@ -131,7 +149,7 @@ export function Navigation({
             animate={
               isOpen ? { rotate: 45, y: 5.5 } : { rotate: 0, y: 0 }
             }
-            transition={{ duration: 0.2 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
           />
           <motion.span
             className="w-6 h-0.5 bg-bone block"
@@ -140,14 +158,14 @@ export function Navigation({
                 ? { opacity: 0, scaleX: 0 }
                 : { opacity: 1, scaleX: 1 }
             }
-            transition={{ duration: 0.2 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
           />
           <motion.span
             className="w-6 h-0.5 bg-bone block"
             animate={
               isOpen ? { rotate: -45, y: -5.5 } : { rotate: 0, y: 0 }
             }
-            transition={{ duration: 0.2 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
           />
         </button>
       </motion.nav>
@@ -157,43 +175,62 @@ export function Navigation({
         {isOpen && (
           <motion.div
             className="fixed inset-0 bg-void z-40 flex origin-top flex-col items-start justify-center overscroll-contain px-12 md:hidden"
-            initial={{ opacity: 0, scaleY: 0 }}
+            initial={shouldReduceMotion ? false : { opacity: 0, scaleY: 0 }}
             animate={{ opacity: 1, scaleY: 1 }}
             exit={{ opacity: 0, scaleY: 0 }}
-            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{
+              duration: shouldReduceMotion ? 0 : 0.4,
+              ease: [0.16, 1, 0.3, 1],
+            }}
           >
             {navLinks.map((link, i) => {
               const isAdminTab = link.href === "/admin";
               return (
                 <motion.div
                   key={link.href}
-                  initial={{ opacity: 0, x: -40 }}
+                  initial={shouldReduceMotion ? false : { opacity: 0, x: -40 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -40 }}
-                  transition={{ delay: i * 0.08, duration: 0.4 }}
+                  transition={{
+                    delay: shouldReduceMotion ? 0 : i * 0.08,
+                    duration: shouldReduceMotion ? 0 : 0.4,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
                 >
-                  <Link
-                    href={link.href}
-                    onClick={() => setIsOpen(false)}
-                    className={`font-display text-5xl block py-2 transition-colors duration-300 ${
-                      isAdminTab
-                        ? "text-ember/60 hover:text-ember"
-                        : pathname === link.href
+                  {isAdminTab ? (
+                    <Link
+                      href={link.href}
+                      onClick={() => setIsOpen(false)}
+                      className="font-display text-5xl block py-2 transition-colors duration-300 text-ember/60 hover:text-ember"
+                    >
+                      {"\u2318 ADMIN"}
+                    </Link>
+                  ) : (
+                    <PublicLink
+                      href={link.href}
+                      intent="section"
+                      onClick={() => setIsOpen(false)}
+                      className={`font-display text-5xl block py-2 transition-colors duration-300 ${
+                        pathname === link.href
                           ? "text-ember"
                           : "text-bone hover:text-ember"
-                    }`}
-                  >
-                    {isAdminTab ? "⌘ ADMIN" : link.label}
-                  </Link>
+                      }`}
+                    >
+                      {link.label}
+                    </PublicLink>
+                  )}
                 </motion.div>
               );
             })}
 
             <motion.div
               className="absolute bottom-12 left-12 text-steel text-[10px] tracking-[0.3em] uppercase"
-              initial={{ opacity: 0 }}
+              initial={shouldReduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
+              transition={{
+                delay: shouldReduceMotion ? 0 : 0.5,
+                duration: shouldReduceMotion ? 0 : 0.25,
+              }}
             >
               NAVIGATION
             </motion.div>

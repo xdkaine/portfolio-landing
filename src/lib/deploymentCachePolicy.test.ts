@@ -1,0 +1,47 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+const nginxConfig = readFileSync(
+  path.join(process.cwd(), "nginx", "nginx.conf"),
+  "utf8",
+);
+const workflowConfig = readFileSync(
+  path.join(process.cwd(), ".github", "workflows", "ci.yml"),
+  "utf8",
+);
+
+function locationBlock(location: string) {
+  const escapedLocation = location.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = nginxConfig.match(
+    new RegExp(`location\\s+${escapedLocation}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`, "m"),
+  );
+  assert.ok(match, `expected nginx location ${location} to exist`);
+  return match[1];
+}
+
+test("nginx only caches fingerprinted Next.js build assets long-term", () => {
+  const staticBlock = locationBlock("/_next/static/");
+
+  assert.match(staticBlock, /Cache-Control\s+"public, max-age=31536000, immutable"/);
+  assert.doesNotMatch(locationBlock("/"), /max-age=31536000|immutable/);
+});
+
+test("nginx prevents stale dynamic responses from browser or edge caches", () => {
+  for (const location of ["/api/", "/"]) {
+    const block = locationBlock(location);
+
+    assert.match(block, /proxy_hide_header\s+Cache-Control;/);
+    assert.match(block, /Cache-Control\s+"no-store, no-cache, max-age=0, must-revalidate"/);
+    assert.match(block, /Pragma\s+"no-cache"/);
+    assert.match(block, /Expires\s+"0"/);
+  }
+});
+
+test("deployment recreates nginx after syncing mounted config", () => {
+  assert.match(
+    workflowConfig,
+    /compose up -d --no-build --force-recreate --no-deps nginx/,
+  );
+});

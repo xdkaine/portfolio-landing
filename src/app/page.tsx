@@ -2,8 +2,8 @@
 
 import { motion, useInView, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
+import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Marquee } from "@/components/Marquee";
 import { ScrollParallax, ScrollZoom } from "@/components/ScrollParallax";
@@ -45,6 +45,7 @@ function ScrollCounter({
   delay?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const shouldReduceMotion = Boolean(useReducedMotion());
   const isInView = useInView(ref, {
     once: true,
     margin: "0px 0px -18% 0px",
@@ -68,11 +69,11 @@ function ScrollCounter({
     <div ref={ref}>
       <div className="overflow-hidden relative">
         <motion.div
-          initial={hiddenValue}
-          animate={isInView ? visibleValue : hiddenValue}
+          initial={shouldReduceMotion ? false : hiddenValue}
+          animate={shouldReduceMotion || isInView ? visibleValue : hiddenValue}
           transition={{
-            duration: 1.05,
-            delay,
+            duration: shouldReduceMotion ? 0 : 1.05,
+            delay: shouldReduceMotion ? 0 : delay,
             ease: [0.16, 1, 0.3, 1],
           }}
           className="font-display text-5xl md:text-7xl lg:text-8xl text-bone tabular-nums leading-none will-change-transform"
@@ -80,25 +81,27 @@ function ScrollCounter({
           <span>{value}</span>
           <span className="text-ember">{suffix}</span>
         </motion.div>
-        <motion.div
-          aria-hidden="true"
-          initial={{ y: "0%" }}
-          animate={isInView ? { y: "110%" } : { y: "0%" }}
-          transition={{
-            duration: 0.95,
-            delay,
-            ease: [0.16, 1, 0.3, 1],
-          }}
-          className="pointer-events-none absolute inset-0 bg-linear-to-b from-void via-void/95 to-transparent"
-        />
+        {shouldReduceMotion ? null : (
+          <motion.div
+            aria-hidden="true"
+            initial={{ y: "0%" }}
+            animate={isInView ? { y: "110%" } : { y: "0%" }}
+            transition={{
+              duration: 0.95,
+              delay,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+            className="pointer-events-none absolute inset-0 bg-linear-to-b from-void via-void/95 to-transparent"
+          />
+        )}
       </div>
       <div className="overflow-hidden mt-3">
         <motion.span
-          initial={hiddenLabel}
-          animate={isInView ? visibleLabel : hiddenLabel}
+          initial={shouldReduceMotion ? false : hiddenLabel}
+          animate={shouldReduceMotion || isInView ? visibleLabel : hiddenLabel}
           transition={{
-            duration: 0.7,
-            delay: delay + 0.12,
+            duration: shouldReduceMotion ? 0 : 0.7,
+            delay: shouldReduceMotion ? 0 : delay + 0.12,
             ease: [0.16, 1, 0.3, 1],
           }}
           className="text-[10px] tracking-[0.3em] text-steel block will-change-transform"
@@ -120,19 +123,23 @@ function ProjectCard({
   index: number;
 }) {
   return (
-    <ScrollReveal delay={index * 0.08}>
-      <Link href={`/projects/${project.number}`} className="group block">
+    <ScrollReveal delay={index * 0.08} variant="row">
+      <PublicLink href={`/projects/${project.number}`} intent="drill-in" className="group block">
         <article className="border-b border-iron py-8 md:py-10 hover:bg-surface/50 transition-colors duration-500 -mx-6 md:-mx-12 lg:-mx-24 px-6 md:px-12 lg:px-24">
           <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-12">
             {/* Number + Title */}
             <div className="flex items-baseline gap-4 md:w-[45%] shrink-0">
-              <span className="font-display text-4xl md:text-6xl text-iron group-hover:text-ember transition-colors duration-500">
-                {project.number}
-              </span>
+              <PublicSharedElement kind="project-marker" itemKey={project.number}>
+                <span className="font-display text-4xl md:text-6xl text-iron group-hover:text-ember transition-colors duration-500">
+                  {project.number}
+                </span>
+              </PublicSharedElement>
               <div className="min-w-0">
-                <h3 className="font-display text-xl md:text-3xl text-bone group-hover:text-ember transition-colors duration-300 leading-tight">
-                  {project.title}
-                </h3>
+                <PublicSharedElement kind="project-title" itemKey={project.number}>
+                  <h3 className="font-display text-xl md:text-3xl text-bone group-hover:text-ember transition-colors duration-300 leading-tight">
+                    {project.title}
+                  </h3>
+                </PublicSharedElement>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {project.tags.map((tag) => (
                     <span
@@ -170,7 +177,7 @@ function ProjectCard({
             </div>
           </div>
         </article>
-      </Link>
+      </PublicLink>
     </ScrollReveal>
   );
 }
@@ -189,7 +196,7 @@ function CapabilityRow({
   index: number;
 }) {
   return (
-    <ScrollReveal delay={index * 0.06}>
+    <ScrollReveal delay={index * 0.06} variant="row">
       <div className="group grid grid-cols-[40px_1fr] md:grid-cols-[60px_200px_1fr] gap-4 md:gap-8 py-6 border-b border-iron items-baseline">
         <span className="text-iron text-[10px] tracking-[0.2em] font-display text-lg">
           {number}
@@ -362,17 +369,21 @@ export default function Home() {
           <div className="mt-6 flex items-center gap-2">
             <motion.p
               className="text-ash text-xs md:text-sm tracking-[0.3em] uppercase"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.9, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+              initial={shouldReduceMotion ? false : { clipPath: "inset(0 100% 0 0)", x: -18 }}
+              animate={{ clipPath: "inset(0)", x: 0 }}
+              transition={{
+                delay: shouldReduceMotion ? 0 : 0.55,
+                duration: shouldReduceMotion ? 0 : 0.72,
+                ease: [0.16, 1, 0.3, 1],
+              }}
             >
               {siteSettings.heroSubtitle}
             </motion.p>
             <motion.span
               className="cursor-blink text-ember text-xs md:text-sm"
-              initial={{ opacity: 0 }}
+              initial={shouldReduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.4 }}
+              transition={{ delay: shouldReduceMotion ? 0 : 1.1, duration: shouldReduceMotion ? 0 : 0.25 }}
             >
               &#9608;
             </motion.span>
@@ -382,9 +393,13 @@ export default function Home() {
           <ScrollParallax speed={-0.4} className="absolute bottom-8 left-6 md:left-12">
             <motion.div
               className="flex items-end gap-3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.8, duration: 0.6 }}
+              initial={shouldReduceMotion ? false : { clipPath: "inset(100% 0 0 0)" }}
+              animate={{ clipPath: "inset(0)" }}
+              transition={{
+                delay: shouldReduceMotion ? 0 : 0.9,
+                duration: shouldReduceMotion ? 0 : 0.62,
+                ease: [0.16, 1, 0.3, 1],
+              }}
             >
               <span className="text-steel text-[10px] tracking-[0.4em] uppercase [writing-mode:vertical-rl] rotate-180">
                 SCROLL
@@ -407,9 +422,13 @@ export default function Home() {
             className="absolute top-24 right-6 md:right-12 text-iron text-[10px] tracking-[0.2em] text-right hidden md:block"
           >
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2.0, duration: 0.5 }}
+              initial={shouldReduceMotion ? false : { clipPath: "inset(0 0 100% 0)", y: -10 }}
+              animate={{ clipPath: "inset(0)", y: 0 }}
+              transition={{
+                delay: shouldReduceMotion ? 0 : 0.95,
+                duration: shouldReduceMotion ? 0 : 0.62,
+                ease: [0.16, 1, 0.3, 1],
+              }}
             >
               <p>48.8566&deg; N</p>
               <p>2.3522&deg; E</p>
@@ -424,7 +443,7 @@ export default function Home() {
 
       {/* Selected work */}
       <section className="py-24 md:py-32 px-6 md:px-12 lg:px-24">
-        <ScrollReveal>
+        <ScrollReveal variant="headline">
           <div className="flex justify-between items-end border-b-2 border-bone pb-4 mb-4">
             <h2 className="font-display text-5xl md:text-7xl">
               SELECTED WORK
@@ -439,14 +458,15 @@ export default function Home() {
           <ProjectCard key={project.id} project={project} index={i} />
         ))}
 
-        <ScrollReveal delay={0.2}>
+        <ScrollReveal delay={0.2} variant="row">
           <div className="mt-12">
-            <Link
+            <PublicLink
               href="/projects"
+              intent="section"
               className="inline-flex items-center gap-2 text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors border-b border-transparent hover:border-ember pb-1"
             >
               VIEW ALL PROJECTS &rarr;
-            </Link>
+            </PublicLink>
           </div>
         </ScrollReveal>
       </section>
@@ -475,7 +495,7 @@ export default function Home() {
 
       {/* Capabilities */}
       <section className="py-24 md:py-32 px-6 md:px-12 lg:px-24 border-t border-iron">
-        <ScrollReveal>
+        <ScrollReveal variant="headline">
           <h2 className="font-display text-5xl md:text-7xl mb-12">
             CAPABILITIES
           </h2>
@@ -521,7 +541,7 @@ export default function Home() {
 
       {/* Latest BLOG */}
       <section className="py-24 md:py-32 px-6 md:px-12 lg:px-24 border-t border-iron">
-        <ScrollReveal>
+        <ScrollReveal variant="headline">
           <div className="flex justify-between items-end border-b-2 border-bone pb-4 mb-16">
             <h2 className="font-display text-5xl md:text-7xl">
               BLOG
@@ -534,9 +554,10 @@ export default function Home() {
 
         <div>
           {recentPosts.map((post, i) => (
-            <ScrollReveal key={post.id} delay={i * 0.08}>
-              <Link
+            <ScrollReveal key={post.id} delay={i * 0.08} variant="row">
+              <PublicLink
                 href={`/blog/${post.slug}`}
+                intent="drill-in"
                 className="group block border-b border-iron py-6 transition-transform duration-500 hover:translate-x-4"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-8">
@@ -544,9 +565,11 @@ export default function Home() {
                     <span className="text-steel text-[10px] tracking-[0.15em] shrink-0 pt-1 md:pt-0">
                       {post.date}
                     </span>
-                    <h3 className="text-sm md:text-base group-hover:text-ember transition-colors duration-300 truncate">
-                      {post.title}
-                    </h3>
+                    <PublicSharedElement kind="post-title" itemKey={post.slug}>
+                      <h3 className="text-sm md:text-base group-hover:text-ember transition-colors duration-300 truncate">
+                        {post.title}
+                      </h3>
+                    </PublicSharedElement>
                   </div>
                   <div className="flex items-center gap-4 md:gap-6 shrink-0 ml-auto">
                     <div className="hidden md:flex gap-2">
@@ -567,37 +590,39 @@ export default function Home() {
                     </span>
                   </div>
                 </div>
-              </Link>
+              </PublicLink>
             </ScrollReveal>
           ))}
         </div>
 
-        <ScrollReveal delay={0.2}>
-          <Link
+        <ScrollReveal delay={0.2} variant="row">
+          <PublicLink
             href="/blog"
+            intent="section"
             className="mt-12 inline-flex items-center gap-2 text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors border-b border-transparent hover:border-ember pb-1"
           >
             ALL BLOGS &rarr;
-          </Link>
+          </PublicLink>
         </ScrollReveal>
       </section>
 
       {/* About teaser: fade-in is more reliable than scroll-text-reveal near page end. */}
       <section className="py-32 md:py-48 px-6 md:px-12 lg:px-24 border-t border-iron relative">
-        <ScrollReveal>
+        <ScrollReveal variant="headline">
           <p className="font-display text-4xl md:text-6xl lg:text-7xl leading-[1.1] max-w-5xl">
             BUILDING SYSTEMS & SOLUTIONS
             <br />
             <span className="text-ember">FOR EVERYONE.</span>
           </p>
         </ScrollReveal>
-        <ScrollReveal delay={0.15}>
-          <Link
+        <ScrollReveal delay={0.15} variant="row">
+          <PublicLink
             href="/about"
+            intent="section"
             className="mt-10 inline-flex items-center gap-2 text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors border-b border-transparent hover:border-ember pb-1"
           >
             MORE ABOUT ME &rarr;
-          </Link>
+          </PublicLink>
         </ScrollReveal>
 
         <ScrollParallax

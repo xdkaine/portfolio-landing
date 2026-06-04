@@ -45,13 +45,13 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-RUN apk add --no-cache su-exec && \
-    addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+RUN addgroup -S -g 1001 nodejs && \
+    adduser -S -u 1001 -G nodejs nextjs && \
+    mkdir -p /app/uploads/projects /app/uploads/posts && \
+    chown -R nextjs:nodejs /app/uploads
 
 # Copy built assets
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public-seed
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
@@ -60,13 +60,13 @@ COPY --from=prisma --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=prisma /app/src/generated ./src/generated
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-
-RUN chmod 755 /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV PROJECT_IMAGE_UPLOAD_DIR=/app/uploads/projects
+ENV POST_IMAGE_UPLOAD_DIR=/app/uploads/posts
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+USER nextjs
+ENTRYPOINT []
 CMD ["node", "server.js"]

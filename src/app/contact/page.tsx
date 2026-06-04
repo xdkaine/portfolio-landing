@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import Link from "next/link";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Script from "next/script";
+import { PublicLink } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { useSiteSettings } from "@/lib/useSiteSettings";
 
@@ -32,6 +32,7 @@ const TURNSTILE_SITE_KEY =
 
 export default function ContactPage() {
   const settings = useSiteSettings();
+  const shouldReduceMotion = Boolean(useReducedMotion());
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -141,7 +142,7 @@ export default function ContactPage() {
     <>
       {/* Header */}
       <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
-        <ScrollReveal>
+        <ScrollReveal variant="row">
           <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
             <span>{settings.siteName}</span>
             <span>/</span>
@@ -149,7 +150,7 @@ export default function ContactPage() {
           </div>
         </ScrollReveal>
 
-        <ScrollReveal delay={0.05}>
+        <ScrollReveal delay={0.05} variant="headline">
           <h1 className="font-display text-6xl md:text-8xl lg:text-9xl tracking-tighter">
             CONTACT
           </h1>
@@ -166,7 +167,7 @@ export default function ContactPage() {
 
       {/* Direct email */}
       <section className="px-6 md:px-12 lg:px-24 pb-16">
-        <ScrollReveal delay={0.15}>
+        <ScrollReveal delay={0.15} variant="block">
           <div className="border-2 border-iron p-6 md:p-8 max-w-xl">
             <span className="text-[10px] tracking-[0.3em] text-steel block mb-4">
               PREFERRED METHOD
@@ -194,7 +195,7 @@ export default function ContactPage() {
           />
         )}
 
-        <ScrollReveal>
+        <ScrollReveal variant="headline">
           <div className="border-b-2 border-bone pb-4 mb-12">
             <h2 className="font-display text-4xl md:text-5xl">
               SEND A MESSAGE
@@ -209,8 +210,8 @@ export default function ContactPage() {
               onSubmit={handleSubmit}
               className="max-w-2xl space-y-8"
               initial={{ opacity: 1 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -20 }}
+              transition={{ duration: shouldReduceMotion ? 0 : 0.3 }}
             >
               {/* Honeypot field: bots tend to fill hidden inputs; humans never see it. */}
               <div className="hidden" aria-hidden="true">
@@ -310,13 +311,13 @@ export default function ContactPage() {
                   <span className="text-[10px] tracking-widest text-ash leading-relaxed">
                     I consent to this site storing my submitted details to
                     respond to my inquiry. Read{" "}
-                    <Link href="/privacy" className="text-ember hover:underline">
+                    <PublicLink href="/privacy" intent="utility" className="text-ember hover:underline">
                       Privacy Policy
-                    </Link>{" "}
+                    </PublicLink>{" "}
                     and{" "}
-                    <Link href="/terms" className="text-ember hover:underline">
+                    <PublicLink href="/terms" intent="utility" className="text-ember hover:underline">
                       Terms
-                    </Link>
+                    </PublicLink>
                     .
                   </span>
                 </label>
@@ -358,9 +359,12 @@ export default function ContactPage() {
           ) : (
             <motion.div
               key="success"
-              initial={{ opacity: 0, y: 20 }}
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+              transition={{
+                duration: shouldReduceMotion ? 0 : 0.5,
+                ease: [0.16, 1, 0.3, 1],
+              }}
               className="max-w-2xl"
             >
               <div className="border-2 border-ember p-8 md:p-12">
@@ -396,7 +400,7 @@ export default function ContactPage() {
 
       {/* Social links */}
       <section className="px-6 md:px-12 lg:px-24 pb-24 border-t-2 border-iron pt-16">
-        <ScrollReveal>
+        <ScrollReveal variant="headline">
           <div className="border-b-2 border-bone pb-4 mb-8">
             <h2 className="font-display text-4xl md:text-5xl">ELSEWHERE</h2>
           </div>
@@ -404,7 +408,7 @@ export default function ContactPage() {
 
         <div className="space-y-1">
           {socials.map((social, i) => (
-            <ScrollReveal key={social.label} delay={i * 0.06}>
+            <ScrollReveal key={social.label} delay={i * 0.06} variant="row">
               <a
                 href={social.href}
                 target="_blank"
@@ -423,14 +427,15 @@ export default function ContactPage() {
         </div>
 
         {/* Back link */}
-        <ScrollReveal delay={0.2}>
+        <ScrollReveal delay={0.2} variant="row">
           <div className="mt-12">
-            <Link
+            <PublicLink
               href="/"
+              intent="section"
               className="text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors"
             >
               &larr; BACK TO INDEX
-            </Link>
+            </PublicLink>
           </div>
         </ScrollReveal>
       </section>

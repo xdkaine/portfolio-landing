@@ -59,10 +59,14 @@ services:
       GOOGLE_SITE_VERIFICATION: "${GOOGLE_SITE_VERIFICATION:-}"
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: "${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}"
       TURNSTILE_SECRET_KEY: "${TURNSTILE_SECRET_KEY:-}"
+      PROJECT_IMAGE_UPLOAD_DIR: "/app/uploads/projects"
+      POST_IMAGE_UPLOAD_DIR: "/app/uploads/posts"
     expose:
       - "3000"
     volumes:
-      - public_data:/app/public
+      - project_uploads:/app/uploads/projects
+      - post_uploads:/app/uploads/posts
+      - public_data:/app/legacy-public:ro
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 30s
@@ -72,9 +76,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
-
   # ─── Nginx Reverse Proxy ─────────────────────────────
   nginx:
     image: nginx:alpine
@@ -100,4 +101,7 @@ services:
 
 volumes:
   pgdata:
+  project_uploads:
+  post_uploads:
+  # Legacy read-only fallback for media uploaded before uploads moved out of /app/public.
   public_data:

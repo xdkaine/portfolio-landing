@@ -14,6 +14,12 @@ const ALTERNATE_UPLOAD_DIRECTORY = path.join(
   "uploads",
   "projects",
 );
+const LEGACY_PUBLIC_UPLOAD_DIRECTORY = path.join(
+  process.cwd(),
+  "legacy-public",
+  "uploads",
+  "projects",
+);
 
 export const PROJECT_IMAGE_UPLOAD_DIRECTORY =
   configuredUploadDirectory && configuredUploadDirectory.length > 0
@@ -55,7 +61,11 @@ function getContentType(filename: string): string | null {
 
 function getReadDirectories(): string[] {
   const primaryDirectory = path.resolve(PROJECT_IMAGE_UPLOAD_DIRECTORY);
-  const fallbackDirectories = [DEFAULT_UPLOAD_DIRECTORY, ALTERNATE_UPLOAD_DIRECTORY]
+  const fallbackDirectories = [
+    DEFAULT_UPLOAD_DIRECTORY,
+    ALTERNATE_UPLOAD_DIRECTORY,
+    LEGACY_PUBLIC_UPLOAD_DIRECTORY,
+  ]
     .map((directory) => path.resolve(directory))
     .filter((directory, index, array) => array.indexOf(directory) === index);
   return [primaryDirectory, ...fallbackDirectories].filter(

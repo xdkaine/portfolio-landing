@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 const configuredUploadDirectory = process.env.POST_IMAGE_UPLOAD_DIR?.trim();
 const DEFAULT_UPLOAD_DIRECTORY = path.join(process.cwd(), "public", "uploads", "posts");
 const ALTERNATE_UPLOAD_DIRECTORY = path.join(process.cwd(), "uploads", "posts");
+const LEGACY_PUBLIC_UPLOAD_DIRECTORY = path.join(process.cwd(), "legacy-public", "uploads", "posts");
 
 export const POST_IMAGE_UPLOAD_DIRECTORY =
   configuredUploadDirectory && configuredUploadDirectory.length > 0
@@ -29,7 +30,12 @@ export async function readPostImage(filename: string) {
   const contentType = IMAGE_EXTENSION_TO_MIME[path.extname(filename).toLowerCase()];
   if (!contentType) return null;
 
-  const directories = [POST_IMAGE_UPLOAD_DIRECTORY, DEFAULT_UPLOAD_DIRECTORY, ALTERNATE_UPLOAD_DIRECTORY]
+  const directories = [
+    POST_IMAGE_UPLOAD_DIRECTORY,
+    DEFAULT_UPLOAD_DIRECTORY,
+    ALTERNATE_UPLOAD_DIRECTORY,
+    LEGACY_PUBLIC_UPLOAD_DIRECTORY,
+  ]
     .map((directory) => path.resolve(directory))
     .filter((directory, index, all) => all.indexOf(directory) === index);
 

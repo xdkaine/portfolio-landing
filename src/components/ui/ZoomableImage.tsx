@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence, useMotionValue, animate } from "motion/react";
+import { motion, AnimatePresence, useMotionValue, useReducedMotion, animate } from "motion/react";
 import { X, ZoomIn } from "lucide-react";
 
 interface ZoomableImageProps {
@@ -12,6 +12,7 @@ interface ZoomableImageProps {
 
 export function ZoomableImage({ src, alt }: ZoomableImageProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const shouldReduceMotion = Boolean(useReducedMotion());
   const containerRef = useRef<HTMLDivElement>(null);
 
   const x = useMotionValue(0);
@@ -109,10 +110,10 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={shouldReduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
             className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center overflow-hidden overscroll-contain"
             onClick={() => setIsOpen(false)} // Click background to close
             onWheel={handleWheel}

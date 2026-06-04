@@ -1,12 +1,10 @@
-"use client";
+import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
+import { ScrollReveal } from "@/components/ScrollReveal";
+import { listProjects } from "@/lib/projectCatalog";
+import { getSiteSettings } from "@/lib/siteSettings";
 
-import { useEffect, useMemo, useState } from "react";
-import { motion } from "motion/react";
-import Link from "next/link";
-import { JourneyAwareScrollReveal, ScrollReveal } from "@/components/ScrollReveal";
-import { JourneyLink } from "@/components/JourneyTransition";
-import { normalizeProjectStatus } from "@/lib/projectPresentation";
-import { useSiteSettings } from "@/lib/useSiteSettings";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface ProjectListItem {
   id: string;
@@ -33,87 +31,23 @@ const permissionString = (status: string) => {
   }
 };
 
-export default function ProjectsPage() {
-  const settings = useSiteSettings();
-  const [projects, setProjects] = useState<ProjectListItem[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadProjects = async () => {
-      try {
-        const res = await fetch("/api/projects", { cache: "no-store" });
-        if (!res.ok) return;
-
-        const data = (await res.json()) as unknown;
-        if (!Array.isArray(data) || cancelled) return;
-
-        // Keep parsing defensive so malformed rows do not wipe the list.
-        const normalized = data
-          .map((item: unknown): ProjectListItem | null => {
-            if (!item || typeof item !== "object") {
-              return null;
-            }
-
-            const entry = item as Record<string, unknown>;
-            if (
-              typeof entry.id !== "string" ||
-              typeof entry.title !== "string" ||
-              typeof entry.description !== "string" ||
-              !Array.isArray(entry.tags) ||
-              typeof entry.year !== "string"
-            ) {
-              return null;
-            }
-
-            const caseStudy =
-              entry.caseStudy && typeof entry.caseStudy === "object"
-                ? (entry.caseStudy as Record<string, unknown>)
-                : null;
-            const subtitle =
-              typeof caseStudy?.subtitle === "string" && caseStudy.subtitle.trim()
-                ? caseStudy.subtitle.trim()
-                : typeof caseStudy?.pitch === "string" && caseStudy.pitch.trim()
-                  ? caseStudy.pitch.trim()
-                  : undefined;
-
-            const tags = entry.tags.filter(
-              (tag: unknown): tag is string => typeof tag === "string",
-            );
-            const number =
-              typeof entry.number === "string" && entry.number.trim()
-                ? entry.number
-                : entry.id;
-
-            return {
-              id: entry.id,
-              number,
-              title: entry.title,
-              description: entry.description,
-              subtitle,
-              tags,
-              year: entry.year,
-              status: normalizeProjectStatus(entry.status),
-              featured: Boolean(entry.featured),
-            };
-          })
-          .filter((item): item is ProjectListItem => Boolean(item));
-
-        if (!cancelled) {
-          setProjects(normalized);
-        }
-      } catch {
-        // Keep current data on fetch failure.
-      }
-    };
-
-    loadProjects();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const { liveCount, inProgressCount, archivedCount } = useMemo(() => {
+export default async function ProjectsPage() {
+  const [settings, storedProjects] = await Promise.all([
+    getSiteSettings(),
+    listProjects().catch(() => []),
+  ]);
+  const projects: ProjectListItem[] = storedProjects.map((project) => ({
+    id: project.id,
+    number: project.number,
+    title: project.title,
+    description: project.description,
+    subtitle: project.caseStudy?.subtitle ?? project.caseStudy?.pitch,
+    tags: project.tags,
+    year: project.year,
+    status: project.status,
+    featured: project.featured,
+  }));
+  const { liveCount, inProgressCount, archivedCount } = (() => {
     let live = 0;
     let inProgress = 0;
     let archived = 0;
@@ -133,13 +67,13 @@ export default function ProjectsPage() {
       inProgressCount: inProgress,
       archivedCount: archived,
     };
-  }, [projects]);
+  })();
 
   return (
     <>
       {/* Header */}
       <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
-        <ScrollReveal>
+        <ScrollReveal variant="row">
           <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
             <span>{settings.siteName}</span>
             <span>/</span>
@@ -147,7 +81,7 @@ export default function ProjectsPage() {
           </div>
         </ScrollReveal>
 
-        <ScrollReveal delay={0.05}>
+        <ScrollReveal delay={0.05} variant="headline">
           <h1 className="font-display text-6xl md:text-8xl lg:text-9xl tracking-tighter">
             PROJECTS
           </h1>
@@ -160,7 +94,7 @@ export default function ProjectsPage() {
         </ScrollReveal>
 
         {/* Status summary */}
-        <ScrollReveal delay={0.15}>
+        <ScrollReveal delay={0.15} variant="rule">
           <div className="mt-10 flex flex-wrap gap-8 border-t border-b border-iron py-4">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-400" />
@@ -189,7 +123,7 @@ export default function ProjectsPage() {
 
       {/* Table header */}
       <section className="px-6 md:px-12 lg:px-24 mb-2">
-        <ScrollReveal delay={0.2}>
+        <ScrollReveal delay={0.2} variant="rule">
           <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_80px] gap-4 text-[10px] tracking-[0.2em] text-iron border-b border-iron pb-2">
             <span>PERMS</span>
             <span>NAME</span>
@@ -208,24 +142,14 @@ export default function ProjectsPage() {
           </div>
         ) : (
           projects.map((project, i) => (
-            <JourneyAwareScrollReveal key={project.id} delay={i * 0.06}>
-              <JourneyLink
+            <ScrollReveal key={project.id} delay={i * 0.06} variant="row">
+              <PublicLink
                 href={`/projects/${project.number}`}
+                intent="drill-in"
                 className="group block"
                 aria-label={`Open ${project.title} case study`}
-                journey={{
-                  kind: "project",
-                  title: project.title,
-                  marker: `CASE FILE // ${project.number}`,
-                  detail: `${project.status} / ${project.year}`,
-                }}
-                arrivalTarget={{ href: "/projects", key: project.number }}
               >
-                <motion.article
-                  className="border-b border-iron py-6 hover:bg-surface transition-colors duration-300 [content-visibility:auto] [contain-intrinsic-size:1px_168px]"
-                  whileHover={{ x: 4 }}
-                  transition={{ duration: 0.2 }}
-                >
+                <article className="border-b border-iron py-6 hover:bg-surface transition-[background-color,transform] duration-300 hover:translate-x-1 [content-visibility:auto] [contain-intrinsic-size:1px_168px]">
                   {/* Desktop row */}
                   <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_80px] gap-4 items-center">
                     <span className="text-[10px] text-iron tracking-tight">
@@ -234,13 +158,17 @@ export default function ProjectsPage() {
 
                     <div className="min-w-0">
                       <div className="flex items-baseline gap-3">
-                        <span className="text-steel text-[10px] tracking-[0.15em] shrink-0">
-                          {project.number}
-                          {"//"}
-                        </span>
-                        <h2 className="font-display text-xl group-hover:text-ember transition-colors duration-300 truncate">
-                          {project.title}
-                        </h2>
+                        <PublicSharedElement kind="project-marker" itemKey={project.number}>
+                          <span className="text-steel text-[10px] tracking-[0.15em] shrink-0">
+                            {project.number}
+                            {"//"}
+                          </span>
+                        </PublicSharedElement>
+                        <PublicSharedElement kind="project-title" itemKey={project.number}>
+                          <h2 className="font-display text-xl group-hover:text-ember transition-colors duration-300 truncate">
+                            {project.title}
+                          </h2>
+                        </PublicSharedElement>
                       </div>
                       <p className="text-ash text-xs mt-1 leading-relaxed line-clamp-1 group-hover:line-clamp-none">
                         {project.subtitle || project.description}
@@ -335,21 +263,22 @@ export default function ProjectsPage() {
                       </span>
                     </div>
                   </div>
-                </motion.article>
-              </JourneyLink>
-            </JourneyAwareScrollReveal>
+                </article>
+              </PublicLink>
+            </ScrollReveal>
           ))
         )}
 
         {/* Bottom navigation */}
-        <ScrollReveal delay={0.2}>
+        <ScrollReveal delay={0.2} variant="row">
           <div className="mt-16 flex items-center justify-between">
-            <Link
+            <PublicLink
               href="/"
+              intent="section"
               className="text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors"
             >
               &larr; BACK TO INDEX
-            </Link>
+            </PublicLink>
             <span className="text-[10px] text-iron tracking-[0.2em]">
               {String(projects.length).padStart(2, "0")} ENTRIES LISTED
             </span>

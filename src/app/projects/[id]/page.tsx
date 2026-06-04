@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  JourneyAwareScrollReveal,
-  ScrollReveal,
-} from "@/components/ScrollReveal";
-import {
-  JourneyArrivalTarget,
-  JourneyReturnLink,
-} from "@/components/JourneyTransition";
+import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import { ZoomableImage } from "@/components/ui/ZoomableImage";
 import { mergeProjectCaseStudy, type ProjectCaseStudyViewModel } from "@/lib/projectCaseStudy";
 import {
@@ -188,55 +181,50 @@ export default async function ProjectDetailPage({
   return (
     <>
       <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
-        <JourneyAwareScrollReveal>
+        <ScrollReveal variant="row">
           <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
-            <Link href="/" className="hover:text-bone transition-colors">
+            <PublicLink href="/" intent="section" className="hover:text-bone transition-colors">
               {settings.siteName}
-            </Link>
+            </PublicLink>
             <span>/</span>
-            <JourneyReturnLink
+            <PublicLink
               href="/projects"
+              intent="drill-out"
               className="hover:text-bone transition-colors"
-              targetKey={normalizedProject.number}
-              journey={{
-                kind: "project",
-                title: normalizedProject.title,
-                marker: `CASE FILE // ${normalizedProject.number}`,
-                detail: `${normalizedProject.status} / ${normalizedProject.year}`,
-              }}
             >
               PROJECTS
-            </JourneyReturnLink>
+            </PublicLink>
             <span>/</span>
-            <span className="text-ember">{normalizedProject.number}</span>
+            <PublicSharedElement kind="project-marker" itemKey={normalizedProject.number}>
+              <span className="text-ember">{normalizedProject.number}</span>
+            </PublicSharedElement>
           </div>
-        </JourneyAwareScrollReveal>
+        </ScrollReveal>
 
-        <JourneyAwareScrollReveal delay={0.05}>
-          <JourneyArrivalTarget href={`/projects/${normalizedProject.number}`}>
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 mb-10">
-              <div className="max-w-4xl">
+        <ScrollReveal delay={0.05} variant="headline">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 mb-10">
+            <div className="max-w-4xl">
+              <PublicSharedElement kind="project-title" itemKey={normalizedProject.number}>
                 <h1
                   className="font-display text-5xl md:text-7xl lg:text-8xl tracking-tighter"
-                  data-journey-focus
                   tabIndex={-1}
                 >
                   {normalizedProject.title}
                 </h1>
-                <p className="text-bone/80 text-sm md:text-base leading-relaxed mt-6 max-w-3xl">
-                  {mergedDeepDive.subtitle || normalizedProject.description}
-                </p>
-              </div>
-              <span
-                className={`text-[10px] tracking-[0.15em] px-3 py-1 border shrink-0 mt-2 lg:mt-4 ${getStatusClass(normalizedProject.status)}`}
-              >
-                {normalizedProject.status}
-              </span>
+              </PublicSharedElement>
+              <p className="text-bone/80 text-sm md:text-base leading-relaxed mt-6 max-w-3xl">
+                {mergedDeepDive.subtitle || normalizedProject.description}
+              </p>
             </div>
-          </JourneyArrivalTarget>
-        </JourneyAwareScrollReveal>
+            <span
+              className={`text-[10px] tracking-[0.15em] px-3 py-1 border shrink-0 mt-2 lg:mt-4 ${getStatusClass(normalizedProject.status)}`}
+            >
+              {normalizedProject.status}
+            </span>
+          </div>
+        </ScrollReveal>
 
-        <JourneyAwareScrollReveal delay={0.1}>
+        <ScrollReveal delay={0.1} variant="row">
           <div className="flex flex-wrap gap-3 mb-8">
             {normalizedProject.tags.map((tag) => (
               <span
@@ -247,7 +235,7 @@ export default async function ProjectDetailPage({
               </span>
             ))}
           </div>
-        </JourneyAwareScrollReveal>
+        </ScrollReveal>
       </section>
 
       <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
@@ -496,41 +484,37 @@ export default async function ProjectDetailPage({
 
       <section className="px-6 md:px-12 lg:px-24 pb-24 pt-10 border-t border-iron">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-          <JourneyReturnLink
+          <PublicLink
             href="/projects"
+            intent="drill-out"
             className="text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors"
-            targetKey={normalizedProject.number}
-            journey={{
-              kind: "project",
-              title: normalizedProject.title,
-              marker: `CASE FILE // ${normalizedProject.number}`,
-              detail: `${normalizedProject.status} / ${normalizedProject.year}`,
-            }}
           >
             &larr; ALL PROJECTS
-          </JourneyReturnLink>
+          </PublicLink>
 
           <div className="flex items-center gap-6 text-[10px] tracking-[0.2em]">
             {previousProject ? (
-              <Link
+              <PublicLink
                 href={`/projects/${previousProject.number}`}
+                intent="sibling-prev"
                 className="text-steel hover:text-ember transition-colors"
               >
                 PREV: {previousProject.number}
                 {"//"}
-              </Link>
+              </PublicLink>
             ) : (
               <span className="text-iron">PREV: --</span>
             )}
 
             {nextProject ? (
-              <Link
+              <PublicLink
                 href={`/projects/${nextProject.number}`}
+                intent="sibling-next"
                 className="text-steel hover:text-ember transition-colors"
               >
                 NEXT: {nextProject.number}
                 {"//"}
-              </Link>
+              </PublicLink>
             ) : (
               <span className="text-iron">NEXT: --</span>
             )}

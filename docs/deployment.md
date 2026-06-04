@@ -167,8 +167,9 @@ docker compose -f compose.runner.yml --env-file .env.runner logs --tail=100 -f g
 ```
 
 Deleting this runner-only credential volume does not delete the application
-database or uploaded application files. Do not delete `pgdata` or
-`public_data`.
+database or uploaded application files. Do not delete `pgdata`,
+`project_uploads`, `post_uploads`, or the legacy `public_data` volume while
+old uploaded media still needs fallback reads.
 
 If it stops again after clean registration, capture the container reason before
 recreating it:
@@ -223,7 +224,10 @@ APP_IMAGE=ghcr.io/xdkaine/portfolio-landing:<commit-sha> docker compose pull app
 APP_IMAGE=ghcr.io/xdkaine/portfolio-landing:<commit-sha> docker compose up -d --no-build
 ```
 
-The `pgdata` and `public_data` Docker volumes are kept across deploys.
+The `pgdata`, `project_uploads`, and `post_uploads` Docker volumes are kept
+across deploys. The legacy `public_data` volume is mounted read-only at
+`/app/legacy-public` so media uploaded before the upload volume split remains
+readable without masking built files in `/app/public`.
 
 ## Database Migration Baseline
 
@@ -238,4 +242,4 @@ APP_IMAGE=ghcr.io/xdkaine/portfolio-landing:<new-image-tag> docker compose run -
 APP_IMAGE=ghcr.io/xdkaine/portfolio-landing:<new-image-tag> docker compose run --rm migrate npx prisma migrate deploy
 ```
 
-After the baseline is registered, routine deployments run `prisma migrate deploy` automatically before the updated app starts. Uploaded project and post media remain in the existing `public_data` volume.
+After the baseline is registered, routine deployments run `prisma migrate deploy` automatically as part of the stack update. New project and post media are written to `project_uploads` and `post_uploads`; existing media in `public_data` remains available through the read-only legacy fallback.

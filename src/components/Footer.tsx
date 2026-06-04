@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
 import { FooterChuckles } from "@/components/FooterChuckles";
+import { PublicLink } from "@/components/PublicTransition";
 import { TypewriterText } from "@/components/TypewriterText";
 
 const DEFAULT_SOCIALS = [
@@ -31,8 +31,9 @@ export function Footer({
     <footer className="border-t-2 border-iron px-6 md:px-12 lg:px-24 py-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
         <div>
-          <Link
+          <PublicLink
             href="/"
+            intent="section"
             className="font-display text-xl tracking-widest text-bone hover:text-ember transition-colors"
           >
             {brandAliases.length > 1 ? (
@@ -48,23 +49,25 @@ export function Footer({
                 cursorClassName="text-xs"
               />
             )}
-          </Link>
+          </PublicLink>
           <p className="text-ash text-[10px] mt-2 tracking-[0.2em] uppercase">
             &copy; {currentYear} &mdash; ALL RIGHTS RESERVED{legalDateText}
           </p>
           <div className="mt-4 flex items-center gap-4 text-[10px] tracking-[0.2em]">
-            <Link
+            <PublicLink
               href="/privacy"
+              intent="utility"
               className="text-ash hover:text-ember transition-colors"
             >
               PRIVACY
-            </Link>
-            <Link
+            </PublicLink>
+            <PublicLink
               href="/terms"
+              intent="utility"
               className="text-ash hover:text-ember transition-colors"
             >
               TERMS
-            </Link>
+            </PublicLink>
           </div>
         </div>
 

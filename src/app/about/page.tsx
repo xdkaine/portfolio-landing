@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { useSiteSettings } from "@/lib/useSiteSettings";
 
@@ -38,7 +37,7 @@ export default function AboutPage() {
     <>
       {/* Header */}
       <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
-        <ScrollReveal>
+        <ScrollReveal variant="row">
           <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
             <span>{settings.siteName}</span>
             <span>/</span>
@@ -46,7 +45,7 @@ export default function AboutPage() {
           </div>
         </ScrollReveal>
 
-        <ScrollReveal delay={0.05}>
+        <ScrollReveal delay={0.05} variant="headline">
           <h1 className="font-display text-6xl md:text-8xl lg:text-9xl tracking-tighter">
             SYSTEM INFO
           </h1>
@@ -55,7 +54,7 @@ export default function AboutPage() {
 
       {/* Profile summary */}
       <section className="px-6 md:px-12 lg:px-24 pb-16">
-        <ScrollReveal delay={0.1}>
+        <ScrollReveal delay={0.1} variant="block">
           <div className="border-2 border-iron p-6 md:p-8 max-w-2xl">
             <div className="flex items-center gap-2 mb-6">
               <span className="text-[10px] tracking-[0.3em] text-steel">
@@ -65,17 +64,10 @@ export default function AboutPage() {
             </div>
 
             <div className="space-y-3">
-              {specs.map((spec, i) => (
-                <motion.div
+              {specs.map((spec) => (
+                <div
                   key={spec.label}
                   className="flex items-center gap-4"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{
-                    delay: 0.3 + i * 0.08,
-                    duration: 0.4,
-                    ease: [0.25, 0.1, 0.25, 1],
-                  }}
                 >
                   <span className="text-[10px] tracking-[0.2em] text-iron w-28 shrink-0">
                     {spec.label}
@@ -91,7 +83,7 @@ export default function AboutPage() {
                   {spec.accent && (
                     <span className="w-1.5 h-1.5 bg-ember rounded-full animate-pulse ml-1" />
                   )}
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
@@ -123,7 +115,7 @@ export default function AboutPage() {
 
       {/* Tech tree */}
       <section className="px-6 md:px-12 lg:px-24 pb-24">
-        <ScrollReveal>
+        <ScrollReveal variant="headline">
           <div className="border-b-2 border-bone pb-4 mb-12">
             <h2 className="font-display text-4xl md:text-5xl">TECH STACK</h2>
           </div>
@@ -131,7 +123,7 @@ export default function AboutPage() {
 
         <div className="grid md:grid-cols-2 gap-8 max-w-3xl">
           {techTree.map((group, gi) => (
-            <ScrollReveal key={group.category} delay={gi * 0.08}>
+            <ScrollReveal key={group.category} delay={gi * 0.08} variant="row">
               <div>
                 <span className="text-[10px] tracking-[0.3em] text-steel block mb-3">
                   {group.category}/
