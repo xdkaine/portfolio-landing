@@ -21,8 +21,6 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   NODE_VERSION: "22"
   DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
-  NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://phao.dev' }}
-  NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
 
 jobs:
   # ─── Lint & Type Check ──────────────────────────────
@@ -70,6 +68,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://phao.dev' }}
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -125,6 +126,7 @@ jobs:
     env:
       APP_IMAGE: ${{ needs.docker.outputs.image-ref }}
       DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/mnt/Orion/docker/stacks/production-portfolio' }}
+      PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://phao.dev' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -228,7 +230,7 @@ jobs:
           while [ "$attempt" -le 30 ]; do
             if APP_IMAGE="$APP_IMAGE" compose exec -T app node -e "const expected = process.env.APP_REVISION; fetch('http://127.0.0.1:3000/api/health').then((response) => response.json()).then((body) => process.exit(body.status === 'ok' && body.revision === expected ? 0 : 1)).catch(() => process.exit(1))" && \
                APP_IMAGE="$APP_IMAGE" compose exec -T nginx wget -q -O - http://127.0.0.1/api/health | grep -q "\"revision\":\"$GITHUB_SHA\"" && \
-               curl -fsS "$NEXT_PUBLIC_SITE_URL/api/health" | grep -q "\"revision\":\"$GITHUB_SHA\""; then
+               curl -fsS "$PUBLIC_SITE_URL/api/health" | grep -q "\"revision\":\"$GITHUB_SHA\""; then
               APP_IMAGE="$APP_IMAGE" compose ps
               exit 0
             fi
