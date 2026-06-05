@@ -47,7 +47,7 @@ Create these additional repository variables if production should differ from th
 | Variable | Purpose |
 | --- | --- |
 | `NEXT_PUBLIC_SITE_URL` | Public site URL baked into the image. Defaults to `https://phao.dev`. |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Public Cloudflare Turnstile site key baked into the client bundle. |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Public Cloudflare Turnstile site key. Compose also passes this to the server as `TURNSTILE_SITE_KEY` so the runtime config route is not affected by Next.js public env inlining. |
 
 ## Server Setup
 

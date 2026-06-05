@@ -6,6 +6,7 @@ import { GET as turnstileConfigGet } from "@/app/api/turnstile/route";
 
 const originalTurnstileSecret = process.env.TURNSTILE_SECRET_KEY;
 const originalTurnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+const originalRuntimeTurnstileSiteKey = process.env.TURNSTILE_SITE_KEY;
 
 function restoreTurnstileSecret() {
   if (originalTurnstileSecret === undefined) {
@@ -18,6 +19,12 @@ function restoreTurnstileSecret() {
 
 function restoreTurnstileConfig() {
   restoreTurnstileSecret();
+
+  if (originalRuntimeTurnstileSiteKey === undefined) {
+    delete process.env.TURNSTILE_SITE_KEY;
+  } else {
+    process.env.TURNSTILE_SITE_KEY = originalRuntimeTurnstileSiteKey;
+  }
 
   if (originalTurnstileSiteKey === undefined) {
     delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -53,7 +60,8 @@ test("contact submissions require a Turnstile token when configured", async (t) 
 });
 
 test("Turnstile config exposes the runtime site key when verification is required", async (t) => {
-  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "runtime-site-key";
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "compiled-site-key";
+  process.env.TURNSTILE_SITE_KEY = "runtime-site-key";
   process.env.TURNSTILE_SECRET_KEY = "test-secret";
   t.after(restoreTurnstileConfig);
 
