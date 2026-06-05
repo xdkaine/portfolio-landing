@@ -3,30 +3,49 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
+import {
+  hasTurnstileSiteKey,
+  TurnstileWidget,
+} from "@/components/TurnstileWidget";
 
 export default function LoginForm() {
   const router = useRouter();
+  const turnstileEnabled = hasTurnstileSiteKey();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const resetTurnstile = () => {
+    setTurnstileResetKey((key) => key + 1);
+    setTurnstileToken("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (turnstileEnabled && !turnstileToken) {
+      setError("Verification required");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, turnstileToken }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
         setError(data.error || "Login failed");
+        if (turnstileEnabled) resetTurnstile();
         return;
       }
 
@@ -84,7 +103,7 @@ export default function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-iron"
-                placeholder="satonodiamond@phao.DEV"
+                placeholder="OPERATOR@EXAMPLE.COM"
                 autoComplete="email"
                 spellCheck={false}
               />
@@ -109,6 +128,13 @@ export default function LoginForm() {
                 autoComplete="current-password"
               />
             </div>
+
+            {turnstileEnabled && (
+              <TurnstileWidget
+                onTokenChange={setTurnstileToken}
+                resetKey={turnstileResetKey}
+              />
+            )}
 
             <button
               type="submit"

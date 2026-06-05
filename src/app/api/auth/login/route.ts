@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/auth";
-import { verifyTurnstile } from "@/lib/turnstile";
+import { isTurnstileRequired, verifyTurnstile } from "@/lib/turnstile";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import bcrypt from "bcryptjs";
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const email = typeof body.email === "string" ? body.email.trim() : "";
     const password = typeof body.password === "string" ? body.password : "";
     const turnstileToken =
-      typeof body.turnstileToken === "string" ? body.turnstileToken : "";
+      typeof body.turnstileToken === "string" ? body.turnstileToken.trim() : "";
 
     if (!email || !password) {
       return NextResponse.json(
@@ -33,9 +33,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify turnstile if configured and token is supplied.
-    if (process.env.TURNSTILE_SECRET_KEY && turnstileToken) {
-      const valid = await verifyTurnstile(turnstileToken);
+    if (isTurnstileRequired()) {
+      if (!turnstileToken) {
+        return NextResponse.json(
+          { error: "Verification required" },
+          { status: 400 }
+        );
+      }
+
+      const valid = await verifyTurnstile(turnstileToken, ip);
       if (!valid) {
         return NextResponse.json(
           { error: "Verification failed" },

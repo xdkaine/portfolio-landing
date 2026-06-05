@@ -1,84 +1,36 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import Script from "next/script";
 import { PublicLink } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import {
+  hasTurnstileSiteKey,
+  TurnstileWidget,
+} from "@/components/TurnstileWidget";
 import { useSiteSettings } from "@/lib/useSiteSettings";
-
-type TurnstileRenderOptions = {
-  sitekey: string;
-  theme?: "light" | "dark" | "auto";
-  callback?: (token: string) => void;
-  "expired-callback"?: () => void;
-  "error-callback"?: () => void;
-};
-
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (
-        container: HTMLElement | string,
-        options: TurnstileRenderOptions,
-      ) => string;
-      reset: (widgetId?: string) => void;
-    };
-  }
-}
-
-const TURNSTILE_SITE_KEY =
-  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
 
 export default function ContactPage() {
   const settings = useSiteSettings();
   const shouldReduceMotion = Boolean(useReducedMotion());
+  const turnstileEnabled = hasTurnstileSiteKey();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [consent, setConsent] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [honeypot, setHoneypot] = useState("");
-  const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
-  const turnstileWidgetIdRef = useRef<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     message: "",
   });
 
-  const resetTurnstile = useCallback(() => {
-    if (window.turnstile && turnstileWidgetIdRef.current) {
-      window.turnstile.reset(turnstileWidgetIdRef.current);
-    }
+  const resetTurnstile = () => {
+    setTurnstileResetKey((key) => key + 1);
     setTurnstileToken("");
-  }, []);
-
-  const renderTurnstile = useCallback(() => {
-    if (
-      !TURNSTILE_SITE_KEY ||
-      !turnstileContainerRef.current ||
-      turnstileWidgetIdRef.current ||
-      !window.turnstile
-    ) {
-      return;
-    }
-
-    turnstileWidgetIdRef.current = window.turnstile.render(
-      turnstileContainerRef.current,
-      {
-        sitekey: TURNSTILE_SITE_KEY,
-        theme: "dark",
-        callback: (token) => setTurnstileToken(token),
-        "expired-callback": () => setTurnstileToken(""),
-        "error-callback": () => setTurnstileToken(""),
-      },
-    );
-  }, []);
-
-  useEffect(() => {
-    renderTurnstile();
-  }, [renderTurnstile]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +41,7 @@ export default function ContactPage() {
       return;
     }
 
-    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+    if (turnstileEnabled && !turnstileToken) {
       setError("Please complete verification before sending.");
       return;
     }
@@ -114,7 +66,7 @@ export default function ContactPage() {
 
       if (!res.ok) {
         setError(payload.error || "Failed to send message. Please try again.");
-        if (TURNSTILE_SITE_KEY) resetTurnstile();
+        if (turnstileEnabled) resetTurnstile();
         return;
       }
 
@@ -122,7 +74,7 @@ export default function ContactPage() {
       setFormData({ name: "", email: "", message: "" });
       setConsent(false);
       setHoneypot("");
-      if (TURNSTILE_SITE_KEY) resetTurnstile();
+      if (turnstileEnabled) resetTurnstile();
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -187,14 +139,6 @@ export default function ContactPage() {
 
       {/* Contact form */}
       <section className="px-6 md:px-12 lg:px-24 pb-24">
-        {TURNSTILE_SITE_KEY && (
-          <Script
-            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-            strategy="afterInteractive"
-            onLoad={renderTurnstile}
-          />
-        )}
-
         <ScrollReveal variant="headline">
           <div className="border-b-2 border-bone pb-4 mb-12">
             <h2 className="font-display text-4xl md:text-5xl">
@@ -323,14 +267,12 @@ export default function ContactPage() {
                 </label>
               </ScrollReveal>
 
-              {TURNSTILE_SITE_KEY && (
+              {turnstileEnabled && (
                 <ScrollReveal delay={0.23}>
-                  <div className="border border-iron px-4 py-4">
-                    <p className="text-[10px] tracking-[0.2em] text-steel mb-3">
-                      VERIFICATION
-                    </p>
-                    <div ref={turnstileContainerRef} />
-                  </div>
+                  <TurnstileWidget
+                    onTokenChange={setTurnstileToken}
+                    resetKey={turnstileResetKey}
+                  />
                 </ScrollReveal>
               )}
 

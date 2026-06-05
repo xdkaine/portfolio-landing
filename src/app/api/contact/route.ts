@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyTurnstile } from "@/lib/turnstile";
+import { isTurnstileRequired, verifyTurnstile } from "@/lib/turnstile";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const email = typeof body.email === "string" ? body.email.trim() : "";
     const message = typeof body.message === "string" ? body.message.trim() : "";
     const turnstileToken =
-      typeof body.turnstileToken === "string" ? body.turnstileToken : "";
+      typeof body.turnstileToken === "string" ? body.turnstileToken.trim() : "";
     const consent = body.consent === true;
     const company = typeof body.company === "string" ? body.company.trim() : "";
 
@@ -62,15 +62,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify turnstile
-    if (process.env.TURNSTILE_SECRET_KEY) {
+    if (isTurnstileRequired()) {
       if (!turnstileToken) {
         return NextResponse.json(
           { error: "Verification required" },
           { status: 400 }
         );
       }
-      const valid = await verifyTurnstile(turnstileToken);
+      const valid = await verifyTurnstile(turnstileToken, ip);
       if (!valid) {
         return NextResponse.json(
           { error: "Verification failed" },
