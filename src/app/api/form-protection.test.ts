@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { POST as contactPost } from "@/app/api/contact/route";
 import { POST as loginPost } from "@/app/api/auth/login/route";
+import { GET as turnstileConfigGet } from "@/app/api/turnstile/route";
 
 const originalTurnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+const originalTurnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 function restoreTurnstileSecret() {
   if (originalTurnstileSecret === undefined) {
@@ -12,6 +14,17 @@ function restoreTurnstileSecret() {
   }
 
   process.env.TURNSTILE_SECRET_KEY = originalTurnstileSecret;
+}
+
+function restoreTurnstileConfig() {
+  restoreTurnstileSecret();
+
+  if (originalTurnstileSiteKey === undefined) {
+    delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    return;
+  }
+
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = originalTurnstileSiteKey;
 }
 
 function jsonRequest(path: string, body: Record<string, unknown>) {
@@ -37,6 +50,20 @@ test("contact submissions require a Turnstile token when configured", async (t) 
 
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: "Verification required" });
+});
+
+test("Turnstile config exposes the runtime site key when verification is required", async (t) => {
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "runtime-site-key";
+  process.env.TURNSTILE_SECRET_KEY = "test-secret";
+  t.after(restoreTurnstileConfig);
+
+  const response = await turnstileConfigGet();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    siteKey: "runtime-site-key",
+    required: true,
+  });
 });
 
 test("login attempts require a Turnstile token when configured", async (t) => {

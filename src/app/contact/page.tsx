@@ -5,15 +5,21 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { PublicLink } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import {
-  hasTurnstileSiteKey,
   TurnstileWidget,
+  useTurnstileConfig,
 } from "@/components/TurnstileWidget";
 import { useSiteSettings } from "@/lib/useSiteSettings";
 
 export default function ContactPage() {
   const settings = useSiteSettings();
   const shouldReduceMotion = Boolean(useReducedMotion());
-  const turnstileEnabled = hasTurnstileSiteKey();
+  const {
+    siteKey: turnstileSiteKey,
+    required: turnstileRequired,
+    loading: turnstileLoading,
+    unavailable: turnstileUnavailable,
+  } = useTurnstileConfig();
+  const turnstileEnabled = !turnstileLoading && turnstileSiteKey.length > 0;
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -41,7 +47,17 @@ export default function ContactPage() {
       return;
     }
 
-    if (turnstileEnabled && !turnstileToken) {
+    if (turnstileLoading) {
+      setError("Verification is still loading. Please try again in a moment.");
+      return;
+    }
+
+    if (turnstileUnavailable) {
+      setError("Verification is unavailable. Please try again later.");
+      return;
+    }
+
+    if (turnstileRequired && !turnstileToken) {
       setError("Please complete verification before sending.");
       return;
     }
@@ -270,10 +286,20 @@ export default function ContactPage() {
               {turnstileEnabled && (
                 <ScrollReveal delay={0.23}>
                   <TurnstileWidget
+                    siteKey={turnstileSiteKey}
                     onTokenChange={setTurnstileToken}
                     resetKey={turnstileResetKey}
                   />
                 </ScrollReveal>
+              )}
+
+              {turnstileUnavailable && (
+                <div
+                  className="border border-red-500/40 text-red-300 text-xs px-4 py-3"
+                  aria-live="polite"
+                >
+                  Verification is unavailable. Please try again later.
+                </div>
               )}
 
               {error && (
@@ -288,10 +314,16 @@ export default function ContactPage() {
               <ScrollReveal delay={0.25}>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={
+                    submitting || turnstileLoading || turnstileUnavailable
+                  }
                   className="group border-2 border-bone hover:border-ember hover:bg-ember text-bone hover:text-void px-8 py-4 text-xs tracking-[0.3em] transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {submitting ? "SENDING…" : "TRANSMIT MESSAGE"}
+                  {turnstileLoading
+                    ? "LOADING VERIFICATION…"
+                    : submitting
+                      ? "SENDING…"
+                      : "TRANSMIT MESSAGE"}
                   <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">
                     &rarr;
                   </span>

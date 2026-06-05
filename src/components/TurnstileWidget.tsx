@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type TurnstileRenderOptions = {
   sitekey: string;
@@ -25,12 +25,75 @@ declare global {
 
 const TURNSTILE_SITE_KEY =
   process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
+const TURNSTILE_CONFIG_ENDPOINT = "/api/turnstile";
 
-export function hasTurnstileSiteKey() {
-  return TURNSTILE_SITE_KEY.length > 0;
+interface TurnstileConfig {
+  siteKey: string;
+  required: boolean;
+  loading: boolean;
+  unavailable: boolean;
+}
+
+export function useTurnstileConfig(): TurnstileConfig {
+  const [config, setConfig] = useState<TurnstileConfig>({
+    siteKey: TURNSTILE_SITE_KEY,
+    required: TURNSTILE_SITE_KEY.length > 0,
+    loading: true,
+    unavailable: false,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadConfig() {
+      try {
+        const response = await fetch(TURNSTILE_CONFIG_ENDPOINT, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to load Turnstile config");
+        }
+
+        const data = (await response.json()) as {
+          siteKey?: unknown;
+          required?: unknown;
+        };
+        const siteKey =
+          typeof data.siteKey === "string" ? data.siteKey.trim() : "";
+        const required = data.required === true;
+
+        if (!cancelled) {
+          setConfig({
+            siteKey,
+            required,
+            loading: false,
+            unavailable: required && siteKey.length === 0,
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setConfig((current) => ({
+            ...current,
+            loading: false,
+            unavailable: current.required && current.siteKey.length === 0,
+          }));
+        }
+      }
+    }
+
+    loadConfig();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return config;
 }
 
 interface TurnstileWidgetProps {
+  siteKey: string;
   onTokenChange: (token: string) => void;
   resetKey?: number;
   className?: string;
@@ -38,6 +101,7 @@ interface TurnstileWidgetProps {
 }
 
 export function TurnstileWidget({
+  siteKey,
   onTokenChange,
   resetKey = 0,
   className = "border border-iron px-4 py-4",
@@ -48,7 +112,7 @@ export function TurnstileWidget({
 
   const renderTurnstile = useCallback(() => {
     if (
-      !TURNSTILE_SITE_KEY ||
+      !siteKey ||
       !containerRef.current ||
       widgetIdRef.current ||
       !window.turnstile
@@ -57,13 +121,13 @@ export function TurnstileWidget({
     }
 
     widgetIdRef.current = window.turnstile.render(containerRef.current, {
-      sitekey: TURNSTILE_SITE_KEY,
+      sitekey: siteKey,
       theme: "dark",
       callback: onTokenChange,
       "expired-callback": () => onTokenChange(""),
       "error-callback": () => onTokenChange(""),
     });
-  }, [onTokenChange]);
+  }, [onTokenChange, siteKey]);
 
   useEffect(() => {
     renderTurnstile();
@@ -79,7 +143,7 @@ export function TurnstileWidget({
     onTokenChange("");
   }, [onTokenChange, resetKey]);
 
-  if (!TURNSTILE_SITE_KEY) {
+  if (!siteKey) {
     return null;
   }
 

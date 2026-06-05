@@ -4,13 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
-  hasTurnstileSiteKey,
   TurnstileWidget,
+  useTurnstileConfig,
 } from "@/components/TurnstileWidget";
 
 export default function LoginForm() {
   const router = useRouter();
-  const turnstileEnabled = hasTurnstileSiteKey();
+  const {
+    siteKey: turnstileSiteKey,
+    required: turnstileRequired,
+    loading: turnstileLoading,
+    unavailable: turnstileUnavailable,
+  } = useTurnstileConfig();
+  const turnstileEnabled = !turnstileLoading && turnstileSiteKey.length > 0;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -27,7 +33,17 @@ export default function LoginForm() {
     e.preventDefault();
     setError("");
 
-    if (turnstileEnabled && !turnstileToken) {
+    if (turnstileLoading) {
+      setError("Verification is still loading");
+      return;
+    }
+
+    if (turnstileUnavailable) {
+      setError("Verification is unavailable");
+      return;
+    }
+
+    if (turnstileRequired && !turnstileToken) {
       setError("Verification required");
       return;
     }
@@ -131,17 +147,32 @@ export default function LoginForm() {
 
             {turnstileEnabled && (
               <TurnstileWidget
+                siteKey={turnstileSiteKey}
                 onTokenChange={setTurnstileToken}
                 resetKey={turnstileResetKey}
               />
             )}
 
+            {turnstileUnavailable && (
+              <div
+                className="border border-red-500/30 text-red-400 text-xs tracking-widest px-4 py-3"
+                role="alert"
+                aria-live="polite"
+              >
+                ERROR: VERIFICATION IS UNAVAILABLE
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || turnstileLoading || turnstileUnavailable}
               className="w-full border-2 border-bone hover:border-ember hover:bg-ember text-bone hover:text-void px-8 py-4 text-xs tracking-[0.3em] transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "AUTHENTICATING…" : "AUTHENTICATE"}
+              {turnstileLoading
+                ? "LOADING VERIFICATION…"
+                : loading
+                  ? "AUTHENTICATING…"
+                  : "AUTHENTICATE"}
             </button>
           </form>
         </div>
