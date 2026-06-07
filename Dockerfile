@@ -1,12 +1,12 @@
 # ─── Stage 1: Dependencies ─────────────────────────────
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
 # ─── Stage 2: Generate Prisma Client ──────────────────
-FROM node:22-alpine AS prisma
+FROM node:26-alpine AS prisma
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -17,7 +17,7 @@ COPY prisma.config.ts ./
 RUN npx prisma generate
 
 # ─── Stage 3: Build ───────────────────────────────────
-FROM node:22-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /app
 
 COPY --from=prisma /app/node_modules ./node_modules
@@ -42,7 +42,7 @@ ENV APP_REVISION=$APP_REVISION
 RUN npm run build
 
 # ─── Stage 4: Migration Tooling ───────────────────────
-FROM node:22-alpine AS migrate
+FROM node:26-alpine AS migrate
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -62,7 +62,7 @@ ENTRYPOINT []
 CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 
 # ─── Stage 5: Production Web Runtime ──────────────────
-FROM node:22-alpine AS runner
+FROM node:26-alpine AS runner
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1   
