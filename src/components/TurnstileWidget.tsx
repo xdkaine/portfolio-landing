@@ -8,7 +8,7 @@ type TurnstileRenderOptions = {
   theme?: "light" | "dark" | "auto";
   callback?: (token: string) => void;
   "expired-callback"?: () => void;
-  "error-callback"?: () => void;
+  "error-callback"?: (errorCode: string) => boolean | void;
 };
 
 declare global {
@@ -95,6 +95,7 @@ export function useTurnstileConfig(): TurnstileConfig {
 interface TurnstileWidgetProps {
   siteKey: string;
   onTokenChange: (token: string) => void;
+  onError?: (errorCode: string) => void;
   resetKey?: number;
   className?: string;
   label?: string;
@@ -103,6 +104,7 @@ interface TurnstileWidgetProps {
 export function TurnstileWidget({
   siteKey,
   onTokenChange,
+  onError,
   resetKey = 0,
   className = "border border-iron px-4 py-4",
   label = "VERIFICATION",
@@ -125,9 +127,13 @@ export function TurnstileWidget({
       theme: "dark",
       callback: onTokenChange,
       "expired-callback": () => onTokenChange(""),
-      "error-callback": () => onTokenChange(""),
+      "error-callback": (errorCode) => {
+        onTokenChange("");
+        onError?.(errorCode);
+        return false;
+      },
     });
-  }, [onTokenChange, siteKey]);
+  }, [onError, onTokenChange, siteKey]);
 
   useEffect(() => {
     renderTurnstile();

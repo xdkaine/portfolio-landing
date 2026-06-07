@@ -7,8 +7,11 @@ import { GET as turnstileConfigGet } from "@/app/api/turnstile/route";
 const originalTurnstileSecret = process.env.TURNSTILE_SECRET_KEY;
 const originalTurnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 const originalRuntimeTurnstileSiteKey = process.env.TURNSTILE_SITE_KEY;
+const originalFetch = globalThis.fetch;
 
 function restoreTurnstileSecret() {
+  globalThis.fetch = originalFetch;
+
   if (originalTurnstileSecret === undefined) {
     delete process.env.TURNSTILE_SECRET_KEY;
     return;
@@ -91,4 +94,34 @@ test("login attempts require a Turnstile token when configured", async (t) => {
 
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: "Verification required" });
+});
+
+test("login reports the Cloudflare verification rejection code", async (t) => {
+  process.env.TURNSTILE_SECRET_KEY = "test-secret";
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        success: false,
+        "error-codes": ["timeout-or-duplicate"],
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  t.after(restoreTurnstileSecret);
+
+  const response = await loginPost(
+    jsonRequest("/api/auth/login", {
+      email: "admin@example.com",
+      password: "correct-horse-battery-staple",
+      turnstileToken: "expired-token",
+    }),
+  );
+
+  assert.equal(response.status, 403);
+  assert.deepEqual(await response.json(), {
+    error: "Verification failed",
+    verificationCode: "timeout-or-duplicate",
+  });
 });

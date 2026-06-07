@@ -73,10 +73,13 @@ export async function POST(request: Request) {
         );
       }
 
-      const valid = await verifyTurnstile(turnstileToken);
-      if (!valid) {
+      const verification = await verifyTurnstile(turnstileToken);
+      if (!verification.success) {
         return NextResponse.json(
-          { error: "Verification failed" },
+          {
+            error: "Verification failed",
+            verificationCode: verification.errorCodes[0] ?? "unknown-error",
+          },
           { status: 403 }
         );
       }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
@@ -20,6 +20,7 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileError, setTurnstileError] = useState("");
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,7 +28,13 @@ export default function LoginForm() {
   const resetTurnstile = () => {
     setTurnstileResetKey((key) => key + 1);
     setTurnstileToken("");
+    setTurnstileError("");
   };
+
+  const handleTurnstileToken = useCallback((token: string) => {
+    setTurnstileToken(token);
+    if (token) setTurnstileError("");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +47,11 @@ export default function LoginForm() {
 
     if (turnstileUnavailable) {
       setError("Verification is unavailable");
+      return;
+    }
+
+    if (turnstileError) {
+      setError(`Verification failed (${turnstileError}). Please try again.`);
       return;
     }
 
@@ -57,10 +69,16 @@ export default function LoginForm() {
         body: JSON.stringify({ email, password, turnstileToken }),
       });
 
-      const data = await res.json();
+      const data = (await res.json()) as {
+        error?: string;
+        verificationCode?: string;
+      };
 
       if (!res.ok) {
-        setError(data.error || "Login failed");
+        const verificationSuffix = data.verificationCode
+          ? ` (${data.verificationCode})`
+          : "";
+        setError(`${data.error || "Login failed"}${verificationSuffix}`);
         if (turnstileEnabled) resetTurnstile();
         return;
       }
@@ -148,9 +166,20 @@ export default function LoginForm() {
             {turnstileEnabled && (
               <TurnstileWidget
                 siteKey={turnstileSiteKey}
-                onTokenChange={setTurnstileToken}
+                onTokenChange={handleTurnstileToken}
+                onError={setTurnstileError}
                 resetKey={turnstileResetKey}
               />
+            )}
+
+            {turnstileError && (
+              <div
+                className="border border-red-500/30 text-red-400 text-xs tracking-widest px-4 py-3"
+                role="alert"
+                aria-live="polite"
+              >
+                ERROR: VERIFICATION FAILED ({turnstileError.toUpperCase()})
+              </div>
             )}
 
             {turnstileUnavailable && (
@@ -165,7 +194,12 @@ export default function LoginForm() {
 
             <button
               type="submit"
-              disabled={loading || turnstileLoading || turnstileUnavailable}
+              disabled={
+                loading ||
+                turnstileLoading ||
+                turnstileUnavailable ||
+                Boolean(turnstileError)
+              }
               className="w-full border-2 border-bone hover:border-ember hover:bg-ember text-bone hover:text-void px-8 py-4 text-xs tracking-[0.3em] transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {turnstileLoading

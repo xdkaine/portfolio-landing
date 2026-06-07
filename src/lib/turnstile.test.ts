@@ -25,10 +25,38 @@ test("Turnstile verification does not send a forwarded remote IP", async (t) => 
     });
   };
 
-  assert.equal(await verifyTurnstile("test-token"), true);
+  assert.deepEqual(await verifyTurnstile("test-token"), {
+    success: true,
+    errorCodes: [],
+    hostname: undefined,
+  });
 
   const params = new URLSearchParams(verificationBody);
   assert.equal(params.get("secret"), "test-secret");
   assert.equal(params.get("response"), "test-token");
   assert.equal(params.has("remoteip"), false);
+});
+
+test("Turnstile verification preserves Cloudflare rejection details", async (t) => {
+  t.after(restoreEnvironment);
+  process.env.TURNSTILE_SECRET_KEY = "test-secret";
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        success: false,
+        "error-codes": ["timeout-or-duplicate"],
+        hostname: "www.phao.dev",
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+
+  assert.deepEqual(await verifyTurnstile("expired-token"), {
+    success: false,
+    errorCodes: ["timeout-or-duplicate"],
+    hostname: "www.phao.dev",
+  });
 });

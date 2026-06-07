@@ -6,17 +6,25 @@ interface TurnstileVerificationResponse {
   hostname?: string;
 }
 
+export interface TurnstileVerificationResult {
+  success: boolean;
+  errorCodes: string[];
+  hostname?: string;
+}
+
 export function isTurnstileRequired(): boolean {
   return Boolean(process.env.TURNSTILE_SECRET_KEY?.trim());
 }
 
-export async function verifyTurnstile(token: string): Promise<boolean> {
+export async function verifyTurnstile(
+  token: string,
+): Promise<TurnstileVerificationResult> {
   const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
 
   // If no secret configured, skip verification (dev mode)
   if (!secret) {
     console.warn("[turnstile] No TURNSTILE_SECRET_KEY configured, skipping verification");
-    return true;
+    return { success: true, errorCodes: [] };
   }
 
   try {
@@ -33,18 +41,33 @@ export async function verifyTurnstile(token: string): Promise<boolean> {
     });
 
     const data = (await response.json()) as TurnstileVerificationResponse;
+    const errorCodes = Array.isArray(data["error-codes"])
+      ? data["error-codes"].filter((code): code is string => typeof code === "string")
+      : [];
+
     if (response.ok && data.success === true) {
-      return true;
+      return {
+        success: true,
+        errorCodes: [],
+        hostname: data.hostname,
+      };
     }
 
     console.warn("[turnstile] Verification rejected", {
       status: response.status,
-      errorCodes: data["error-codes"],
+      errorCodes,
       hostname: data.hostname,
     });
-    return false;
+    return {
+      success: false,
+      errorCodes,
+      hostname: data.hostname,
+    };
   } catch (error) {
     console.error("[turnstile] Verification failed:", error);
-    return false;
+    return {
+      success: false,
+      errorCodes: ["internal-error"],
+    };
   }
 }

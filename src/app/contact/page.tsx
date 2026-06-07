@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { PublicLink } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
@@ -25,6 +25,7 @@ export default function ContactPage() {
   const [error, setError] = useState("");
   const [consent, setConsent] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileError, setTurnstileError] = useState("");
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [honeypot, setHoneypot] = useState("");
   const [formData, setFormData] = useState({
@@ -36,7 +37,13 @@ export default function ContactPage() {
   const resetTurnstile = () => {
     setTurnstileResetKey((key) => key + 1);
     setTurnstileToken("");
+    setTurnstileError("");
   };
+
+  const handleTurnstileToken = useCallback((token: string) => {
+    setTurnstileToken(token);
+    if (token) setTurnstileError("");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +61,11 @@ export default function ContactPage() {
 
     if (turnstileUnavailable) {
       setError("Verification is unavailable. Please try again later.");
+      return;
+    }
+
+    if (turnstileError) {
+      setError(`Verification failed (${turnstileError}). Please try again.`);
       return;
     }
 
@@ -78,10 +90,16 @@ export default function ContactPage() {
 
       const payload = (await res.json().catch(() => ({}))) as {
         error?: string;
+        verificationCode?: string;
       };
 
       if (!res.ok) {
-        setError(payload.error || "Failed to send message. Please try again.");
+        const verificationSuffix = payload.verificationCode
+          ? ` (${payload.verificationCode})`
+          : "";
+        setError(
+          `${payload.error || "Failed to send message. Please try again."}${verificationSuffix}`,
+        );
         if (turnstileEnabled) resetTurnstile();
         return;
       }
@@ -287,10 +305,20 @@ export default function ContactPage() {
                 <ScrollReveal delay={0.23}>
                   <TurnstileWidget
                     siteKey={turnstileSiteKey}
-                    onTokenChange={setTurnstileToken}
+                    onTokenChange={handleTurnstileToken}
+                    onError={setTurnstileError}
                     resetKey={turnstileResetKey}
                   />
                 </ScrollReveal>
+              )}
+
+              {turnstileError && (
+                <div
+                  className="border border-red-500/40 text-red-300 text-xs px-4 py-3"
+                  aria-live="polite"
+                >
+                  Verification failed ({turnstileError}). Please try again.
+                </div>
               )}
 
               {turnstileUnavailable && (
@@ -315,7 +343,10 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={
-                    submitting || turnstileLoading || turnstileUnavailable
+                    submitting ||
+                    turnstileLoading ||
+                    turnstileUnavailable ||
+                    Boolean(turnstileError)
                   }
                   className="group border-2 border-bone hover:border-ember hover:bg-ember text-bone hover:text-void px-8 py-4 text-xs tracking-[0.3em] transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
