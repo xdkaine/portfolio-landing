@@ -2,16 +2,15 @@ const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/sit
 
 interface TurnstileVerificationResponse {
   success?: boolean;
+  "error-codes"?: string[];
+  hostname?: string;
 }
 
 export function isTurnstileRequired(): boolean {
   return Boolean(process.env.TURNSTILE_SECRET_KEY?.trim());
 }
 
-export async function verifyTurnstile(
-  token: string,
-  remoteIp?: string,
-): Promise<boolean> {
+export async function verifyTurnstile(token: string): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
 
   // If no secret configured, skip verification (dev mode)
@@ -26,10 +25,6 @@ export async function verifyTurnstile(
       response: token,
     });
 
-    if (remoteIp && remoteIp !== "unknown") {
-      body.set("remoteip", remoteIp);
-    }
-
     const response = await fetch(TURNSTILE_VERIFY_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -38,7 +33,16 @@ export async function verifyTurnstile(
     });
 
     const data = (await response.json()) as TurnstileVerificationResponse;
-    return response.ok && data.success === true;
+    if (response.ok && data.success === true) {
+      return true;
+    }
+
+    console.warn("[turnstile] Verification rejected", {
+      status: response.status,
+      errorCodes: data["error-codes"],
+      hostname: data.hostname,
+    });
+    return false;
   } catch (error) {
     console.error("[turnstile] Verification failed:", error);
     return false;

@@ -12,6 +12,25 @@ function configuredSiteOrigin(): string | null {
   }
 }
 
+function configuredSiteOrigins(): Set<string> {
+  const siteOrigin = configuredSiteOrigin();
+  if (!siteOrigin) return new Set();
+
+  const origins = new Set([siteOrigin]);
+  const siteUrl = new URL(siteOrigin);
+  const hostname = siteUrl.hostname.toLowerCase();
+
+  if (hostname.startsWith("www.")) {
+    siteUrl.hostname = hostname.slice(4);
+    origins.add(siteUrl.origin);
+  } else if (hostname.split(".").length === 2) {
+    siteUrl.hostname = `www.${hostname}`;
+    origins.add(siteUrl.origin);
+  }
+
+  return origins;
+}
+
 export function rejectCrossSiteMutation(
   request: Request,
 ): NextResponse | null {
@@ -36,11 +55,11 @@ export function rejectCrossSiteMutation(
     );
   }
 
-  const siteOrigin = configuredSiteOrigin();
+  const siteOrigins = configuredSiteOrigins();
   const allowedOrigins =
-    process.env.NODE_ENV === "production" && siteOrigin
-      ? new Set([siteOrigin])
-      : new Set([requestOrigin, ...(siteOrigin ? [siteOrigin] : [])]);
+    process.env.NODE_ENV === "production" && siteOrigins.size > 0
+      ? siteOrigins
+      : new Set([requestOrigin, ...siteOrigins]);
 
   if (!allowedOrigins.has(origin)) {
     return NextResponse.json(

@@ -3,7 +3,7 @@ import { createPublicPageMetadata } from "@/lib/siteMetadata";
 export const metadata = createPublicPageMetadata({
   title: "Contact | Start a Conversation",
   description:
-    "Get in touch about software engineering work, product builds, collaborations, or thoughtful digital projects.",
+    "Get in touch about software engineering work, product builds, collaborations, or other projects.",
   path: "/contact",
   imageAlt: "Contact page for project and collaboration inquiries.",
 });

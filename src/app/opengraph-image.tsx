@@ -32,7 +32,7 @@ export default async function OpenGraphImage() {
             letterSpacing: "0.34em",
           }}
         >
-          PORTFOLIO // PROJECTS // TRANSMISSIONS
+          PORTFOLIO // PROJECTS // BLOGS
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
           <div
@@ -70,7 +70,7 @@ export default async function OpenGraphImage() {
           }}
         >
           <span>PHAO.DEV</span>
-          <span>BUILD LOG // CASE STUDIES</span>
+          <span>BUILDING // ANYTHING</span>
         </div>
       </div>
     ),

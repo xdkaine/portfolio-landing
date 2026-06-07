@@ -3,6 +3,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { PostArticle } from "@/components/blog/PostArticle";
 import { getPostConnections, getPublishedPostBySlug } from "@/lib/postEditorial";
+import { DEFAULT_SOCIAL_IMAGE } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,10 @@ export async function generateMetadata({
   ]);
   if (!post) return {};
 
+  const socialImage = post.coverImage
+    ? { url: post.coverImage, alt: post.coverAlt?.trim() || post.title }
+    : DEFAULT_SOCIAL_IMAGE;
+
   return {
     title: `${post.title} | Transmissions`,
     description: post.excerpt,
@@ -39,13 +44,13 @@ export async function generateMetadata({
       authors: [settings.siteName],
       section: "Transmissions",
       tags: post.tags,
-      images: [{ url: `/blog/${post.slug}/opengraph-image` }],
+      images: [socialImage],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.excerpt,
-      images: [`/blog/${post.slug}/opengraph-image`],
+      images: [socialImage],
     },
   };
 }

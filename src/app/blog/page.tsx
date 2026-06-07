@@ -12,7 +12,7 @@ export const revalidate = 0;
 
 export const metadata: Metadata = {
   ...createPublicPageMetadata({
-    title: "Transmissions | Journal",
+    title: "Blog | Journal",
     description:
       "Notes from the build on systems, interfaces, experiments, engineering, and the decisions behind them.",
     path: "/blog",
@@ -64,7 +64,7 @@ export default async function BlogPage({
         <ScrollReveal variant="headline" delay={0.05}>
           <div className="grid lg:grid-cols-[1fr_370px] gap-10 items-end">
             <div>
-              <h1 className="font-display text-6xl md:text-8xl lg:text-9xl tracking-tighter">TRANSMISSIONS</h1>
+              <h1 className="font-display text-6xl md:text-8xl lg:text-9xl tracking-tighter">Blogs</h1>
               <p className="article-deck mt-5 max-w-2xl">
                 Notes from the build: systems, interfaces, experiments and the decisions behind them.
               </p>

@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         );
       }
 
-      const valid = await verifyTurnstile(turnstileToken, ip);
+      const valid = await verifyTurnstile(turnstileToken);
       if (!valid) {
         return NextResponse.json(
           { error: "Verification failed" },

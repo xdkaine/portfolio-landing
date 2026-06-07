@@ -144,6 +144,36 @@ test("production mutation origin protection trusts only the configured site", (t
   assert.equal(rejectCrossSiteMutation(spoofedRequestOrigin)?.status, 403);
 });
 
+test("production mutation origin protection accepts configured apex and www origins", (t) => {
+  const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  t.after(() => {
+    restoreAuthEnvironment();
+    if (originalSiteUrl === undefined) delete process.env.NEXT_PUBLIC_SITE_URL;
+    else process.env.NEXT_PUBLIC_SITE_URL = originalSiteUrl;
+  });
+
+  mutableEnvironment.NODE_ENV = "production";
+  process.env.NEXT_PUBLIC_SITE_URL = "https://phao.dev";
+
+  const apexOriginRequest = new Request("https://phao.dev/api/auth/login", {
+    method: "POST",
+    headers: {
+      Origin: "https://phao.dev",
+      "Sec-Fetch-Site": "same-origin",
+    },
+  });
+  assert.equal(rejectCrossSiteMutation(apexOriginRequest), null);
+
+  const wwwOriginRequest = new Request("https://www.phao.dev/api/auth/login", {
+    method: "POST",
+    headers: {
+      Origin: "https://www.phao.dev",
+      "Sec-Fetch-Site": "same-origin",
+    },
+  });
+  assert.equal(rejectCrossSiteMutation(wwwOriginRequest), null);
+});
+
 test("image detection uses file signatures rather than client MIME alone", () => {
   assert.deepEqual(
     detectImageType(
