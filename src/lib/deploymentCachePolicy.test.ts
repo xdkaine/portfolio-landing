@@ -113,8 +113,8 @@ test("deployment validates configuration and can restore the previous app image"
   assert.match(workflowConfig, /compose config --quiet/);
   assert.match(workflowConfig, /POSTGRES_PASSWORD is missing from \$DEPLOY_PATH\/\.env/);
   assert.match(workflowConfig, /The running PostgreSQL database rejected POSTGRES_PASSWORD/);
-  assert.match(workflowConfig, /compose exec -T -e PGPASSWORD="\$POSTGRES_PASSWORD" db psql/);
-  assert.match(workflowConfig, /compose exec -T -e PGPASSWORD="\$POSTGRES_PASSWORD" db pg_dump/);
+  assert.match(workflowConfig, /compose exec -T -e PGPASSWORD="\$POSTGRES_PASSWORD" db psql -h 127\.0\.0\.1/);
+  assert.match(workflowConfig, /compose exec -T -e PGPASSWORD="\$POSTGRES_PASSWORD" db pg_dump -h 127\.0\.0\.1/);
   assert.match(workflowConfig, /gzip -t "\$backup_path"/);
   assert.match(workflowConfig, /previous_app_image/);
   assert.match(workflowConfig, /compose up -d --no-deps app/);

@@ -298,7 +298,7 @@ jobs:
             attempt=$((attempt + 1))
           done
 
-          if ! APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" db psql -U xtomm -d portfolio -v ON_ERROR_STOP=1 -c "select 1" >/dev/null; then
+          if ! APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" db psql -h 127.0.0.1 -U xtomm -d portfolio -v ON_ERROR_STOP=1 -c "select 1" >/dev/null; then
             echo "The running PostgreSQL database rejected POSTGRES_PASSWORD from $DEPLOY_PATH/.env." >&2
             echo "For an existing pgdata volume, changing POSTGRES_PASSWORD in .env does not rotate the xtomm database role." >&2
             echo "Rotate the role or restore .env to the current role password, then rerun deploy." >&2
@@ -306,7 +306,7 @@ jobs:
             exit 1
           fi
 
-          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" db pg_dump -U xtomm portfolio | gzip > "$backup_path"
+          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" db pg_dump -h 127.0.0.1 -U xtomm portfolio | gzip > "$backup_path"
           gzip -t "$backup_path"
           find "$DEPLOY_PATH/backups" -type f -name 'portfolio-before-*.sql.gz' -mtime +30 -delete
 
