@@ -2,11 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isTurnstileRequired, verifyTurnstile } from "@/lib/turnstile";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
+import {
+  rejectCrossSiteMutation,
+  requireAdminApi,
+} from "@/lib/requestSecurity";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
   try {
+    const rejected = rejectCrossSiteMutation(request);
+    if (rejected) return rejected;
+
     const ip = getRequestIp(request);
     const rateLimit = checkRateLimit(`contact:${ip}`, 5, 60 * 60 * 1000);
 
@@ -96,14 +103,9 @@ export async function POST(request: Request) {
 
 // Protected: list messages (for admin)
 export async function GET() {
-  // Import here to avoid circular issues
-  const { verifySession } = await import("@/lib/auth");
-
   try {
-    const session = await verifySession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = await requireAdminApi();
+    if (denied) return denied;
 
     const messages = await prisma.contactMessage.findMany({
       orderBy: { createdAt: "desc" },

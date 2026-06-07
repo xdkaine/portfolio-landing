@@ -34,6 +34,7 @@ export async function verifyTurnstile(
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body,
+      signal: AbortSignal.timeout(5_000),
     });
 
     const data = (await response.json()) as TurnstileVerificationResponse;

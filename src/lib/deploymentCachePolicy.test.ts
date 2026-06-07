@@ -19,7 +19,6 @@ const projectApiDetailRoute = readFileSync(
   path.join(process.cwd(), "src", "app", "api", "projects", "[id]", "route.ts"),
   "utf8",
 );
-
 function locationBlock(location: string) {
   const escapedLocation = location.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = nginxConfig.match(
@@ -47,9 +46,40 @@ test("nginx prevents stale dynamic responses from browser or edge caches", () =>
   }
 });
 
+test("nginx applies security headers in locations with local cache headers", () => {
+  assert.match(nginxConfig, /add_header_inherit\s+merge;/);
+
+  for (const location of [
+    "/api/auth/",
+    "/api/contact",
+    "/api/uploads/",
+    "/api/",
+    "/_next/static/",
+    "/",
+  ]) {
+    assert.match(locationBlock(location), /add_header\s+Cache-Control/);
+  }
+
+  assert.match(nginxConfig, /Strict-Transport-Security/);
+  assert.match(nginxConfig, /Content-Security-Policy/);
+  assert.match(nginxConfig, /X-Frame-Options "DENY"/);
+});
+
+test("large request bodies are limited to upload routes", () => {
+  assert.match(nginxConfig, /client_max_body_size\s+1m;/);
+  assert.match(locationBlock("/api/uploads/"), /client_max_body_size\s+55m;/);
+  assert.doesNotMatch(locationBlock("/api/auth/"), /client_max_body_size\s+55m;/);
+});
+
 test("deployment reloads nginx in place after syncing mounted config", () => {
-  assert.match(workflowConfig, /compose exec -T nginx nginx -t/);
-  assert.match(workflowConfig, /compose exec -T nginx nginx -s reload/);
+  assert.match(
+    workflowConfig,
+    /compose exec -T nginx nginx -t -c \/etc\/nginx\/portfolio\/nginx\.conf/,
+  );
+  assert.match(
+    workflowConfig,
+    /compose exec -T nginx nginx -s reload -c \/etc\/nginx\/portfolio\/nginx\.conf/,
+  );
   assert.doesNotMatch(workflowConfig, /force-recreate --no-deps nginx/);
 });
 
@@ -69,13 +99,26 @@ test("deployment verifies app health through nginx", () => {
 test("deployment verifies the public route reaches the same revision", () => {
   assert.match(
     workflowConfig,
-    /curl -fsS "\$NEXT_PUBLIC_SITE_URL\/api\/health" \| grep -q "\\"revision\\":\\"\$GITHUB_SHA\\""/,
+    /curl -fsS "\$PUBLIC_SITE_URL\/api\/health" \| grep -q "\\"revision\\":\\"\$GITHUB_SHA\\""/,
   );
 });
 
 test("deployment refuses local fallback images in production", () => {
   assert.match(workflowConfig, /Refusing to deploy without the immutable GHCR image/);
+  assert.match(workflowConfig, /Refusing to deploy without the immutable migration image/);
   assert.match(workflowConfig, /running_app_image/);
+});
+
+test("deployment validates configuration and can restore the previous app image", () => {
+  assert.match(workflowConfig, /compose config --quiet/);
+  assert.match(workflowConfig, /gzip -t "\$backup_path"/);
+  assert.match(workflowConfig, /previous_app_image/);
+  assert.match(workflowConfig, /compose up -d --no-deps app/);
+});
+
+test("container builds publish supply-chain attestations", () => {
+  assert.match(workflowConfig, /sbom:\s+true/);
+  assert.match(workflowConfig, /provenance:\s+mode=max/);
 });
 
 test("project API routes opt out of Next route caching", () => {

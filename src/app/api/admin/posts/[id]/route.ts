@@ -1,21 +1,19 @@
 import { NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
 import {
   deleteAdminPost,
   getAdminPostById,
   PostEditorialError,
   updateAdminPost,
 } from "@/lib/postEditorial";
+import {
+  requireAdminApi,
+  requireAdminMutation,
+} from "@/lib/requestSecurity";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-async function authorize() {
-  const session = await verifySession();
-  return session ? null : NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-}
-
 export async function GET(_request: Request, { params }: RouteParams) {
-  const denied = await authorize();
+  const denied = await requireAdminApi();
   if (denied) return denied;
   const { id } = await params;
   const post = await getAdminPostById(id);
@@ -25,7 +23,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const denied = await authorize();
+  const denied = await requireAdminMutation(request);
   if (denied) return denied;
   try {
     const { id } = await params;
@@ -38,8 +36,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const denied = await authorize();
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const denied = await requireAdminMutation(request);
   if (denied) return denied;
   try {
     const { id } = await params;

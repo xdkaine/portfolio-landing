@@ -7,6 +7,7 @@ const CLICK_KEY_PREFIX = "analytics_link::";
 const MAX_DESTINATION_LENGTH = 2048;
 const MAX_LABEL_LENGTH = 140;
 const MAX_SOURCE_PATH_LENGTH = 300;
+const MAX_STORED_METRICS = 2_000;
 
 interface LinkClickPayload {
   href: string;
@@ -41,6 +42,30 @@ function sanitizeLabel(value: unknown): string {
   if (typeof value !== "string") return "LINK";
   const normalized = value.replace(/\s+/g, " ").trim().slice(0, MAX_LABEL_LENGTH);
   return normalized || "LINK";
+}
+
+function classifyDestination(value: string): boolean | null {
+  if (value.startsWith("/") && !value.startsWith("//")) return false;
+  if (value.startsWith("mailto:") || value.startsWith("tel:")) return true;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? true : null;
+  } catch {
+    return null;
+  }
+}
+
+function isSafeRawHref(value: string): boolean {
+  if (value.startsWith("/") && !value.startsWith("//")) return true;
+  if (value.startsWith("mailto:") || value.startsWith("tel:")) return true;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
 }
 
 function createMetricKey(payload: LinkClickPayload): string {
@@ -89,6 +114,8 @@ function buildPayload(input: unknown): LinkClickPayload | null {
   const external = body.external === true;
 
   if (!href || !destination) return null;
+  if (!isSafeRawHref(href)) return null;
+  if (classifyDestination(destination) !== external) return null;
   if (!sourcePath.startsWith("/")) return null;
   if (sourcePath.startsWith("/admin") || sourcePath.startsWith("/api")) return null;
 
@@ -110,6 +137,15 @@ export async function recordLinkClick(input: unknown): Promise<boolean> {
   const parsedExisting = existing?.value
     ? parseStoredLinkClickMetric(existing.value)
     : null;
+
+  if (!existing) {
+    const storedMetricCount = await prisma.siteSetting.count({
+      where: { key: { startsWith: CLICK_KEY_PREFIX } },
+    });
+    if (storedMetricCount >= MAX_STORED_METRICS) {
+      return false;
+    }
+  }
 
   const nextMetric: StoredLinkClickMetric = {
     destination: payload.destination,

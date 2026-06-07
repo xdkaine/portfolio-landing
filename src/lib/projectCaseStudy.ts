@@ -37,6 +37,139 @@ export interface ProjectCaseStudyContent {
   gallery?: ProjectCaseStudyGalleryItem[];
 }
 
+const MAX_CASE_STUDY_BYTES = 100_000;
+const MAX_WRITEUP_LENGTH = 50_000;
+const MAX_SHORT_TEXT_LENGTH = 500;
+const MAX_HIGHLIGHTS = 30;
+const MAX_GALLERY_ITEMS = 20;
+const MAX_URL_LENGTH = 2_048;
+const SAFE_PROJECT_ASSET_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const SAFE_PROJECT_ASSET_EXTENSION = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
+const SAFE_UPLOADED_PROJECT_IMAGE =
+  /^\/uploads\/projects\/[A-Za-z0-9][A-Za-z0-9._-]*\.(?:gif|jpe?g|png|webp)$/i;
+
+export function isSafeProjectExternalUrl(value: string): boolean {
+  if (value.length > MAX_URL_LENGTH) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function isSafeCheckedInProjectAsset(value: string): boolean {
+  if (!value.startsWith("/projects/") || !SAFE_PROJECT_ASSET_EXTENSION.test(value)) {
+    return false;
+  }
+
+  const segments = value.slice("/projects/".length).split("/");
+  return (
+    segments.length > 0 &&
+    segments.every(
+      (segment) =>
+        segment !== "." &&
+        segment !== ".." &&
+        SAFE_PROJECT_ASSET_SEGMENT.test(segment),
+    )
+  );
+}
+
+export function isSafeProjectImage(value: string): boolean {
+  return (
+    SAFE_UPLOADED_PROJECT_IMAGE.test(value) ||
+    isSafeCheckedInProjectAsset(value) ||
+    isSafeProjectExternalUrl(value)
+  );
+}
+
+export function transformProjectMarkdownUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("#")) return trimmed;
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
+  if (trimmed.startsWith("mailto:") || trimmed.startsWith("tel:")) return trimmed;
+  return isSafeProjectExternalUrl(trimmed) ? trimmed : "";
+}
+
+export function validateProjectCaseStudyInput(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return "Project case study must be an object";
+  }
+
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(value);
+  } catch {
+    return "Project case study must be serializable";
+  }
+  if (new TextEncoder().encode(serialized).byteLength > MAX_CASE_STUDY_BYTES) {
+    return "Project case study exceeds the 100 KB limit";
+  }
+
+  const data = value as Record<string, unknown>;
+  for (const name of [
+    "subtitle",
+    "pitch",
+    "role",
+    "timeline",
+    "challenge",
+    "concept",
+    "demoSummary",
+  ]) {
+    const field = data[name];
+    if (typeof field === "string" && field.length > MAX_SHORT_TEXT_LENGTH) {
+      return `${name} exceeds ${MAX_SHORT_TEXT_LENGTH} characters`;
+    }
+  }
+
+  if (
+    typeof data.writeupMarkdown === "string" &&
+    data.writeupMarkdown.length > MAX_WRITEUP_LENGTH
+  ) {
+    return `writeupMarkdown exceeds ${MAX_WRITEUP_LENGTH} characters`;
+  }
+  if (Array.isArray(data.writeup) && data.writeup.length > 100) {
+    return "writeup contains too many paragraphs";
+  }
+  if (Array.isArray(data.highlights) && data.highlights.length > MAX_HIGHLIGHTS) {
+    return `highlights contains more than ${MAX_HIGHLIGHTS} entries`;
+  }
+  if (Array.isArray(data.gallery) && data.gallery.length > MAX_GALLERY_ITEMS) {
+    return `gallery contains more than ${MAX_GALLERY_ITEMS} entries`;
+  }
+
+  for (const name of ["demoUrl", "repoUrl"]) {
+    const field = data[name];
+    if (
+      typeof field === "string" &&
+      field.trim() &&
+      !isSafeProjectExternalUrl(field.trim())
+    ) {
+      return `${name} must use http or https`;
+    }
+  }
+
+  if (Array.isArray(data.gallery)) {
+    for (const entry of data.gallery) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return "gallery entries must be objects";
+      }
+      const image = (entry as Record<string, unknown>).image;
+      if (
+        typeof image !== "string" ||
+        !image.trim() ||
+        !isSafeProjectImage(image.trim())
+      ) {
+        return "gallery images must use an uploaded project path or http(s) URL";
+      }
+    }
+  }
+
+  return null;
+}
+
 function normalizeString(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
@@ -107,7 +240,7 @@ function normalizeGallery(
       if (!entry || typeof entry !== "object") return null;
       const item = entry as Record<string, unknown>;
       const image = normalizeString(item.image);
-      if (!image) return null;
+      if (!image || !isSafeProjectImage(image)) return null;
 
       const title = normalizeString(item.title) ?? `VISUAL NOTE ${index + 1}`;
       const caption = normalizeString(item.caption) ?? "";
@@ -130,6 +263,8 @@ export function normalizeProjectCaseStudyInput(
   const writeupMarkdown =
     normalizeWriteupMarkdown(data.writeupMarkdown) ??
     (writeup && writeup.length > 0 ? writeup.join("\n\n") : undefined);
+  const demoUrl = normalizeString(data.demoUrl);
+  const repoUrl = normalizeString(data.repoUrl);
   const normalized: ProjectCaseStudyContent = {
     subtitle,
     pitch: subtitle,
@@ -141,8 +276,10 @@ export function normalizeProjectCaseStudyInput(
     writeup,
     highlights: normalizeHighlights(data.highlights),
     demoSummary: normalizeString(data.demoSummary),
-    demoUrl: normalizeString(data.demoUrl),
-    repoUrl: normalizeString(data.repoUrl),
+    demoUrl:
+      demoUrl && isSafeProjectExternalUrl(demoUrl) ? demoUrl : undefined,
+    repoUrl:
+      repoUrl && isSafeProjectExternalUrl(repoUrl) ? repoUrl : undefined,
     gallery: normalizeGallery(data.gallery),
   };
 

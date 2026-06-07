@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
 import {
   createProject,
   listProjects,
   ProjectCatalogError,
 } from "@/lib/projectCatalog";
+import { requireAdminMutation } from "@/lib/requestSecurity";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,10 +24,8 @@ export async function GET() {
 // Protected: create a project
 export async function POST(request: Request) {
   try {
-    const session = await verifySession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = await requireAdminMutation(request);
+    if (denied) return denied;
 
     return NextResponse.json(await createProject(await request.json()), {
       status: 201,

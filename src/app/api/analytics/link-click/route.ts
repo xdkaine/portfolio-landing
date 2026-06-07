@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
 import { getLinkClickMetrics, recordLinkClick } from "@/lib/linkClickMetrics";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
+import {
+  rejectCrossSiteMutation,
+  requireAdminApi,
+} from "@/lib/requestSecurity";
 
 export async function POST(request: Request) {
   try {
+    const rejected = rejectCrossSiteMutation(request);
+    if (rejected) return rejected;
+
     const ip = getRequestIp(request);
-    const rateLimit = checkRateLimit(`link-click:${ip}`, 400, 60 * 60 * 1000);
+    const rateLimit = checkRateLimit(`link-click:${ip}`, 60, 60 * 60 * 1000);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: "Too many requests" },
@@ -30,10 +36,8 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const session = await verifySession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = await requireAdminApi();
+    if (denied) return denied;
 
     return NextResponse.json(await getLinkClickMetrics());
   } catch {

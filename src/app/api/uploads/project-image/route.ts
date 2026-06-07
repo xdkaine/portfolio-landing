@@ -2,8 +2,12 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
 import { PROJECT_IMAGE_UPLOAD_DIRECTORY } from "@/lib/projectImageStorage";
+import { requireAdminMutation } from "@/lib/requestSecurity";
+import {
+  detectImageType,
+  type DetectedImageType,
+} from "@/lib/imageValidation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,13 +15,12 @@ export const dynamic = "force-dynamic";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_FILES_PER_REQUEST = 5;
 
-const MIME_TO_EXTENSION: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-  "image/gif": "gif",
-  "image/svg+xml": "svg",
-};
+const ALLOWED_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+]);
 
 /**
  * Attempt to remove a list of files that were already written to disk.
@@ -25,15 +28,17 @@ const MIME_TO_EXTENSION: Record<string, string> = {
  * is already being reported as failed.
  */
 async function rollbackFiles(filePaths: string[]): Promise<void> {
-  await Promise.allSettled(filePaths.map((fp) => unlink(fp)));
+  await Promise.allSettled(
+    filePaths.map((filePath) =>
+      unlink(/* turbopackIgnore: true */ filePath),
+    ),
+  );
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await verifySession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = await requireAdminMutation(request);
+    if (denied) return denied;
 
     const formData = await request.formData();
 
@@ -60,6 +65,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const preparedFiles: {
+      bytes: Uint8Array;
+      type: DetectedImageType;
+    }[] = [];
+
     // Validate every file before writing any to disk.
     for (const file of files) {
       if (file.size <= 0) {
@@ -71,27 +81,48 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      if (!MIME_TO_EXTENSION[file.type]) {
+      if (!ALLOWED_MIME_TYPES.has(file.type)) {
         return NextResponse.json(
-          { error: `File "${file.name}" has an unsupported type. Allowed: PNG, JPG, WEBP, GIF, SVG.` },
+          { error: `File "${file.name}" has an unsupported type. Allowed: PNG, JPG, WEBP, GIF.` },
           { status: 400 },
         );
       }
+
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const type = detectImageType(bytes);
+      if (!type || type.mime !== file.type) {
+        return NextResponse.json(
+          { error: `File "${file.name}" does not match its declared image type.` },
+          { status: 400 },
+        );
+      }
+
+      preparedFiles.push({ bytes, type });
     }
 
-    const uploadDirectory = path.resolve(PROJECT_IMAGE_UPLOAD_DIRECTORY);
-    await mkdir(uploadDirectory, { recursive: true });
+    const uploadDirectory = path.resolve(
+      /* turbopackIgnore: true */ PROJECT_IMAGE_UPLOAD_DIRECTORY,
+    );
+    await mkdir(
+      /* turbopackIgnore: true */ uploadDirectory,
+      { recursive: true },
+    );
 
     const writtenPaths: string[] = [];
     const urls: string[] = [];
 
     try {
-      for (const file of files) {
-        const extension = MIME_TO_EXTENSION[file.type];
-        const safeName = `${Date.now()}-${randomUUID()}.${extension}`;
-        const filePath = path.join(uploadDirectory, safeName);
-        const bytes = await file.arrayBuffer();
-        await writeFile(filePath, Buffer.from(bytes));
+      for (const prepared of preparedFiles) {
+        const safeName =
+          `${Date.now()}-${randomUUID()}.${prepared.type.extension}`;
+        const filePath = path.join(
+          /* turbopackIgnore: true */ uploadDirectory,
+          safeName,
+        );
+        await writeFile(
+          /* turbopackIgnore: true */ filePath,
+          prepared.bytes,
+        );
         writtenPaths.push(filePath);
         urls.push(`/uploads/projects/${safeName}`);
       }

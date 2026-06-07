@@ -21,12 +21,17 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   NODE_VERSION: "22"
   DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+  NEXT_PUBLIC_SITE_URL: "https://example.invalid"
+  JWT_SECRET: "ci-only-session-secret-0123456789abcdef"
+  TURNSTILE_SITE_KEY: "ci-site-key"
+  TURNSTILE_SECRET_KEY: "ci-secret-key"
 
 jobs:
   # ─── Lint & Type Check ──────────────────────────────
   validate:
     name: Validate
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -36,14 +41,16 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npx prisma generate
       - run: npx tsc --noEmit
       - run: npm run lint
+      - run: npm test
+      - run: npm audit --audit-level=high
 
   # ─── Build ──────────────────────────────────────────
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: validate
     steps:
       - uses: actions/checkout@v4
@@ -54,17 +61,18 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npx prisma generate
       - run: npm run build
 
   # ─── Docker Build & Push ────────────────────────────
   docker:
     name: Docker Build & Push
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: build
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     outputs:
       image-ref: ${{ steps.image.outputs.ref }}
+      migrate-image-ref: ${{ steps.image.outputs.migrate-ref }}
     permissions:
       contents: read
       packages: write
@@ -81,8 +89,12 @@ jobs:
         run: |
           image_ref="${REGISTRY}/${IMAGE_NAME}:${GITHUB_SHA}"
           latest_ref="${REGISTRY}/${IMAGE_NAME}:latest"
+          migrate_ref="${REGISTRY}/${IMAGE_NAME}-migrate:${GITHUB_SHA}"
+          migrate_latest_ref="${REGISTRY}/${IMAGE_NAME}-migrate:latest"
           echo "ref=${image_ref,,}" >> "$GITHUB_OUTPUT"
           echo "latest=${latest_ref,,}" >> "$GITHUB_OUTPUT"
+          echo "migrate-ref=${migrate_ref,,}" >> "$GITHUB_OUTPUT"
+          echo "migrate-latest=${migrate_latest_ref,,}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -95,9 +107,11 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker image
+        id: build-app
         uses: docker/build-push-action@v6
         with:
           context: .
+          target: runner
           push: true
           tags: |
             ${{ steps.image.outputs.ref }}
@@ -110,13 +124,34 @@ jobs:
             NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ env.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
             DATABASE_URL=${{ env.DATABASE_URL }}
             APP_REVISION=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=runner
+          cache-to: type=gha,mode=max,scope=runner
+          sbom: true
+          provenance: mode=max
+
+      - name: Build and push migration image
+        id: build-migrate
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: migrate
+          push: true
+          tags: |
+            ${{ steps.image.outputs.migrate-ref }}
+            ${{ steps.image.outputs.migrate-latest }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=migrate
+          cache-to: type=gha,mode=max,scope=migrate
+          sbom: true
+          provenance: mode=max
 
   # ─── Deploy ─────────────────────────────────────────
   deploy:
     name: Deploy
     runs-on: [self-hosted, linux, truenas, portfolio-landing]
+    timeout-minutes: 20
     needs: docker
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     environment: production
@@ -125,6 +160,7 @@ jobs:
       packages: read
     env:
       APP_IMAGE: ${{ needs.docker.outputs.image-ref }}
+      MIGRATE_IMAGE: ${{ needs.docker.outputs.migrate-image-ref }}
       DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/mnt/Orion/docker/stacks/production-portfolio' }}
       PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://phao.dev' }}
 
@@ -138,6 +174,17 @@ jobs:
 
           if [ -z "$DEPLOY_PATH" ]; then
             echo "DEPLOY_PATH is empty. Set the DEPLOY_PATH repository variable." >&2
+            exit 1
+          fi
+          case "$DEPLOY_PATH" in
+            /*) ;;
+            *)
+              echo "DEPLOY_PATH must be an absolute path." >&2
+              exit 1
+              ;;
+          esac
+          if [ "$DEPLOY_PATH" = "/" ]; then
+            echo "Refusing to use the filesystem root as DEPLOY_PATH." >&2
             exit 1
           fi
 
@@ -157,8 +204,9 @@ jobs:
           install -m 644 docker-compose.yml "$DEPLOY_PATH/docker-compose.yml"
           install -m 644 compose.runner.yml "$DEPLOY_PATH/compose.runner.yml"
           install -m 644 .env.example "$DEPLOY_PATH/.env.example"
-          rm -rf "$DEPLOY_PATH/nginx"
-          cp -R nginx "$DEPLOY_PATH/nginx"
+          install -d "$DEPLOY_PATH/nginx"
+          install -m 644 nginx/nginx.conf "$DEPLOY_PATH/nginx/nginx.conf"
+          install -m 644 nginx/fallback-404.html "$DEPLOY_PATH/nginx/fallback-404.html"
 
           if [ ! -f "$DEPLOY_PATH/.env" ]; then
             echo "Missing $DEPLOY_PATH/.env. Create it from $DEPLOY_PATH/.env.example before deploying." >&2
@@ -195,23 +243,50 @@ jobs:
               exit 1
               ;;
           esac
+          case "$MIGRATE_IMAGE" in
+            ghcr.io/*-migrate:"$GITHUB_SHA") ;;
+            *)
+              echo "Refusing to deploy without the immutable migration image for this commit: $MIGRATE_IMAGE" >&2
+              exit 1
+              ;;
+          esac
 
-          APP_IMAGE="$APP_IMAGE" compose pull app
-          APP_IMAGE="$APP_IMAGE" compose pull migrate
+          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose config --quiet
 
-          install -d "$DEPLOY_PATH/backups"
-          if APP_IMAGE="$APP_IMAGE" compose ps --status running --services | grep -qx db; then
-            APP_IMAGE="$APP_IMAGE" compose exec -T db pg_dump -U xtomm portfolio | gzip > "$DEPLOY_PATH/backups/portfolio-before-${GITHUB_SHA}.sql.gz"
+          previous_app_container="$(APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps -q app 2>/dev/null || true)"
+          previous_app_image=""
+          if [ -n "$previous_app_container" ]; then
+            previous_app_image="$(docker inspect "$previous_app_container" --format '{{.Config.Image}}' 2>/dev/null || true)"
           fi
 
-          if ! APP_IMAGE="$APP_IMAGE" compose up -d --no-build; then
+          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose pull app migrate
+
+          install -d -m 700 "$DEPLOY_PATH/backups"
+          umask 077
+          backup_path="$DEPLOY_PATH/backups/portfolio-before-${GITHUB_SHA}.sql.gz"
+          if APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps --status running --services | grep -qx db; then
+            APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T db pg_dump -U xtomm portfolio | gzip > "$backup_path"
+            gzip -t "$backup_path"
+            find "$DEPLOY_PATH/backups" -type f -name 'portfolio-before-*.sql.gz' -mtime +30 -delete
+          fi
+
+          if ! APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose up -d --no-build; then
             echo "Docker Compose startup failed; service status and migration logs follow." >&2
-            APP_IMAGE="$APP_IMAGE" compose ps -a || true
-            APP_IMAGE="$APP_IMAGE" compose logs --tail=200 migrate app || true
+            APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps -a || true
+            APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose logs --tail=200 migrate app || true
             exit 1
           fi
 
-          running_app_container="$(APP_IMAGE="$APP_IMAGE" compose ps -q app)"
+          running_migrate_container="$(APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps -a -q migrate)"
+          running_migrate_image="$(docker inspect "$running_migrate_container" --format '{{.Config.Image}}')"
+          if [ "$running_migrate_image" != "$MIGRATE_IMAGE" ]; then
+            echo "Migration container did not use the image built for this commit." >&2
+            echo "Expected: $MIGRATE_IMAGE" >&2
+            echo "Actual:   $running_migrate_image" >&2
+            exit 1
+          fi
+
+          running_app_container="$(APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps -q app)"
           running_app_image="$(docker inspect "$running_app_container" --format '{{.Config.Image}}')"
           if [ "$running_app_image" != "$APP_IMAGE" ]; then
             echo "App container is not running the image that was just built." >&2
@@ -223,15 +298,15 @@ jobs:
           # nginx reads its config once at startup; the file is a bind mount
           # that was just synced into place, so reload in place instead of
           # restarting the proxy on every app deployment.
-          APP_IMAGE="$APP_IMAGE" compose exec -T nginx nginx -t
-          APP_IMAGE="$APP_IMAGE" compose exec -T nginx nginx -s reload
+          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T nginx nginx -t -c /etc/nginx/portfolio/nginx.conf
+          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T nginx nginx -s reload -c /etc/nginx/portfolio/nginx.conf
 
           attempt=1
           while [ "$attempt" -le 30 ]; do
-            if APP_IMAGE="$APP_IMAGE" compose exec -T app node -e "const expected = process.env.APP_REVISION; fetch('http://127.0.0.1:3000/api/health').then((response) => response.json()).then((body) => process.exit(body.status === 'ok' && body.revision === expected ? 0 : 1)).catch(() => process.exit(1))" && \
-               APP_IMAGE="$APP_IMAGE" compose exec -T nginx wget -q -O - http://127.0.0.1/api/health | grep -q "\"revision\":\"$GITHUB_SHA\"" && \
+            if APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T app node -e "const expected = process.env.APP_REVISION; fetch('http://127.0.0.1:3000/api/health').then((response) => response.json()).then((body) => process.exit(body.status === 'ok' && body.revision === expected ? 0 : 1)).catch(() => process.exit(1))" && \
+               APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T nginx wget -q -O - http://127.0.0.1/api/health | grep -q "\"revision\":\"$GITHUB_SHA\"" && \
                curl -fsS "$PUBLIC_SITE_URL/api/health" | grep -q "\"revision\":\"$GITHUB_SHA\""; then
-              APP_IMAGE="$APP_IMAGE" compose ps
+              APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps
               exit 0
             fi
 
@@ -239,7 +314,12 @@ jobs:
             attempt=$((attempt + 1))
           done
 
-          APP_IMAGE="$APP_IMAGE" compose logs --tail=200 app nginx
+          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose logs --tail=200 app nginx
+          if [ -n "$previous_app_image" ] && [ "$previous_app_image" != "$APP_IMAGE" ]; then
+            echo "Health verification failed; restoring previous app image: $previous_app_image" >&2
+            APP_IMAGE="$previous_app_image" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose up -d --no-deps app
+            APP_IMAGE="$previous_app_image" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T nginx nginx -s reload -c /etc/nginx/portfolio/nginx.conf || true
+          fi
           exit 1
 
       - name: Summarize deployment
@@ -251,4 +331,5 @@ jobs:
             echo "Runner: \`${RUNNER_NAME}\`"
             echo "Deploy path: \`$DEPLOY_PATH\`"
             echo "Deployed image: \`$APP_IMAGE\`"
+            echo "Migration image: \`$MIGRATE_IMAGE\`"
           } >> "$GITHUB_STEP_SUMMARY"

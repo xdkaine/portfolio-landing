@@ -37,7 +37,11 @@ function restoreTurnstileConfig() {
 function jsonRequest(path: string, body: Record<string, unknown>) {
   return new Request(`http://localhost${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Origin: "http://localhost",
+      "Sec-Fetch-Site": "same-origin",
+    },
     body: JSON.stringify(body),
   });
 }

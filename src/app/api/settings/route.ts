@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
 import { getSiteSettings, updateSiteSettings } from "@/lib/siteSettings";
 import { pickPublicSiteSettings } from "@/lib/siteSettings-schema";
+import {
+  requireAdminApi,
+  requireAdminMutation,
+} from "@/lib/requestSecurity";
 
 export async function GET(request: Request) {
   try {
@@ -9,10 +12,8 @@ export async function GET(request: Request) {
     const includeAll = searchParams.get("all") === "true";
 
     if (includeAll) {
-      const session = await verifySession();
-      if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+      const denied = await requireAdminApi();
+      if (denied) return denied;
     }
 
     const settings = await getSiteSettings();
@@ -29,10 +30,8 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const session = await verifySession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = await requireAdminMutation(request);
+    if (denied) return denied;
 
     const body = await request.json();
     const settings = await updateSiteSettings(body);
@@ -52,4 +51,3 @@ export async function PUT(request: Request) {
     );
   }
 }
-

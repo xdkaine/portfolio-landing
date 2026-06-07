@@ -12,9 +12,17 @@ import {
   normalizeProjectStatus,
   type DisplayProjectStatus,
 } from "@/lib/projectPresentation";
+import { validateProjectCaseStudyInput } from "@/lib/projectCaseStudy";
 import { prisma } from "@/lib/prisma";
 
 type StoredProjectStatus = "LIVE" | "IN_PROGRESS" | "ARCHIVED";
+const PROJECT_NUMBER_REGEX = /^[A-Za-z0-9_-]{1,32}$/;
+const MAX_TITLE_LENGTH = 180;
+const MAX_DESCRIPTION_LENGTH = 5_000;
+const MAX_YEAR_LENGTH = 16;
+const MAX_TAGS = 16;
+const MAX_TAG_LENGTH = 64;
+const MAX_URL_LENGTH = 2_048;
 
 export class ProjectCatalogError extends Error {
   constructor(
@@ -70,10 +78,51 @@ function toStoredProjectStatus(status: unknown): StoredProjectStatus | undefined
   return undefined;
 }
 
-function normalizeTags(input: unknown, fallback: string[] = []): string[] {
-  if (!Array.isArray(input)) return fallback;
-  if (!input.every((tag) => typeof tag === "string")) return fallback;
-  return input.map((tag) => tag.trim()).filter(Boolean);
+function parseTags(input: unknown, fallback: string[] = []): string[] {
+  if (input === undefined) return fallback;
+  if (!Array.isArray(input) || input.length > MAX_TAGS) {
+    throw new ProjectCatalogError(`tags must contain at most ${MAX_TAGS} strings`, 400);
+  }
+
+  const tags = input.map((tag) => {
+    if (typeof tag !== "string" || tag.trim().length > MAX_TAG_LENGTH) {
+      throw new ProjectCatalogError(
+        `each tag must be a string of at most ${MAX_TAG_LENGTH} characters`,
+        400,
+      );
+    }
+    return tag.trim();
+  }).filter(Boolean);
+
+  return Array.from(new Set(tags));
+}
+
+function parseHttpUrl(
+  input: unknown,
+  fieldName: string,
+): string | undefined {
+  if (input === undefined || input === null || input === "") return undefined;
+  if (typeof input !== "string" || input.length > MAX_URL_LENGTH) {
+    throw new ProjectCatalogError(`${fieldName} is invalid`, 400);
+  }
+
+  try {
+    const value = input.trim();
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error("unsupported protocol");
+    }
+    return value;
+  } catch {
+    throw new ProjectCatalogError(`${fieldName} must use http or https`, 400);
+  }
+}
+
+function assertCaseStudy(input: unknown): void {
+  const validationError = validateProjectCaseStudyInput(input);
+  if (validationError) {
+    throw new ProjectCatalogError(validationError, 400);
+  }
 }
 
 function normalizeSortOrder(input: unknown): number | null {
@@ -98,21 +147,39 @@ function parseCreateProjectInput(
       400,
     );
   }
+  if (!PROJECT_NUMBER_REGEX.test(number)) {
+    throw new ProjectCatalogError(
+      "number may contain only letters, numbers, underscores, and hyphens",
+      400,
+    );
+  }
+  if (title.length > MAX_TITLE_LENGTH) {
+    throw new ProjectCatalogError(`title exceeds ${MAX_TITLE_LENGTH} characters`, 400);
+  }
+  if (description.length > MAX_DESCRIPTION_LENGTH) {
+    throw new ProjectCatalogError(
+      `description exceeds ${MAX_DESCRIPTION_LENGTH} characters`,
+      400,
+    );
+  }
+
+  const year =
+    typeof body.year === "string" && body.year.trim()
+      ? body.year.trim()
+      : new Date().getFullYear().toString();
+  if (year.length > MAX_YEAR_LENGTH) {
+    throw new ProjectCatalogError(`year exceeds ${MAX_YEAR_LENGTH} characters`, 400);
+  }
+  assertCaseStudy(body.caseStudy);
 
   return {
     number,
     title,
     description,
-    tags: normalizeTags(body.tags),
-    year:
-      typeof body.year === "string" && body.year.trim()
-        ? body.year.trim()
-        : new Date().getFullYear().toString(),
-    url: typeof body.url === "string" ? body.url.trim() || undefined : undefined,
-    github:
-      typeof body.github === "string"
-        ? body.github.trim() || undefined
-        : undefined,
+    tags: parseTags(body.tags),
+    year,
+    url: parseHttpUrl(body.url, "url"),
+    github: parseHttpUrl(body.github, "github"),
     status: toStoredProjectStatus(body.status) ?? "LIVE",
     featured: body.featured === true,
     sortOrder: normalizeSortOrder(body.sortOrder) ?? resolvedSortOrder,
@@ -129,25 +196,44 @@ function parseUpdateProjectInput(input: unknown): {
   const data: UpdateProjectInput = {};
 
   if (typeof body.number === "string" && body.number.trim()) {
-    data.number = body.number.trim();
+    const number = body.number.trim();
+    if (!PROJECT_NUMBER_REGEX.test(number)) {
+      throw new ProjectCatalogError("number contains unsupported characters", 400);
+    }
+    data.number = number;
   }
   if (typeof body.title === "string" && body.title.trim()) {
-    data.title = body.title.trim();
+    const title = body.title.trim();
+    if (title.length > MAX_TITLE_LENGTH) {
+      throw new ProjectCatalogError(`title exceeds ${MAX_TITLE_LENGTH} characters`, 400);
+    }
+    data.title = title;
   }
   if (typeof body.description === "string" && body.description.trim()) {
-    data.description = body.description.trim();
+    const description = body.description.trim();
+    if (description.length > MAX_DESCRIPTION_LENGTH) {
+      throw new ProjectCatalogError(
+        `description exceeds ${MAX_DESCRIPTION_LENGTH} characters`,
+        400,
+      );
+    }
+    data.description = description;
   }
-  if (Array.isArray(body.tags) && body.tags.every((tag) => typeof tag === "string")) {
-    data.tags = normalizeTags(body.tags);
+  if (Object.hasOwn(body, "tags")) {
+    data.tags = parseTags(body.tags);
   }
   if (typeof body.year === "string" && body.year.trim()) {
-    data.year = body.year.trim();
+    const year = body.year.trim();
+    if (year.length > MAX_YEAR_LENGTH) {
+      throw new ProjectCatalogError(`year exceeds ${MAX_YEAR_LENGTH} characters`, 400);
+    }
+    data.year = year;
   }
-  if (typeof body.url === "string") {
-    data.url = body.url.trim() || null;
+  if (Object.hasOwn(body, "url")) {
+    data.url = parseHttpUrl(body.url, "url") ?? null;
   }
-  if (typeof body.github === "string") {
-    data.github = body.github.trim() || null;
+  if (Object.hasOwn(body, "github")) {
+    data.github = parseHttpUrl(body.github, "github") ?? null;
   }
 
   const status = toStoredProjectStatus(body.status);
@@ -163,9 +249,12 @@ function parseUpdateProjectInput(input: unknown): {
     data.sortOrder = sortOrder;
   }
 
+  const caseStudyProvided = Object.hasOwn(body, "caseStudy");
+  if (caseStudyProvided) assertCaseStudy(body.caseStudy);
+
   return {
     data,
-    caseStudyProvided: Object.hasOwn(body, "caseStudy"),
+    caseStudyProvided,
     caseStudy: body.caseStudy,
   };
 }

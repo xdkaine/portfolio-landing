@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 
 const connectionString = process.env.DATABASE_URL;
 const allowDemoSeed = process.env.ALLOW_DEMO_SEED === "true";
-const allowDefaultAdminSeed = process.env.ALLOW_DEFAULT_ADMIN_SEED === "true";
+const allowAdminBootstrap = process.env.ALLOW_ADMIN_BOOTSTRAP === "true";
 
 if (!connectionString) {
   throw new Error("DATABASE_URL must be set to run the seed script.");
@@ -19,23 +19,35 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log("Seeding database...");
 
-  // Seed admin account used to access the dashboard.
-  if (allowDefaultAdminSeed) {
-    const hashedPassword = await bcrypt.hash("admin123", 12);
-    await prisma.user.upsert({
-      where: { email: "admin@xtomm.dev" },
-      update: {},
-      create: {
-        email: "admin@xtomm.dev",
-        password: hashedPassword,
-        name: "XTOMM",
+  if (allowAdminBootstrap) {
+    const email = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase() ?? "";
+    const password = process.env.BOOTSTRAP_ADMIN_PASSWORD ?? "";
+    const name = process.env.BOOTSTRAP_ADMIN_NAME?.trim() || null;
+
+    if (!email || !email.includes("@") || password.length < 16) {
+      throw new Error(
+        "Admin bootstrap requires a valid BOOTSTRAP_ADMIN_EMAIL and a BOOTSTRAP_ADMIN_PASSWORD of at least 16 characters.",
+      );
+    }
+
+    if ((await prisma.user.count()) > 0) {
+      throw new Error(
+        "Refusing admin bootstrap because a user already exists. Disable ALLOW_ADMIN_BOOTSTRAP.",
+      );
+    }
+
+    await prisma.user.create({
+      data: {
+        email,
+        password: await bcrypt.hash(password, 12),
+        name,
         role: "ADMIN",
       },
     });
-    console.log("  Default admin ensured (admin@xtomm.dev / admin123)");
+    console.log(`  Bootstrapped initial admin account for ${email}.`);
   } else {
     console.log(
-      "  Skipping default admin seed. Set ALLOW_DEFAULT_ADMIN_SEED=true to enable it.",
+      "  Skipping admin bootstrap. Set ALLOW_ADMIN_BOOTSTRAP=true with one-time credentials to enable it.",
     );
   }
 

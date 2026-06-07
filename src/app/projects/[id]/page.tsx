@@ -6,7 +6,12 @@ import remarkGfm from "remark-gfm";
 import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { ZoomableImage } from "@/components/ui/ZoomableImage";
-import { mergeProjectCaseStudy, type ProjectCaseStudyViewModel } from "@/lib/projectCaseStudy";
+import {
+  isSafeProjectExternalUrl,
+  mergeProjectCaseStudy,
+  transformProjectMarkdownUrl,
+  type ProjectCaseStudyViewModel,
+} from "@/lib/projectCaseStudy";
 import {
   getProjectByIdOrNumber,
   listProjectNavigation,
@@ -79,8 +84,14 @@ function normalizeProject(
     description: project.description,
     tags: project.tags,
     year: project.year,
-    url: project.url,
-    github: project.github,
+    url:
+      project.url && isSafeProjectExternalUrl(project.url)
+        ? project.url
+        : null,
+    github:
+      project.github && isSafeProjectExternalUrl(project.github)
+        ? project.github
+        : null,
     status: normalizeProjectStatus(project.status),
   };
 }
@@ -247,6 +258,7 @@ export default async function ProjectDetailPage({
               </span>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                urlTransform={transformProjectMarkdownUrl}
                 components={{
                   p: ({ children }) => (
                     <p className="text-sm md:text-base leading-relaxed text-ash mb-5 last:mb-0">

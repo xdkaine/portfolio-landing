@@ -1,19 +1,24 @@
-import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import {
+  COOKIE_NAME,
+  SESSION_MAX_AGE_SECONDS,
+  signSessionToken,
+  type SessionRole,
+  verifySessionToken,
+} from "@/lib/sessionToken";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "fallback-dev-secret-change-me"
-);
+export { COOKIE_NAME } from "@/lib/sessionToken";
 
-export const COOKIE_NAME = "xtomm-session";
-const EXPIRY = "7d";
+export interface AuthenticatedSession {
+  userId: string;
+  email: string;
+  name: string | null;
+  role: SessionRole;
+}
 
-export async function createSession(userId: string, role: string) {
-  const token = await new SignJWT({ userId, role })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(EXPIRY)
-    .sign(JWT_SECRET);
+export async function createSession(userId: string, role: SessionRole) {
+  const token = await signSessionToken(userId, role);
 
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
@@ -21,21 +26,37 @@ export async function createSession(userId: string, role: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: SESSION_MAX_AGE_SECONDS,
   });
 
   return token;
 }
 
-export async function verifySession() {
+export async function verifySession(): Promise<AuthenticatedSession | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
 
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload as { userId: string; role: string };
+    const claims = await verifySessionToken(token);
+    if (!claims) return null;
+
+    const user = await prisma.user.findUnique({
+      where: { id: claims.userId },
+      select: { id: true, email: true, name: true, role: true },
+    });
+
+    if (!user || user.role !== claims.role) {
+      return null;
+    }
+
+    return {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    };
   } catch {
     return null;
   }
@@ -50,6 +71,14 @@ export async function requireAuth() {
   const session = await verifySession();
   if (!session) {
     throw new Error("Unauthorized");
+  }
+  return session;
+}
+
+export async function requireRole(role: SessionRole) {
+  const session = await requireAuth();
+  if (session.role !== role) {
+    throw new Error("Forbidden");
   }
   return session;
 }

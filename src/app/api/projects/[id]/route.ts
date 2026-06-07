@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
 import {
   deleteProject,
   getProjectByIdOrNumber,
+  ProjectCatalogError,
   updateProject,
 } from "@/lib/projectCatalog";
+import { requireAdminMutation } from "@/lib/requestSecurity";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -28,10 +29,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
 // Protected: update project
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    const session = await verifySession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = await requireAdminMutation(request);
+    if (denied) return denied;
 
     const { id } = await params;
     const project = await updateProject(id, await request.json());
@@ -40,18 +39,19 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     return NextResponse.json(project);
-  } catch {
+  } catch (error) {
+    if (error instanceof ProjectCatalogError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
   }
 }
 
 // Protected: delete project
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const session = await verifySession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = await requireAdminMutation(request);
+    if (denied) return denied;
 
     const { id } = await params;
     await deleteProject(id);

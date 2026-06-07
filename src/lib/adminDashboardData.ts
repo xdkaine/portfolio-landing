@@ -137,7 +137,10 @@ export async function fetchAdminDashboardData(): Promise<AdminDashboardData> {
   };
 }
 
-export async function saveProjectRecord(project: EditableProject): Promise<boolean> {
+export async function saveProjectRecord(project: EditableProject): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
   const method = project.id ? "PUT" : "POST";
   const url = project.id ? `/api/projects/${project.id}` : "/api/projects";
   const response = await fetch(url, {
@@ -145,7 +148,17 @@ export async function saveProjectRecord(project: EditableProject): Promise<boole
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(project),
   });
-  return response.ok;
+  if (response.ok) {
+    return { ok: true };
+  }
+
+  const payload = await response.json().catch(() => ({})) as {
+    error?: string;
+  };
+  return {
+    ok: false,
+    error: payload.error || "Failed to save project.",
+  };
 }
 
 export async function deleteProjectRecord(id: string): Promise<boolean> {

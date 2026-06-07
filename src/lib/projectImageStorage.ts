@@ -4,18 +4,15 @@ import { readFile } from "node:fs/promises";
 const configuredUploadDirectory = process.env.PROJECT_IMAGE_UPLOAD_DIR?.trim();
 
 const DEFAULT_UPLOAD_DIRECTORY = path.join(
-  process.cwd(),
   "public",
   "uploads",
   "projects",
 );
 const ALTERNATE_UPLOAD_DIRECTORY = path.join(
-  process.cwd(),
   "uploads",
   "projects",
 );
 const LEGACY_PUBLIC_UPLOAD_DIRECTORY = path.join(
-  process.cwd(),
   "legacy-public",
   "uploads",
   "projects",
@@ -23,7 +20,7 @@ const LEGACY_PUBLIC_UPLOAD_DIRECTORY = path.join(
 
 export const PROJECT_IMAGE_UPLOAD_DIRECTORY =
   configuredUploadDirectory && configuredUploadDirectory.length > 0
-    ? path.resolve(configuredUploadDirectory)
+    ? path.resolve(/* turbopackIgnore: true */ configuredUploadDirectory)
     : DEFAULT_UPLOAD_DIRECTORY;
 
 const IMAGE_EXTENSION_TO_MIME: Record<string, string> = {
@@ -32,7 +29,6 @@ const IMAGE_EXTENSION_TO_MIME: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
   ".gif": "image/gif",
-  ".svg": "image/svg+xml",
 };
 
 const SAFE_FILENAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -45,8 +41,13 @@ function resolveSafeFilePath(
     return null;
   }
 
-  const normalizedDirectory = path.resolve(directory);
-  const resolvedFilePath = path.resolve(normalizedDirectory, filename);
+  const normalizedDirectory = path.resolve(
+    /* turbopackIgnore: true */ directory,
+  );
+  const resolvedFilePath = path.resolve(
+    /* turbopackIgnore: true */ normalizedDirectory,
+    filename,
+  );
   if (!resolvedFilePath.startsWith(`${normalizedDirectory}${path.sep}`)) {
     return null;
   }
@@ -60,13 +61,17 @@ function getContentType(filename: string): string | null {
 }
 
 function getReadDirectories(): string[] {
-  const primaryDirectory = path.resolve(PROJECT_IMAGE_UPLOAD_DIRECTORY);
+  const primaryDirectory = path.resolve(
+    /* turbopackIgnore: true */ PROJECT_IMAGE_UPLOAD_DIRECTORY,
+  );
   const fallbackDirectories = [
     DEFAULT_UPLOAD_DIRECTORY,
     ALTERNATE_UPLOAD_DIRECTORY,
     LEGACY_PUBLIC_UPLOAD_DIRECTORY,
   ]
-    .map((directory) => path.resolve(directory))
+    .map((directory) =>
+      path.resolve(/* turbopackIgnore: true */ directory),
+    )
     .filter((directory, index, array) => array.indexOf(directory) === index);
   return [primaryDirectory, ...fallbackDirectories].filter(
     (directory, index, array) => array.indexOf(directory) === index,
@@ -88,7 +93,7 @@ export async function readProjectImage(
     }
 
     try {
-      const bytes = await readFile(filePath);
+      const bytes = await readFile(/* turbopackIgnore: true */ filePath);
       return { contentType, bytes };
     } catch {
       // Continue searching fallback directories.

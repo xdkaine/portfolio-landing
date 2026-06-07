@@ -35,6 +35,7 @@ import {
   DEFAULT_SITE_SETTINGS,
   type SiteSettings,
 } from "@/lib/siteSettings-schema";
+import { transformProjectMarkdownUrl } from "@/lib/projectCaseStudy";
 
 type Tab = "metrics" | "projects" | "posts" | "messages" | "settings";
 
@@ -65,6 +66,7 @@ export default function AdminDashboardClient() {
   const [settingsNotice, setSettingsNotice] = useState("");
   const [orderingProjects, setOrderingProjects] = useState(false);
   const [projectOrderNotice, setProjectOrderNotice] = useState("");
+  const [projectSaveNotice, setProjectSaveNotice] = useState("");
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [showNewProject, setShowNewProject] = useState(false);
 
@@ -145,11 +147,17 @@ export default function AdminDashboardClient() {
 
   // Keep form components simple by centralizing create/update/delete here.
   const saveProject = async (project: EditableProject) => {
-    if (await saveProjectRecord(project)) {
-      setEditingProject(null);
-      setShowNewProject(false);
-      await fetchData();
+    setProjectSaveNotice("");
+    const result = await saveProjectRecord(project);
+    if (!result.ok) {
+      setProjectSaveNotice(result.error || "Failed to save project.");
+      return;
     }
+
+    setEditingProject(null);
+    setShowNewProject(false);
+    setProjectSaveNotice("Project saved.");
+    await fetchData();
   };
 
   const deleteProject = async (id: string) => {
@@ -429,6 +437,7 @@ export default function AdminDashboardClient() {
                     <button
                       type="button"
                       onClick={() => {
+                        setProjectSaveNotice("");
                         setShowNewProject(true);
                         setEditingProject(null);
                       }}
@@ -441,6 +450,15 @@ export default function AdminDashboardClient() {
                 {projectOrderNotice ? (
                   <p className="text-[10px] tracking-[0.16em] text-ash mb-4" aria-live="polite">
                     {projectOrderNotice}
+                  </p>
+                ) : null}
+                {projectSaveNotice ? (
+                  <p
+                    className="text-[10px] tracking-[0.16em] text-ash mb-4"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {projectSaveNotice}
                   </p>
                 ) : null}
 
@@ -506,6 +524,7 @@ export default function AdminDashboardClient() {
                         <button
                           type="button"
                           onClick={() => {
+                            setProjectSaveNotice("");
                             setEditingProject(p);
                             setShowNewProject(false);
                           }}
@@ -1052,6 +1071,7 @@ function ProjectForm({
           {form.writeup.trim() ? (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
+              urlTransform={transformProjectMarkdownUrl}
               components={{
                 p: ({ children }) => (
                   <p className="text-xs md:text-sm text-ash leading-relaxed mb-3 last:mb-0">
@@ -1158,7 +1178,7 @@ function ProjectForm({
                 <input
                   name="bulk-visual-notes"
                   type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   multiple
                   className="hidden"
                   disabled={bulkUploading}
@@ -1236,7 +1256,7 @@ function ProjectForm({
                           id={`visual-note-upload-${index}`}
                           name={`visual-note-upload-${index}`}
                           type="file"
-                          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                          accept="image/png,image/jpeg,image/webp,image/gif"
                           onChange={(event) => {
                             const file = event.target.files?.[0];
                             if (file) {

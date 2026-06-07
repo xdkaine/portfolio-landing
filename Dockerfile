@@ -41,7 +41,27 @@ ENV APP_REVISION=$APP_REVISION
 
 RUN npm run build
 
-# ─── Stage 4: Production ─────────────────────────────
+# ─── Stage 4: Migration Tooling ───────────────────────
+FROM node:22-alpine AS migrate
+WORKDIR /app
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+RUN addgroup -S -g 1001 nodejs && \
+    adduser -S -u 1001 -G nodejs nextjs
+
+COPY --from=prisma --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=prisma --chown=nextjs:nodejs /app/src/generated ./src/generated
+COPY --chown=nextjs:nodejs package.json package-lock.json ./
+COPY --chown=nextjs:nodejs prisma ./prisma
+COPY --chown=nextjs:nodejs prisma.config.ts ./
+
+USER nextjs
+ENTRYPOINT []
+CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
+
+# ─── Stage 5: Production Web Runtime ──────────────────
 FROM node:22-alpine AS runner
 WORKDIR /app
 
@@ -60,12 +80,8 @@ RUN addgroup -S -g 1001 nodejs && \
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Include Prisma tooling so the same immutable image can run migrate deploy.
-COPY --from=prisma --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=prisma /app/src/generated ./src/generated
-COPY prisma ./prisma
-COPY prisma.config.ts ./
+COPY --chown=nextjs:nodejs runtime-config.mjs ./runtime-config.mjs
+COPY --chown=nextjs:nodejs scripts/start-server.mjs ./scripts/start-server.mjs
 
 EXPOSE 3000
 ENV PORT=3000
@@ -75,4 +91,4 @@ ENV POST_IMAGE_UPLOAD_DIR=/app/uploads/posts
 
 USER nextjs
 ENTRYPOINT []
-CMD ["node", "server.js"]
+CMD ["node", "scripts/start-server.mjs"]

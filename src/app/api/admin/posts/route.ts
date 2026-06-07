@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
 import { createDraftPost, listAdminPosts } from "@/lib/postEditorial";
-
-async function authenticated(): Promise<boolean> {
-  return Boolean(await verifySession());
-}
+import {
+  requireAdminApi,
+  requireAdminMutation,
+} from "@/lib/requestSecurity";
 
 export async function GET() {
-  if (!(await authenticated())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = await requireAdminApi();
+  if (denied) return denied;
+
   try {
     return NextResponse.json(await listAdminPosts());
   } catch {
@@ -17,10 +16,10 @@ export async function GET() {
   }
 }
 
-export async function POST() {
-  if (!(await authenticated())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function POST(request: Request) {
+  const denied = await requireAdminMutation(request);
+  if (denied) return denied;
+
   try {
     return NextResponse.json(await createDraftPost(), { status: 201 });
   } catch {

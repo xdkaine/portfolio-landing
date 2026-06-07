@@ -1,12 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { jwtVerify } from "jose";
-import { COOKIE_NAME } from "@/lib/auth";
+import { COOKIE_NAME, verifySessionToken } from "@/lib/sessionToken";
 
 const isDev = process.env.NODE_ENV !== "production";
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "fallback-dev-secret-change-me"
-);
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -22,7 +17,7 @@ const CONTENT_SECURITY_POLICY = [
   "frame-ancestors 'none'",
 ].join("; ");
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // All mutations in this app use Route Handlers; do not let Server Action
@@ -37,8 +32,7 @@ export async function middleware(request: NextRequest) {
 
   if (token) {
     try {
-      await jwtVerify(token, JWT_SECRET);
-      isAuthenticated = true;
+      isAuthenticated = Boolean(await verifySessionToken(token));
     } catch {
       // Invalid or expired token — treat as unauthenticated
     }
