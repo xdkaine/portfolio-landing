@@ -12,6 +12,15 @@ export interface TurnstileVerificationResult {
   hostname?: string;
 }
 
+// Cloudflare error codes that mean the SERVER secret is wrong/missing, not the
+// visitor's token. These indicate operator misconfiguration (e.g. a stale or
+// mismatched TURNSTILE_SECRET_KEY) and would otherwise look like a user failure.
+const MISCONFIGURATION_ERROR_CODES = new Set([
+  "missing-input-secret",
+  "invalid-input-secret",
+  "bad-request",
+]);
+
 export function isTurnstileRequired(): boolean {
   return Boolean(process.env.TURNSTILE_SECRET_KEY?.trim());
 }
@@ -53,11 +62,24 @@ export async function verifyTurnstile(
       };
     }
 
-    console.warn("[turnstile] Verification rejected", {
-      status: response.status,
-      errorCodes,
-      hostname: data.hostname,
-    });
+    const misconfigured = errorCodes.some((code) =>
+      MISCONFIGURATION_ERROR_CODES.has(code),
+    );
+
+    if (misconfigured) {
+      console.error(
+        "[turnstile] Server misconfigured: Cloudflare rejected the configured TURNSTILE_SECRET_KEY. " +
+          "Verify the secret matches the site key's widget and that the running container has reloaded the latest value.",
+        { status: response.status, errorCodes },
+      );
+    } else {
+      console.warn("[turnstile] Verification rejected", {
+        status: response.status,
+        errorCodes,
+        hostname: data.hostname,
+      });
+    }
+
     return {
       success: false,
       errorCodes,
