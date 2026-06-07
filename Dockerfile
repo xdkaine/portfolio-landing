@@ -65,7 +65,7 @@ CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 FROM node:22-alpine AS runner
 WORKDIR /app
 
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1   
 ENV NODE_ENV=production
 
 ARG APP_REVISION=local

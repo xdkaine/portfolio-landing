@@ -102,6 +102,11 @@ Before deploying the hardened Compose definition to an existing `pgdata`
 volume, rotate the database role and update the host `.env` in one maintenance
 window:
 
+If deployment fails with Prisma `P1000` from the `migrate` service, the host
+`.env` and the existing PostgreSQL role password are out of sync. PostgreSQL
+only applies `POSTGRES_PASSWORD` when a data volume is first initialized;
+changing `.env` later does not rotate the `xtomm` role automatically.
+
 ```bash
 cd /mnt/Orion/docker/stacks/production-portfolio
 NEW_POSTGRES_PASSWORD="$(openssl rand -hex 32)"
