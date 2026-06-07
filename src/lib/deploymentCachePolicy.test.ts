@@ -7,6 +7,10 @@ const nginxConfig = readFileSync(
   path.join(process.cwd(), "nginx", "nginx.conf"),
   "utf8",
 );
+const proxyConfig = readFileSync(
+  path.join(process.cwd(), "src", "proxy.ts"),
+  "utf8",
+);
 const workflowConfig = readFileSync(
   path.join(process.cwd(), ".github", "workflows", "ci.yml"),
   "utf8",
@@ -30,9 +34,27 @@ function locationBlock(location: string) {
 
 test("nginx only caches fingerprinted Next.js build assets long-term", () => {
   const staticBlock = locationBlock("/_next/static/");
+  const staticMissBlock = locationBlock("@next_static_miss");
 
   assert.match(staticBlock, /Cache-Control\s+"public, max-age=31536000, immutable"/);
+  assert.doesNotMatch(staticBlock, /Cache-Control\s+"public, max-age=31536000, immutable"\s+always/);
+  assert.match(staticBlock, /proxy_intercept_errors\s+on;/);
+  assert.match(staticBlock, /error_page\s+404\s+=\s+@next_static_miss;/);
+  assert.match(staticMissBlock, /Cache-Control\s+"no-store"\s+always/);
   assert.doesNotMatch(locationBlock("/"), /max-age=31536000|immutable/);
+});
+
+test("CSP permits Cloudflare verification and analytics endpoints", () => {
+  for (const config of [nginxConfig, proxyConfig]) {
+    assert.match(
+      config,
+      /script-src[^;]*https:\/\/challenges\.cloudflare\.com[^;]*https:\/\/static\.cloudflareinsights\.com/,
+    );
+    assert.match(
+      config,
+      /connect-src[^;]*https:\/\/challenges\.cloudflare\.com[^;]*https:\/\/cloudflareinsights\.com/,
+    );
+  }
 });
 
 test("nginx prevents stale dynamic responses from browser or edge caches", () => {
@@ -63,6 +85,34 @@ test("nginx applies security headers in locations with local cache headers", () 
   assert.match(nginxConfig, /Strict-Transport-Security/);
   assert.match(nginxConfig, /Content-Security-Policy/);
   assert.match(nginxConfig, /X-Frame-Options "DENY"/);
+});
+
+test("nginx hides application security headers where locations override proxy headers", () => {
+  const hiddenHeaders = [
+    "Content-Security-Policy",
+    "Strict-Transport-Security",
+    "X-Frame-Options",
+    "X-Content-Type-Options",
+    "Referrer-Policy",
+    "Permissions-Policy",
+    "Cross-Origin-Opener-Policy",
+    "Cross-Origin-Resource-Policy",
+  ];
+
+  for (const location of [
+    "/api/auth/",
+    "/api/contact",
+    "/api/uploads/",
+    "/api/",
+    "/_next/static/",
+    "/",
+  ]) {
+    const block = locationBlock(location);
+
+    for (const header of hiddenHeaders) {
+      assert.match(block, new RegExp(`proxy_hide_header\\s+${header};`));
+    }
+  }
 });
 
 test("large request bodies are limited to upload routes", () => {
