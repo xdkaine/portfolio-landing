@@ -56,7 +56,7 @@ Create these additional repository variables if production should differ from th
 | Variable | Purpose |
 | --- | --- |
 | `NEXT_PUBLIC_SITE_URL` | Public site URL baked into the image. Defaults to `https://phao.dev`. |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Public Cloudflare Turnstile site key. Compose also passes this to the server as `TURNSTILE_SITE_KEY` so the runtime config route is not affected by Next.js public env inlining. |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Optional. Only baked into the client bundle for first paint. The running site reads the authoritative site key at runtime from the host `.env` (via `/api/turnstile`), so the host `.env` is the single source of truth and leaving this repo variable unset is fine. |
 
 ## Server Setup
 
@@ -120,6 +120,48 @@ chmod 600 .env
 If `.env` already contains `POSTGRES_PASSWORD`, replace that line instead of
 adding a duplicate. Verify the updated value before deploying. Do not place the
 password on a command line that will be retained in shell history.
+
+### Turnstile Verification Failures
+
+Cloudflare Turnstile is configured **only** in the host `.env`
+(`NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`). Both keys must
+belong to the **same** Turnstile widget. The deploy job reads these values
+through the same sanitizer as `POSTGRES_PASSWORD`, exports the cleaned values so
+Compose cannot mangle quotes or a literal `$`, and then verifies them end-to-end
+before finishing. A login error of `VERIFICATION FAILED (INVALID-INPUT-SECRET)`
+or a widget that never renders means the host `.env` values are wrong, not a
+code bug. Pushing code does not touch these keys, so a green push cannot, by
+itself, change a working widget.
+
+Verify the live container's secret directly on the server:
+
+```bash
+cd /mnt/Orion/docker/stacks/production-portfolio
+RUNNING_SECRET="$(docker inspect "$(docker compose ps -q app)" \
+  --format '{{range .Config.Env}}{{println .}}{{end}}' \
+  | sed -n 's/^TURNSTILE_SECRET_KEY=//p')"
+curl -s https://challenges.cloudflare.com/turnstile/v0/siteverify \
+  --data-urlencode "secret=$RUNNING_SECRET" \
+  --data-urlencode "response=dummy"
+unset RUNNING_SECRET
+```
+
+- `invalid-input-response` &rarr; the secret is **valid** (a fake token is
+  expected to fail this way). If login still fails, the running container holds a
+  stale secret; reload `.env` into the current image without rebuilding:
+
+  ```bash
+  APP_IMAGE="$(docker inspect "$(docker compose ps -q app)" --format '{{.Config.Image}}')" \
+    docker compose up -d --force-recreate --no-deps --no-build app
+  ```
+
+- `invalid-input-secret` / `missing-input-secret` / `bad-request` &rarr; the
+  secret string itself is wrong (truncated, quoted, whitespace, or pasted from a
+  different widget). Fix the value in `.env`, confirm the matching
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is from the same widget, then redeploy.
+
+Because the deploy now runs this same check, a broken secret fails the deploy and
+rolls back instead of silently shipping a login form nobody can pass.
 
 Install a GitHub self-hosted runner from the repository settings, or use the containerized runner below:
 

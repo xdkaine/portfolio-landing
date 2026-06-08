@@ -234,6 +234,63 @@ jobs:
             fi
           }
 
+          read_env_value() {
+            # Reads KEY from the host .env, trims surrounding whitespace, strips one
+            # layer of matching quotes, and drops a trailing CR so the value survives
+            # Docker Compose interpolation byte-for-byte.
+            awk -v key="$1" '
+              {
+                line = $0
+                sub(/\r$/, "", line)
+              }
+              line ~ ("^[[:space:]]*" key "[[:space:]]*=") {
+                value = substr(line, index(line, "=") + 1)
+              }
+              END {
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+                if (value ~ /^".*"$/ || value ~ /^\047.*\047$/) {
+                  value = substr(value, 2, length(value) - 2)
+                }
+                print value
+              }
+            ' .env
+          }
+
+          verify_turnstile() {
+            # Turnstile is configured only in the host .env. Confirm the deployed
+            # stack serves a usable widget and that Cloudflare accepts the secret so
+            # a stale or mismatched key rolls back instead of shipping a broken
+            # login/contact form. The secret is sent only to Cloudflare's official
+            # siteverify endpoint and is never written to the logs.
+            local config container secret probe
+            config="$(curl -fsS "$PUBLIC_SITE_URL/api/turnstile" 2>/dev/null || true)"
+            if printf '%s' "$config" | grep -q '"required":true' \
+              && printf '%s' "$config" | grep -q '"siteKey":""'; then
+              echo "[turnstile] /api/turnstile reports required=true but an empty siteKey; the widget will not render." >&2
+              echo "[turnstile] Set NEXT_PUBLIC_TURNSTILE_SITE_KEY in $DEPLOY_PATH/.env to your current widget's site key." >&2
+              return 1
+            fi
+            container="$(APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps -q app || true)"
+            secret="$(docker inspect "$container" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | sed -n 's/^TURNSTILE_SECRET_KEY=//p' | head -n1 || true)"
+            secret="${secret%$'\r'}"
+            if [ -z "$secret" ]; then
+              # Production boot already fails closed without a secret, so reaching
+              # here means Turnstile is intentionally disabled; nothing to verify.
+              return 0
+            fi
+            probe="$(curl -fsS https://challenges.cloudflare.com/turnstile/v0/siteverify \
+              --data-urlencode "secret=$secret" \
+              --data-urlencode "response=ci-deploy-probe" 2>/dev/null || true)"
+            case "$probe" in
+              *invalid-input-secret*|*missing-input-secret*|*bad-request*)
+                echo "[turnstile] Cloudflare rejected TURNSTILE_SECRET_KEY (siteverify: $probe)." >&2
+                echo "[turnstile] The secret in $DEPLOY_PATH/.env is invalid, truncated, quoted, or from a different widget than the site key." >&2
+                return 1
+                ;;
+            esac
+            return 0
+          }
+
           cd "$DEPLOY_PATH"
 
           case "$APP_IMAGE" in
@@ -250,6 +307,33 @@ jobs:
               exit 1
               ;;
           esac
+
+          # ROOT CAUSE FIX: the workflow-level env: block defines CI-only
+          # placeholder secrets (JWT_SECRET, TURNSTILE_SECRET_KEY="ci-secret-key",
+          # NEXT_PUBLIC_SITE_URL="https://example.invalid", ...) so the lint/build/
+          # test jobs can run without production secrets. GitHub injects those into
+          # this deploy job too, and Docker Compose interpolation prefers the shell
+          # environment over the host .env. Left in place, they overwrite the real
+          # production secrets on every deploy -- this is why each push reset
+          # TURNSTILE_SECRET_KEY to "ci-secret-key" and silently broke login.
+          # Clear them so Compose reads the authoritative values from
+          # $DEPLOY_PATH/.env (which fails closed via :? if a value is missing).
+          unset DATABASE_URL JWT_SECRET NEXT_PUBLIC_SITE_URL TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY
+
+          # Turnstile is configured only in the host .env. Read the keys through the
+          # sanitizer and export the cleaned values so Compose interpolation cannot
+          # mangle quotes, a trailing CR, or a literal '$' before the container sees
+          # them. This makes the host .env the single source of truth for Turnstile.
+          turnstile_site_key="$(read_env_value NEXT_PUBLIC_TURNSTILE_SITE_KEY)"
+          turnstile_secret_key="$(read_env_value TURNSTILE_SECRET_KEY)"
+          if [ -z "$turnstile_site_key" ] || [ -z "$turnstile_secret_key" ]; then
+            echo "Turnstile keys are missing from $DEPLOY_PATH/.env." >&2
+            echo "Set NEXT_PUBLIC_TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY from the SAME Cloudflare widget." >&2
+            exit 1
+          fi
+          export NEXT_PUBLIC_TURNSTILE_SITE_KEY="$turnstile_site_key"
+          export TURNSTILE_SECRET_KEY="$turnstile_secret_key"
+          unset turnstile_site_key turnstile_secret_key
 
           APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose config --quiet
 
@@ -348,8 +432,12 @@ jobs:
             if APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T app node -e "const expected = process.env.APP_REVISION; fetch('http://127.0.0.1:3000/api/health').then((response) => response.json()).then((body) => process.exit(body.status === 'ok' && body.revision === expected ? 0 : 1)).catch(() => process.exit(1))" && \
                APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T nginx wget -q -O - http://127.0.0.1/api/health | grep -q "\"revision\":\"$GITHUB_SHA\"" && \
                curl -fsS "$PUBLIC_SITE_URL/api/health" | grep -q "\"revision\":\"$GITHUB_SHA\""; then
-              APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps
-              exit 0
+              if verify_turnstile; then
+                APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps
+                exit 0
+              fi
+              echo "Application is healthy but Turnstile verification failed; rolling back." >&2
+              break
             fi
 
             sleep 2
