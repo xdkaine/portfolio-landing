@@ -22,7 +22,7 @@ export default defineConfig({
       {
         name: 'V8 Coverage Report',
         outputDir: './coverage-reports',
-        coverageFilter: (v8Mapping: any) => {
+        coverageFilter: (v8Mapping: { url: string }) => {
           if (v8Mapping.url.includes('node_modules')) {
             return false;
           }

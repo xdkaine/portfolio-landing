@@ -20,7 +20,6 @@ export default async function OpenGraphImage({
   return new ImageResponse(
     <div style={{ width: "100%", height: "100%", display: "flex", background: "#0A0A0A", color: "#E8E8E8", position: "relative", padding: "62px", fontFamily: "monospace" }}>
       {coverUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
         <img src={coverUrl} alt="" style={{ position: "absolute", inset: 0, height: "100%", width: "100%", objectFit: "cover", opacity: 0.2 }} />
       ) : null}
       <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative", width: "100%" }}>

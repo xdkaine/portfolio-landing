@@ -12,7 +12,7 @@ test.describe('V1 App', () => {
     expect(bodyText).not.toContain('404 Not Found');
   });
 
-  test('should handle healthcheck endpoint', async ({ page, request }) => {
+  test('should handle healthcheck endpoint', async ({ request }) => {
     const response = await request.get('/v1/api/health');
     expect(response.ok()).toBeTruthy();
   });
