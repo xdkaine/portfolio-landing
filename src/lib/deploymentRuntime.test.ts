@@ -34,12 +34,12 @@ test("app image runs directly without a docker entrypoint", () => {
   assert.match(dockerfile, /CMD \["node", "scripts\/start-server\.mjs"\]/);
   assert.match(serverLauncher, /assertProductionRuntimeConfiguration\(\)/);
   assert.match(gitAttributes, /Dockerfile text eol=lf/);
-  const runnerStage = dockerfile.slice(dockerfile.indexOf("FROM node:22-alpine AS runner"));
+  const runnerStage = dockerfile.slice(dockerfile.indexOf("FROM node:26-alpine AS runner"));
   assert.doesNotMatch(runnerStage, /COPY --from=prisma .*node_modules/);
 });
 
 test("migration tooling is isolated from the web runtime", () => {
-  assert.match(dockerfile, /FROM node:22-alpine AS migrate/);
+  assert.match(dockerfile, /FROM node:26-alpine AS migrate/);
   assert.match(
     dockerfile,
     /CMD \["\.\/node_modules\/\.bin\/prisma", "migrate", "deploy"\]/,
