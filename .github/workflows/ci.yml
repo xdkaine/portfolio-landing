@@ -280,10 +280,10 @@ jobs:
             # login/contact form. The secret is sent only to Cloudflare's official
             # siteverify endpoint and is never written to the logs.
             local config container secret probe
-            config="$(curl -fsS "$PUBLIC_SITE_URL/api/turnstile" 2>/dev/null || true)"
+            config="$(curl -fsS "$PUBLIC_SITE_URL/v1/api/turnstile" 2>/dev/null || true)"
             if printf '%s' "$config" | grep -q '"required":true' \
               && printf '%s' "$config" | grep -q '"siteKey":""'; then
-              echo "[turnstile] /api/turnstile reports required=true but an empty siteKey; the widget will not render." >&2
+              echo "[turnstile] /v1/api/turnstile reports required=true but an empty siteKey; the widget will not render." >&2
               echo "[turnstile] Set NEXT_PUBLIC_TURNSTILE_SITE_KEY in $DEPLOY_PATH/.env to your current widget's site key." >&2
               return 1
             fi

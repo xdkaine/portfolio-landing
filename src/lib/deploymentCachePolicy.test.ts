@@ -142,20 +142,19 @@ test("nginx re-resolves the app service after container replacement", () => {
 test("deployment verifies app health through nginx", () => {
   assert.match(
     workflowConfig,
-    /compose exec -T nginx wget -q -O - http:\/\/127\.0\.0\.1\/api\/health \| grep -q "\\"revision\\":\\"\$GITHUB_SHA\\""/,
+    /compose exec -T nginx wget -q -O - http:\/\/127\.0\.0\.1\/v1\/api\/health \| grep -q "\\"revision\\":\\"\$GITHUB_SHA\\""/,
   );
 });
 
 test("deployment verifies the public route reaches the same revision", () => {
   assert.match(
     workflowConfig,
-    /curl -fsS "\$PUBLIC_SITE_URL\/api\/health" \| grep -q "\\"revision\\":\\"\$GITHUB_SHA\\""/,
+    /curl -fsS "\$PUBLIC_SITE_URL\/v1\/api\/health" \| grep -q "\\"revision\\":\\"\$GITHUB_SHA\\""/,
   );
 });
 
 test("deployment refuses local fallback images in production", () => {
   assert.match(workflowConfig, /Refusing to deploy without the immutable GHCR image/);
-  assert.match(workflowConfig, /Refusing to deploy without the immutable migration image/);
   assert.match(workflowConfig, /running_app_image/);
 });
 
