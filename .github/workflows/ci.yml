@@ -287,7 +287,7 @@ jobs:
               echo "[turnstile] Set NEXT_PUBLIC_TURNSTILE_SITE_KEY in $DEPLOY_PATH/.env to your current widget's site key." >&2
               return 1
             fi
-            container="$(APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps -q app || true)"
+            container="$(APP_IMAGE="$APP_IMAGE" compose ps -q app || true)"
             secret="$(docker inspect "$container" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | sed -n 's/^TURNSTILE_SECRET_KEY=//p' | head -n1 || true)"
             secret="${secret%$'\r'}"
             if [ -z "$secret" ]; then
@@ -345,7 +345,7 @@ jobs:
           export TURNSTILE_SECRET_KEY="$turnstile_secret_key"
           unset turnstile_site_key turnstile_secret_key
 
-          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose config --quiet
+          APP_IMAGE="$APP_IMAGE" compose config --quiet
 
           postgres_password="$(awk '
             /^[[:space:]]*POSTGRES_PASSWORD[[:space:]]*=/ {
@@ -367,7 +367,7 @@ jobs:
           export POSTGRES_PASSWORD="$postgres_password"
           unset postgres_password
 
-          previous_app_container="$(APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps -q app 2>/dev/null || true)"
+          previous_app_container="$(APP_IMAGE="$APP_IMAGE" compose ps -q app 2>/dev/null || true)"
           previous_app_image=""
           if [ -n "$previous_app_container" ]; then
             previous_app_image="$(docker inspect "$previous_app_container" --format '{{.Config.Image}}' 2>/dev/null || true)"
@@ -376,15 +376,15 @@ jobs:
           install -d -m 700 "$DEPLOY_PATH/backups"
           umask 077
           backup_path="$DEPLOY_PATH/backups/portfolio-before-${GITHUB_SHA}.sql.gz"
-          if ! APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps --status running --services | grep -qx db; then
-            APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose up -d --no-build db
+          if ! APP_IMAGE="$APP_IMAGE" compose ps --status running --services | grep -qx db; then
+            APP_IMAGE="$APP_IMAGE" compose up -d --no-build db
           fi
 
           attempt=1
-          until APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T db pg_isready -U xtomm -d portfolio >/dev/null 2>&1; do
+          until APP_IMAGE="$APP_IMAGE" compose exec -T db pg_isready -U xtomm -d portfolio >/dev/null 2>&1; do
             if [ "$attempt" -ge 30 ]; then
               echo "PostgreSQL did not become ready before deployment." >&2
-              APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps db || true
+              APP_IMAGE="$APP_IMAGE" compose ps db || true
               exit 1
             fi
 
@@ -392,7 +392,7 @@ jobs:
             attempt=$((attempt + 1))
           done
 
-          if ! APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" db psql -h 127.0.0.1 -U xtomm -d portfolio -v ON_ERROR_STOP=1 -c "select 1" >/dev/null; then
+          if ! APP_IMAGE="$APP_IMAGE" compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" db psql -h 127.0.0.1 -U xtomm -d portfolio -v ON_ERROR_STOP=1 -c "select 1" >/dev/null; then
             echo "The running PostgreSQL database rejected POSTGRES_PASSWORD from $DEPLOY_PATH/.env." >&2
             echo "For an existing pgdata volume, changing POSTGRES_PASSWORD in .env does not rotate the xtomm database role." >&2
             echo "Rotate the role or restore .env to the current role password, then rerun deploy." >&2
@@ -400,11 +400,11 @@ jobs:
             exit 1
           fi
 
-          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" db pg_dump -h 127.0.0.1 -U xtomm portfolio | gzip > "$backup_path"
+          APP_IMAGE="$APP_IMAGE" compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" db pg_dump -h 127.0.0.1 -U xtomm portfolio | gzip > "$backup_path"
           gzip -t "$backup_path"
           find "$DEPLOY_PATH/backups" -type f -name 'portfolio-before-*.sql.gz' -mtime +30 -delete
 
-          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose pull app migrate
+          APP_IMAGE="$APP_IMAGE" compose pull app
 
           if ! APP_IMAGE="$APP_IMAGE" compose up -d --no-build; then
             echo "Docker Compose startup failed; service status and logs follow." >&2
@@ -413,7 +413,7 @@ jobs:
             exit 1
           fi
 
-          running_app_container="$(APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps -q app)"
+          running_app_container="$(APP_IMAGE="$APP_IMAGE" compose ps -q app)"
           running_app_image="$(docker inspect "$running_app_container" --format '{{.Config.Image}}')"
           if [ "$running_app_image" != "$APP_IMAGE" ]; then
             echo "App container is not running the image that was just built." >&2
@@ -425,8 +425,8 @@ jobs:
           # nginx reads its config once at startup; the file is a bind mount
           # that was just synced into place, so reload in place instead of
           # restarting the proxy on every app deployment.
-          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T nginx nginx -t -c /etc/nginx/portfolio/nginx.conf
-          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T nginx nginx -s reload -c /etc/nginx/portfolio/nginx.conf
+          APP_IMAGE="$APP_IMAGE" compose exec -T nginx nginx -t -c /etc/nginx/portfolio/nginx.conf
+          APP_IMAGE="$APP_IMAGE" compose exec -T nginx nginx -s reload -c /etc/nginx/portfolio/nginx.conf
 
           attempt=1
           while [ "$attempt" -le 30 ]; do
@@ -434,7 +434,7 @@ jobs:
                APP_IMAGE="$APP_IMAGE" compose exec -T nginx wget -q -O - http://127.0.0.1/v1/api/health | grep -q "\"revision\":\"$GITHUB_SHA\"" && \
                curl -fsS "$PUBLIC_SITE_URL/v1/api/health" | grep -q "\"revision\":\"$GITHUB_SHA\""; then
               if verify_turnstile; then
-                APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose ps
+                APP_IMAGE="$APP_IMAGE" compose ps
                 exit 0
               fi
               echo "Application is healthy but Turnstile verification failed; rolling back." >&2
@@ -445,11 +445,11 @@ jobs:
             attempt=$((attempt + 1))
           done
 
-          APP_IMAGE="$APP_IMAGE" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose logs --tail=200 app nginx
+          APP_IMAGE="$APP_IMAGE" compose logs --tail=200 app nginx
           if [ -n "$previous_app_image" ] && [ "$previous_app_image" != "$APP_IMAGE" ]; then
             echo "Health verification failed; restoring previous app image: $previous_app_image" >&2
-            APP_IMAGE="$previous_app_image" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose up -d --no-deps app
-            APP_IMAGE="$previous_app_image" MIGRATE_IMAGE="$MIGRATE_IMAGE" compose exec -T nginx nginx -s reload -c /etc/nginx/portfolio/nginx.conf || true
+            APP_IMAGE="$previous_app_image" compose up -d --no-deps app
+            APP_IMAGE="$previous_app_image" compose exec -T nginx nginx -s reload -c /etc/nginx/portfolio/nginx.conf || true
           fi
           exit 1
 
