@@ -42,7 +42,7 @@ async function fetchPublicSiteSettings(): Promise<PublicSiteSettings | null> {
 
   if (!inFlightSiteSettingsRequest) {
     inFlightSiteSettingsRequest = (async () => {
-      const res = await fetch("/api/settings");
+      const res = await fetch("/v1/api/settings");
       if (!res.ok) {
         return null;
       }

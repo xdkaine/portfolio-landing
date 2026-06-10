@@ -99,11 +99,11 @@ export async function fetchAdminDashboardData(): Promise<AdminDashboardData> {
     settingsResponse,
     linkClicksResponse,
   ] = await Promise.all([
-    fetch("/api/projects"),
-    fetch("/api/admin/posts"),
-    fetch("/api/contact"),
-    fetch("/api/settings?all=true"),
-    fetch("/api/analytics/link-click"),
+    fetch("/v1/api/projects"),
+    fetch("/v1/api/admin/posts"),
+    fetch("/v1/api/contact"),
+    fetch("/v1/api/settings?all=true"),
+    fetch("/v1/api/analytics/link-click"),
   ]);
 
   const [
@@ -142,7 +142,7 @@ export async function saveProjectRecord(project: EditableProject): Promise<{
   error?: string;
 }> {
   const method = project.id ? "PUT" : "POST";
-  const url = project.id ? `/api/projects/${project.id}` : "/api/projects";
+  const url = project.id ? `/v1/api/projects/${project.id}` : "/v1/api/projects";
   const response = await fetch(url, {
     method,
     headers: { "Content-Type": "application/json" },
@@ -162,7 +162,7 @@ export async function saveProjectRecord(project: EditableProject): Promise<{
 }
 
 export async function deleteProjectRecord(id: string): Promise<boolean> {
-  const response = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+  const response = await fetch(`/v1/api/projects/${id}`, { method: "DELETE" });
   return response.ok;
 }
 
@@ -171,7 +171,7 @@ export async function saveSiteSettings(settings: SiteSettings): Promise<{
   settings?: SiteSettings;
   error?: string;
 }> {
-  const response = await fetch("/api/settings", {
+  const response = await fetch("/v1/api/settings", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(settings),

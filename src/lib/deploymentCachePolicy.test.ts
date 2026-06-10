@@ -16,11 +16,11 @@ const workflowConfig = readFileSync(
   "utf8",
 );
 const projectApiRoute = readFileSync(
-  path.join(process.cwd(), "src", "app", "api", "projects", "route.ts"),
+  path.join(process.cwd(), "src", "app", "v1", "api", "projects", "route.ts"),
   "utf8",
 );
 const projectApiDetailRoute = readFileSync(
-  path.join(process.cwd(), "src", "app", "api", "projects", "[id]", "route.ts"),
+  path.join(process.cwd(), "src", "app", "v1", "api", "projects", "[id]", "route.ts"),
   "utf8",
 );
 function locationBlock(location: string) {
@@ -58,7 +58,7 @@ test("CSP permits Cloudflare verification and analytics endpoints", () => {
 });
 
 test("nginx prevents stale dynamic responses from browser or edge caches", () => {
-  for (const location of ["/api/", "/"]) {
+  for (const location of ["/v1/api/", "/"]) {
     const block = locationBlock(location);
 
     assert.match(block, /proxy_hide_header\s+Cache-Control;/);
@@ -72,10 +72,10 @@ test("nginx applies security headers in locations with local cache headers", () 
   assert.match(nginxConfig, /add_header_inherit\s+merge;/);
 
   for (const location of [
-    "/api/auth/",
-    "/api/contact",
-    "/api/uploads/",
-    "/api/",
+    "/v1/api/auth/",
+    "/v1/api/contact",
+    "/v1/api/uploads/",
+    "/v1/api/",
     "/_next/static/",
     "/",
   ]) {
@@ -100,10 +100,10 @@ test("nginx hides application security headers where locations override proxy he
   ];
 
   for (const location of [
-    "/api/auth/",
-    "/api/contact",
-    "/api/uploads/",
-    "/api/",
+    "/v1/api/auth/",
+    "/v1/api/contact",
+    "/v1/api/uploads/",
+    "/v1/api/",
     "/_next/static/",
     "/",
   ]) {
@@ -117,8 +117,8 @@ test("nginx hides application security headers where locations override proxy he
 
 test("large request bodies are limited to upload routes", () => {
   assert.match(nginxConfig, /client_max_body_size\s+1m;/);
-  assert.match(locationBlock("/api/uploads/"), /client_max_body_size\s+55m;/);
-  assert.doesNotMatch(locationBlock("/api/auth/"), /client_max_body_size\s+55m;/);
+  assert.match(locationBlock("/v1/api/uploads/"), /client_max_body_size\s+55m;/);
+  assert.doesNotMatch(locationBlock("/v1/api/auth/"), /client_max_body_size\s+55m;/);
 });
 
 test("deployment reloads nginx in place after syncing mounted config", () => {

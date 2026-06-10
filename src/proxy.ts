@@ -38,14 +38,14 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Redirect authenticated users away from /login
-  if (pathname === "/login" && isAuthenticated) {
-    return NextResponse.redirect(new URL("/admin", request.url));
+  // Redirect authenticated users away from /v1/login
+  if (pathname === "/v1/login" && isAuthenticated) {
+    return NextResponse.redirect(new URL("/v1/admin", request.url));
   }
 
-  // Redirect unauthenticated users away from /admin
-  if (pathname.startsWith("/admin") && !isAuthenticated) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  // Redirect unauthenticated users away from /v1/admin
+  if (pathname.startsWith("/v1/admin") && !isAuthenticated) {
+    return NextResponse.redirect(new URL("/v1/login", request.url));
   }
 
   // --- Security headers ---

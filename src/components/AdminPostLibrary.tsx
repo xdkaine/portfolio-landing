@@ -39,20 +39,20 @@ export function AdminPostLibrary({
   const createDraft = async () => {
     setBusy("new");
     setNotice("");
-    const response = await fetch("/api/admin/posts", { method: "POST" });
+    const response = await fetch("/v1/api/admin/posts", { method: "POST" });
     if (!response.ok) {
       setNotice("Failed to create a new draft.");
       setBusy(null);
       return;
     }
     const post = await response.json() as Post;
-    router.push(`/admin/posts/${post.id}`);
+    router.push(`/v1/admin/posts/${post.id}`);
   };
 
   const transition = async (post: Post, action: "publish" | "archive") => {
     setBusy(post.id);
     setNotice("");
-    const response = await fetch(`/api/admin/posts/${post.id}/${action}`, { method: "POST" });
+    const response = await fetch(`/v1/api/admin/posts/${post.id}/${action}`, { method: "POST" });
     const result = await response.json().catch(() => ({})) as { error?: string };
     if (!response.ok) {
       setNotice(result.error ?? `Failed to ${action} post.`);
@@ -65,7 +65,7 @@ export function AdminPostLibrary({
   const deletePost = async (post: Post) => {
     if (!window.confirm(`Delete "${post.title}"?`)) return;
     setBusy(post.id);
-    const response = await fetch(`/api/admin/posts/${post.id}`, { method: "DELETE" });
+    const response = await fetch(`/v1/api/admin/posts/${post.id}`, { method: "DELETE" });
     if (response.ok) {
       await onRefresh();
     } else {

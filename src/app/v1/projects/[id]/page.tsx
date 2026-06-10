@@ -1,0 +1,538 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { cache } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
+import { ScrollReveal } from "@/components/ScrollReveal";
+import { ZoomableImage } from "@/components/ui/ZoomableImage";
+import {
+  isSafeProjectExternalUrl,
+  mergeProjectCaseStudy,
+  transformProjectMarkdownUrl,
+  type ProjectCaseStudyViewModel,
+} from "@/lib/projectCaseStudy";
+import {
+  getProjectByIdOrNumber,
+  listProjectNavigation,
+} from "@/lib/projectCatalog";
+import {
+  normalizeProjectStatus,
+  type DisplayProjectStatus,
+} from "@/lib/projectPresentation";
+import { DEFAULT_SOCIAL_IMAGE } from "@/lib/siteMetadata";
+import { getSiteSettings } from "@/lib/siteSettings";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const loadProject = cache(async (id: string) => {
+  try {
+    return await getProjectByIdOrNumber(id);
+  } catch {
+    return null;
+  }
+});
+const loadSiteSettings = cache(getSiteSettings);
+
+interface NormalizedProject {
+  id: string;
+  number: string;
+  title: string;
+  description: string;
+  tags: string[];
+  year: string;
+  url?: string | null;
+  github?: string | null;
+  status: DisplayProjectStatus;
+}
+
+function createFallbackWriteup(description: string): string[] {
+  const trimmed = description.trim();
+  return [trimmed || "Write-up coming soon."];
+}
+
+function createBaseCaseStudy(project: NormalizedProject): ProjectCaseStudyViewModel {
+  return {
+    subtitle: project.description,
+    role: "",
+    timeline: "",
+    writeupMarkdown: createFallbackWriteup(project.description).join("\n\n"),
+    writeup: createFallbackWriteup(project.description),
+    highlights: [],
+    gallery: [],
+  };
+}
+
+function getStatusClass(status: DisplayProjectStatus): string {
+  if (status === "LIVE") {
+    return "text-emerald-400 border-emerald-400/30";
+  }
+  if (status === "IN PROGRESS") {
+    return "text-amber-400 border-amber-400/30";
+  }
+  return "text-steel border-iron";
+}
+
+function normalizeProject(
+  project: NonNullable<Awaited<ReturnType<typeof getProjectByIdOrNumber>>>,
+): NormalizedProject {
+  return {
+    id: project.id,
+    number: project.number,
+    title: project.title,
+    description: project.description,
+    tags: project.tags,
+    year: project.year,
+    url:
+      project.url && isSafeProjectExternalUrl(project.url)
+        ? project.url
+        : null,
+    github:
+      project.github && isSafeProjectExternalUrl(project.github)
+        ? project.github
+        : null,
+    status: normalizeProjectStatus(project.status),
+  };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const [project, settings] = await Promise.all([
+    loadProject(id),
+    loadSiteSettings(),
+  ]);
+  if (!project) return {};
+
+  const normalizedProject = normalizeProject(project);
+  const caseStudy = mergeProjectCaseStudy(
+    createBaseCaseStudy(normalizedProject),
+    project.caseStudy,
+  );
+  const title = `${normalizedProject.title} | Projects`;
+  const description = caseStudy.subtitle || normalizedProject.description;
+  const canonical = `/v1/projects/${normalizedProject.number}`;
+  const previewImage = caseStudy.gallery[0];
+  const socialImage = previewImage
+    ? { url: previewImage.image, alt: previewImage.alt }
+    : DEFAULT_SOCIAL_IMAGE;
+
+  return {
+    title,
+    description,
+    authors: [{ name: settings.siteName }],
+    alternates: { canonical },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: canonical,
+      siteName: settings.siteName,
+      authors: [settings.siteName],
+      section: "Projects",
+      tags: normalizedProject.tags,
+      images: [socialImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [socialImage],
+    },
+  };
+}
+
+export default async function ProjectDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const [settings, project] = await Promise.all([
+    loadSiteSettings(),
+    loadProject(id),
+  ]);
+
+  if (!project) notFound();
+
+  const normalizedProject = normalizeProject(project);
+
+  const mergedDeepDive = mergeProjectCaseStudy(
+    createBaseCaseStudy(normalizedProject),
+    project.caseStudy,
+  );
+  const writeupMarkdown =
+    mergedDeepDive.writeupMarkdown.trim() ||
+    mergedDeepDive.writeup.join("\n\n");
+
+  const demoUrl = normalizedProject.url ?? mergedDeepDive.demoUrl;
+  const repoUrl = normalizedProject.github ?? mergedDeepDive.repoUrl;
+  const hasDemoSection = Boolean(mergedDeepDive.demoSummary || demoUrl || repoUrl);
+
+  let projectOrder: { number: string }[] = [];
+  try {
+    projectOrder = await listProjectNavigation();
+  } catch {
+    projectOrder = [];
+  }
+
+  const currentIndex = projectOrder.findIndex(
+    (entry) => entry.number === normalizedProject.number,
+  );
+  const previousProject = currentIndex > 0 ? projectOrder[currentIndex - 1] : null;
+  const nextProject =
+    currentIndex >= 0 && currentIndex < projectOrder.length - 1
+      ? projectOrder[currentIndex + 1]
+      : null;
+
+  return (
+    <>
+      <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
+        <ScrollReveal variant="row">
+          <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
+            <PublicLink href="/v1" intent="section" className="hover:text-bone transition-colors">
+              {settings.siteName}
+            </PublicLink>
+            <span>/</span>
+            <PublicLink
+              href="/v1/projects"
+              intent="drill-out"
+              className="hover:text-bone transition-colors"
+            >
+              PROJECTS
+            </PublicLink>
+            <span>/</span>
+            <PublicSharedElement kind="project-marker" itemKey={normalizedProject.number}>
+              <span className="text-ember">{normalizedProject.number}</span>
+            </PublicSharedElement>
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal delay={0.05} variant="headline">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 mb-10">
+            <div className="max-w-4xl">
+              <PublicSharedElement kind="project-title" itemKey={normalizedProject.number}>
+                <h1
+                  className="font-display text-5xl md:text-7xl lg:text-8xl tracking-tighter"
+                  tabIndex={-1}
+                >
+                  {normalizedProject.title}
+                </h1>
+              </PublicSharedElement>
+              <p className="text-bone/80 text-sm md:text-base leading-relaxed mt-6 max-w-3xl">
+                {mergedDeepDive.subtitle || normalizedProject.description}
+              </p>
+            </div>
+            <span
+              className={`text-[10px] tracking-[0.15em] px-3 py-1 border shrink-0 mt-2 lg:mt-4 ${getStatusClass(normalizedProject.status)}`}
+            >
+              {normalizedProject.status}
+            </span>
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal delay={0.1} variant="row">
+          <div className="flex flex-wrap gap-3 mb-8">
+            {normalizedProject.tags.map((tag) => (
+              <span
+                key={tag}
+                className="text-[10px] tracking-[0.12em] text-smoke border border-iron px-2 py-1"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-10 lg:gap-14">
+          <ScrollReveal>
+            <div className="max-w-3xl">
+              <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
+                WRITE-UP//
+              </span>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                urlTransform={transformProjectMarkdownUrl}
+                components={{
+                  p: ({ children }) => (
+                    <p className="text-sm md:text-base leading-relaxed text-ash mb-5 last:mb-0">
+                      {children}
+                    </p>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="font-display text-2xl md:text-3xl tracking-tight text-bone mt-8 mb-4">
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="font-display text-xl md:text-2xl tracking-tight text-bone mt-7 mb-3">
+                      {children}
+                    </h3>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="space-y-2 mb-5 pl-5 list-disc text-ash text-sm md:text-base">
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="space-y-2 mb-5 pl-5 list-decimal text-ash text-sm md:text-base">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  code: ({ children }) => (
+                    <code className="text-xs bg-surface px-1.5 py-0.5 border border-iron text-smoke">
+                      {children}
+                    </code>
+                  ),
+                  pre: ({ children }) => (
+                    <pre className="text-xs bg-surface/60 border border-iron p-4 mb-5 overflow-x-auto text-smoke">
+                      {children}
+                    </pre>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-2 border-ember pl-4 italic text-ash/90 mb-5">
+                      {children}
+                    </blockquote>
+                  ),
+                  img: ({ src, alt }) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={src ?? ""}
+                      alt={alt ?? ""}
+                      width={1600}
+                      height={1000}
+                      loading="lazy"
+                      className="w-full h-auto border border-iron mb-5"
+                    />
+                  ),
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-ember underline underline-offset-2 hover:text-bone transition-colors"
+                    >
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {writeupMarkdown}
+              </ReactMarkdown>
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={0.08}>
+            <aside className="border border-iron bg-surface/40 p-6 h-fit">
+              <span className="text-[10px] tracking-[0.3em] text-steel block mb-6">
+                SNAPSHOT//
+              </span>
+              <div className="space-y-4 text-xs">
+                {mergedDeepDive.role ? (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-iron tracking-[0.12em]">ROLE</span>
+                    <span className="text-bone text-right">{mergedDeepDive.role}</span>
+                  </div>
+                ) : null}
+                {mergedDeepDive.timeline ? (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-iron tracking-[0.12em]">TIMELINE</span>
+                    <span className="text-bone text-right">
+                      {mergedDeepDive.timeline}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex justify-between gap-4">
+                  <span className="text-iron tracking-[0.12em]">YEAR</span>
+                  <span className="text-bone text-right">
+                    {normalizedProject.year}
+                  </span>
+                </div>
+              </div>
+
+              {mergedDeepDive.highlights.length > 0 ? (
+                <div className="border-t border-iron mt-6 pt-6">
+                  <span className="text-[10px] tracking-[0.25em] text-steel block mb-4">
+                    HIGHLIGHTS
+                  </span>
+                  <ul className="space-y-2">
+                    {mergedDeepDive.highlights.map((highlight) => (
+                      <li
+                        key={highlight}
+                        className="text-xs text-ash leading-relaxed flex gap-2"
+                      >
+                        <span className="text-ember mt-0.5">&#8226;</span>
+                        <span>{highlight}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </aside>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {mergedDeepDive.challenge || mergedDeepDive.concept ? (
+        <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
+          <div className="grid md:grid-cols-2 gap-8">
+            {mergedDeepDive.challenge ? (
+              <ScrollReveal>
+                <article className="border border-iron p-6 md:p-8 h-full">
+                  <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
+                    CHALLENGE//
+                  </span>
+                  <p className="text-sm leading-relaxed text-ash">
+                    {mergedDeepDive.challenge}
+                  </p>
+                </article>
+              </ScrollReveal>
+            ) : null}
+            {mergedDeepDive.concept ? (
+              <ScrollReveal delay={mergedDeepDive.challenge ? 0.06 : 0}>
+                <article className="border border-iron p-6 md:p-8 h-full">
+                  <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
+                    CONCEPT//
+                  </span>
+                  <p className="text-sm leading-relaxed text-ash">
+                    {mergedDeepDive.concept}
+                  </p>
+                </article>
+              </ScrollReveal>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {mergedDeepDive.gallery.length > 0 ? (
+        <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
+          <ScrollReveal>
+            <div className="border-b border-iron pb-4 mb-8 flex flex-col md:flex-row md:items-baseline md:justify-between gap-4">
+              <h2 className="font-display text-4xl md:text-5xl tracking-tight">
+                VISUAL NOTES
+              </h2>
+              <span className="text-steel text-[10px] tracking-[0.2em]">
+                {"// CLICK AN IMAGE TO ENLARGE & ZOOM"}
+              </span>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {mergedDeepDive.gallery.map((item, index) => (
+              <ScrollReveal
+                key={`${normalizedProject.number}-gallery-${item.title}-${index}`}
+                delay={index * 0.05}
+              >
+                <article className="border border-iron bg-surface/30 h-full">
+                  <div className="overflow-hidden border-b border-iron">
+                    <ZoomableImage
+                      src={item.image}
+                      alt={item.alt}
+                    />
+                  </div>
+                  <div className="p-5">
+                    <h3 className="text-[11px] tracking-[0.22em] text-bone mb-3">
+                      {item.title}
+                    </h3>
+                    {item.caption ? (
+                      <p className="text-xs text-ash leading-relaxed">
+                        {item.caption}
+                      </p>
+                    ) : null}
+                  </div>
+                </article>
+              </ScrollReveal>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {hasDemoSection ? (
+        <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
+          <ScrollReveal>
+            <div className="border border-iron bg-surface/40 p-6 md:p-10">
+              <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
+                DEMO//
+              </span>
+              {mergedDeepDive.demoSummary ? (
+                <p className="text-sm md:text-base text-ash leading-relaxed max-w-3xl">
+                  {mergedDeepDive.demoSummary}
+                </p>
+              ) : null}
+              <div className="mt-8 flex flex-wrap items-center gap-4 text-xs tracking-[0.2em]">
+                {demoUrl ? (
+                  <a
+                    href={demoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 border border-ember/50 text-ember hover:bg-ember/10 transition-colors"
+                  >
+                    OPEN DEMO ↗
+                  </a>
+                ) : null}
+
+                {repoUrl ? (
+                  <a
+                    href={repoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 border border-iron text-ash hover:text-ember hover:border-ember/40 transition-colors"
+                  >
+                    SOURCE CODE ↗
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          </ScrollReveal>
+        </section>
+      ) : null}
+
+      <section className="px-6 md:px-12 lg:px-24 pb-24 pt-10 border-t border-iron">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <PublicLink
+            href="/v1/projects"
+            intent="drill-out"
+            className="text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors"
+          >
+            &larr; ALL PROJECTS
+          </PublicLink>
+
+          <div className="flex items-center gap-6 text-[10px] tracking-[0.2em]">
+            {previousProject ? (
+              <PublicLink
+                href={`/v1/projects/${previousProject.number}`}
+                intent="sibling-prev"
+                className="text-steel hover:text-ember transition-colors"
+              >
+                PREV: {previousProject.number}
+                {"//"}
+              </PublicLink>
+            ) : (
+              <span className="text-iron">PREV: --</span>
+            )}
+
+            {nextProject ? (
+              <PublicLink
+                href={`/v1/projects/${nextProject.number}`}
+                intent="sibling-next"
+                className="text-steel hover:text-ember transition-colors"
+              >
+                NEXT: {nextProject.number}
+                {"//"}
+              </PublicLink>
+            ) : (
+              <span className="text-iron">NEXT: --</span>
+            )}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}

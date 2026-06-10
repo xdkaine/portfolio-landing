@@ -7,7 +7,7 @@ const dockerfile = readFileSync(path.join(process.cwd(), "Dockerfile"), "utf8");
 const composeConfig = readFileSync(path.join(process.cwd(), "docker-compose.yml"), "utf8");
 const gitAttributes = readFileSync(path.join(process.cwd(), ".gitattributes"), "utf8");
 const healthRoute = readFileSync(
-  path.join(process.cwd(), "src", "app", "api", "health", "route.ts"),
+  path.join(process.cwd(), "src", "app", "v1", "api", "health", "route.ts"),
   "utf8",
 );
 const standaloneSanitizer = readFileSync(

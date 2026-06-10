@@ -79,7 +79,7 @@ function ToolbarButton({
 async function uploadPostImage(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
-  const response = await fetch("/api/uploads/post-image", { method: "POST", body: formData });
+  const response = await fetch("/v1/api/uploads/post-image", { method: "POST", body: formData });
   const payload = await response.json().catch(() => ({})) as { url?: string; error?: string };
   if (!response.ok || !payload.url) throw new Error(payload.error ?? "Image upload failed.");
   return payload.url;
@@ -118,7 +118,7 @@ export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
     setSaveState("Saving");
     setMessage("");
     const currentFields = fieldsRef.current;
-    const response = await fetch(`/api/admin/posts/${initialPost.id}`, {
+    const response = await fetch(`/v1/api/admin/posts/${initialPost.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -237,7 +237,7 @@ export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
 
   const transition = async (action: "publish" | "archive") => {
     if (!(await persist(true))) return;
-    const response = await fetch(`/api/admin/posts/${post.id}/${action}`, { method: "POST" });
+    const response = await fetch(`/v1/api/admin/posts/${post.id}/${action}`, { method: "POST" });
     const payload = await response.json().catch(() => ({})) as Post & { error?: string };
     if (!response.ok) {
       setMessage(payload.error ?? `Failed to ${action} article.`);
@@ -251,7 +251,7 @@ export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
     <section className="pt-24 pb-16 px-4 md:px-8 lg:px-12 min-h-screen">
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-5 border-b border-iron pb-6 mb-7">
         <div>
-          <Link href="/admin?tab=posts" className="text-[10px] tracking-[0.25em] text-steel hover:text-ember">
+          <Link href="/v1/admin?tab=posts" className="text-[10px] tracking-[0.25em] text-steel hover:text-ember">
             ADMIN / TRANSMISSIONS / EDITOR
           </Link>
           <h1 className="font-display text-4xl md:text-6xl mt-3">WRITING STUDIO</h1>
@@ -260,7 +260,7 @@ export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
           <span className={`text-[10px] tracking-[0.2em] ${saveState === "Failed" ? "text-amber-400" : "text-steel"}`}>
             {saveState.toUpperCase()}
           </span>
-          <Link href={`/admin/posts/${post.id}/preview`} target="_blank" className="post-action">PREVIEW</Link>
+          <Link href={`/v1/admin/posts/${post.id}/preview`} target="_blank" className="post-action">PREVIEW</Link>
           {post.status === "PUBLISHED" ? (
             <button type="button" onClick={() => void transition("archive")} className="post-action">ARCHIVE</button>
           ) : (

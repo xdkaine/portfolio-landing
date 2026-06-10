@@ -141,8 +141,8 @@ export default function AdminDashboardClient() {
   );
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    await fetch("/v1/api/auth/logout", { method: "POST" });
+    router.push("/v1/login");
   };
 
   // Keep form components simple by centralizing create/update/delete here.
@@ -234,7 +234,7 @@ export default function AdminDashboardClient() {
 
         const responses = await Promise.all(
           updates.map(({ id, sortOrder }) =>
-            fetch(`/api/projects/${id}`, {
+            fetch(`/v1/api/projects/${id}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ sortOrder }),
@@ -719,7 +719,7 @@ export default function AdminDashboardClient() {
   );
 }
 
-// Normalizes UI-friendly text inputs into the API shape expected by /api/projects.
+// Normalizes UI-friendly text inputs into the API shape expected by /v1/api/projects.
 
 interface VisualNoteFormItem {
   title: string;
@@ -823,7 +823,7 @@ function ProjectForm({
       const payload = new FormData();
       payload.append("file", file);
 
-      const response = await fetch("/api/uploads/project-image", {
+      const response = await fetch("/v1/api/uploads/project-image", {
         method: "POST",
         body: payload,
       });
@@ -863,7 +863,7 @@ function ProjectForm({
         payload.append("files", file);
       }
 
-      const response = await fetch("/api/uploads/project-image", {
+      const response = await fetch("/v1/api/uploads/project-image", {
         method: "POST",
         body: payload,
       });

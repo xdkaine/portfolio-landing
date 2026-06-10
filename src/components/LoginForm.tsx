@@ -63,7 +63,7 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/v1/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, turnstileToken }),
@@ -83,7 +83,7 @@ export default function LoginForm() {
         return;
       }
 
-      router.push("/admin");
+      router.push("/v1/admin");
     } catch {
       setError("Network error");
     } finally {

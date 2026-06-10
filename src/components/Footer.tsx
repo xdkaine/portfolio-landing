@@ -32,7 +32,7 @@ export function Footer({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
         <div>
           <PublicLink
-            href="/"
+            href="/v1"
             intent="section"
             className="font-display text-xl tracking-widest text-bone hover:text-ember transition-colors"
           >
@@ -55,14 +55,14 @@ export function Footer({
           </p>
           <div className="mt-4 flex items-center gap-4 text-[10px] tracking-[0.2em]">
             <PublicLink
-              href="/privacy"
+              href="/v1/privacy"
               intent="utility"
               className="text-ash hover:text-ember transition-colors"
             >
               PRIVACY
             </PublicLink>
             <PublicLink
-              href="/terms"
+              href="/v1/terms"
               intent="utility"
               className="text-ash hover:text-ember transition-colors"
             >

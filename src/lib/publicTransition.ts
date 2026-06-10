@@ -23,8 +23,8 @@ export const TRANSITION_TYPES = {
   skip: "editorial-skip",
 } as const;
 
-const PUBLIC_SECTIONS = ["/", "/projects", "/blog", "/about", "/contact"] as const;
-const PUBLIC_UTILITY_PATHS = new Set(["/privacy", "/terms"]);
+const PUBLIC_SECTIONS = ["/v1", "/v1/projects", "/v1/blog", "/v1/about", "/v1/contact"] as const;
+const PUBLIC_UTILITY_PATHS = new Set(["/v1/privacy", "/v1/terms"]);
 
 function pathOnly(value: string): string {
   const path = value.split(/[?#]/, 1)[0] || "/";
@@ -34,11 +34,11 @@ function pathOnly(value: string): string {
 export function publicSectionForPath(value: string): string | null {
   const path = pathOnly(value);
 
-  if (path === "/") return "/";
-  if (path === "/projects" || path.startsWith("/projects/")) return "/projects";
-  if (path === "/blog" || path.startsWith("/blog/")) return "/blog";
-  if (path === "/about") return "/about";
-  if (path === "/contact") return "/contact";
+  if (path === "/v1") return "/v1";
+  if (path === "/v1/projects" || path.startsWith("/v1/projects/")) return "/v1/projects";
+  if (path === "/v1/blog" || path.startsWith("/v1/blog/")) return "/v1/blog";
+  if (path === "/v1/about") return "/v1/about";
+  if (path === "/v1/contact") return "/v1/contact";
   if (PUBLIC_UTILITY_PATHS.has(path)) return path;
 
   return null;

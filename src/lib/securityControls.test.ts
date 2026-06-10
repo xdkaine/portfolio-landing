@@ -100,7 +100,7 @@ test("session tokens require the configured issuer, audience, subject, and role"
 });
 
 test("mutation origin protection rejects cross-site requests", async () => {
-  const crossSite = new Request("https://phao.dev/api/contact", {
+  const crossSite = new Request("https://phao.dev/v1/api/contact", {
     method: "POST",
     headers: {
       Origin: "https://attacker.example",
@@ -110,7 +110,7 @@ test("mutation origin protection rejects cross-site requests", async () => {
   const rejected = rejectCrossSiteMutation(crossSite);
   assert.equal(rejected?.status, 403);
 
-  const sameOrigin = new Request("https://phao.dev/api/contact", {
+  const sameOrigin = new Request("https://phao.dev/v1/api/contact", {
     method: "POST",
     headers: {
       Origin: "https://phao.dev",
@@ -132,7 +132,7 @@ test("production mutation origin protection trusts only the configured site", (t
   process.env.NEXT_PUBLIC_SITE_URL = "https://phao.dev";
 
   const spoofedRequestOrigin = new Request(
-    "https://attacker.example/api/contact",
+    "https://attacker.example/v1/api/contact",
     {
       method: "POST",
       headers: {
@@ -155,7 +155,7 @@ test("production mutation origin protection accepts configured apex and www orig
   mutableEnvironment.NODE_ENV = "production";
   process.env.NEXT_PUBLIC_SITE_URL = "https://phao.dev";
 
-  const apexOriginRequest = new Request("https://phao.dev/api/auth/login", {
+  const apexOriginRequest = new Request("https://phao.dev/v1/api/auth/login", {
     method: "POST",
     headers: {
       Origin: "https://phao.dev",
@@ -164,7 +164,7 @@ test("production mutation origin protection accepts configured apex and www orig
   });
   assert.equal(rejectCrossSiteMutation(apexOriginRequest), null);
 
-  const wwwOriginRequest = new Request("https://www.phao.dev/api/auth/login", {
+  const wwwOriginRequest = new Request("https://www.phao.dev/v1/api/auth/login", {
     method: "POST",
     headers: {
       Origin: "https://www.phao.dev",
@@ -247,15 +247,15 @@ test("project markdown strips active URL schemes", () => {
 
 test("all authenticated CMS mutations use the centralized admin guard", () => {
   const routeFiles = [
-    "src/app/api/projects/route.ts",
-    "src/app/api/projects/[id]/route.ts",
-    "src/app/api/settings/route.ts",
-    "src/app/api/admin/posts/route.ts",
-    "src/app/api/admin/posts/[id]/route.ts",
-    "src/app/api/admin/posts/[id]/publish/route.ts",
-    "src/app/api/admin/posts/[id]/archive/route.ts",
-    "src/app/api/uploads/project-image/route.ts",
-    "src/app/api/uploads/post-image/route.ts",
+    "src/app/v1/api/projects/route.ts",
+    "src/app/v1/api/projects/[id]/route.ts",
+    "src/app/v1/api/settings/route.ts",
+    "src/app/v1/api/admin/posts/route.ts",
+    "src/app/v1/api/admin/posts/[id]/route.ts",
+    "src/app/v1/api/admin/posts/[id]/publish/route.ts",
+    "src/app/v1/api/admin/posts/[id]/archive/route.ts",
+    "src/app/v1/api/uploads/project-image/route.ts",
+    "src/app/v1/api/uploads/post-image/route.ts",
   ];
 
   for (const routeFile of routeFiles) {

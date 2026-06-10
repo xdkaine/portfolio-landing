@@ -10,14 +10,14 @@ import { ThemeControl } from "@/components/ThemeControl";
 import { TypewriterText } from "@/components/TypewriterText";
 
 const LINKS = [
-  { href: "/", label: "INDEX" },
-  { href: "/projects", label: "PROJECTS" },
-  { href: "/blog", label: "BLOG" },
-  { href: "/about", label: "ABOUT" },
-  { href: "/contact", label: "CONTACT" },
+  { href: "/v1", label: "INDEX" },
+  { href: "/v1/projects", label: "PROJECTS" },
+  { href: "/v1/blog", label: "BLOG" },
+  { href: "/v1/about", label: "ABOUT" },
+  { href: "/v1/contact", label: "CONTACT" },
 ];
 
-const ADMIN_LINK = { href: "/admin", label: "ADMIN" };
+const ADMIN_LINK = { href: "/v1/admin", label: "ADMIN" };
 
 interface NavigationProps {
   brandName?: string;
@@ -41,7 +41,7 @@ export function Navigation({
 
   // Check auth session
   useEffect(() => {
-    fetch("/api/auth/session")
+    fetch("/v1/api/auth/session")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => setIsAdmin(!!data?.user))
       .catch(() => setIsAdmin(false));
@@ -79,7 +79,7 @@ export function Navigation({
       >
         {/* Logo */}
         <PublicLink
-          href="/"
+          href="/v1"
           intent="section"
           className="font-display text-xl md:text-2xl text-bone tracking-widest hover:text-ember transition-colors duration-300"
         >
@@ -102,7 +102,7 @@ export function Navigation({
         <div className="hidden md:flex items-center gap-4 lg:gap-8">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
-            const isAdminTab = link.href === "/admin";
+            const isAdminTab = link.href === "/v1/admin";
             return (
               isAdminTab ? (
                 <Link
@@ -184,7 +184,7 @@ export function Navigation({
             }}
           >
             {navLinks.map((link, i) => {
-              const isAdminTab = link.href === "/admin";
+              const isAdminTab = link.href === "/v1/admin";
               return (
                 <motion.div
                   key={link.href}

@@ -8,7 +8,7 @@ export interface TrackLinkClickPayload {
   external: boolean;
 }
 
-const TRACK_ENDPOINT = "/api/analytics/link-click";
+const TRACK_ENDPOINT = "/v1/api/analytics/link-click";
 
 export function trackLinkClick(payload: TrackLinkClickPayload): void {
   if (typeof window === "undefined") return;

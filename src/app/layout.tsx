@@ -1,14 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Anton, DM_Mono, Literata } from "next/font/google";
-import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
-import { TitleTypewriter } from "@/components/TitleTypewriter";
-import { LinkClickTracker } from "@/components/LinkClickTracker";
-import { BackgroundContextMenu } from "@/components/BackgroundContextMenu";
-import { PublicTransitionSurface } from "@/components/PublicTransition";
-import { parseBrandAliases } from "@/lib/brandAliases";
-import { DEFAULT_SOCIAL_IMAGE } from "@/lib/siteMetadata";
-import { getSiteSettings } from "@/lib/siteSettings";
 import "./globals.css";
 
 const anton = Anton({
@@ -67,6 +58,8 @@ function resolveSiteUrl(): string {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const { getSiteSettings } = await import("@/lib/siteSettings");
+  const { DEFAULT_SOCIAL_IMAGE } = await import("@/lib/siteMetadata");
   const settings = await getSiteSettings();
   const siteUrl = resolveSiteUrl();
   const googleVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
@@ -82,10 +75,10 @@ export async function generateMetadata(): Promise<Metadata> {
     publisher: settings.siteName,
     referrer: "strict-origin-when-cross-origin",
     alternates: {
-      canonical: "/",
+      canonical: "/v1",
       types: {
         "application/rss+xml": [
-          { url: "/feed.xml", title: `${settings.siteName} Transmissions RSS Feed` },
+          { url: "/v1/feed.xml", title: `${settings.siteName} Transmissions RSS Feed` },
         ],
       },
     },
@@ -116,20 +109,11 @@ export const viewport: Viewport = {
   colorScheme: "light dark",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const settings = await getSiteSettings();
-  const brandAliases = parseBrandAliases(settings.siteAliases);
-  const primaryBrandName = brandAliases[0] ?? settings.siteName;
-  const footerSocials = [
-    { label: "GITHUB", href: settings.socialGithub },
-    { label: "TWITTER", href: settings.socialTwitter },
-    { label: "LINKEDIN", href: settings.socialLinkedin },
-  ].filter((social) => Boolean(social.href));
-
   return (
     <html lang="en" className={`${anton.variable} ${dmMono.variable} ${literata.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
@@ -137,32 +121,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitializationScript }} />
       </head>
       <body className="flex flex-col min-h-screen">
-        <a
-          href="#main-content"
-          className="fixed left-4 top-4 z-[10001] -translate-y-24 border-2 border-ember bg-void px-4 py-2 text-xs tracking-[0.2em] text-bone transition-transform focus-visible:translate-y-0"
-        >
-          SKIP TO MAIN CONTENT
-        </a>
-        <TitleTypewriter
-          brandName={primaryBrandName}
-          brandAliases={brandAliases}
-        />
-        <LinkClickTracker />
-        <BackgroundContextMenu />
-        <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
-        <main id="main-content" className="flex-1 scroll-mt-20">
-          <PublicTransitionSurface>
-            {children}
-          </PublicTransitionSurface>
-        </main>
-        <Footer
-          brandName={primaryBrandName}
-          brandAliases={brandAliases}
-          socials={footerSocials}
-          legalEffectiveDate={settings.legalEffectiveDate}
-          chucklesGifUrl={settings.footerChucklesGifUrl}
-        />
-        <div className="grain-overlay" aria-hidden="true" />
+        {children}
       </body>
     </html>
   );

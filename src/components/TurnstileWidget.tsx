@@ -25,7 +25,7 @@ declare global {
 
 const TURNSTILE_SITE_KEY =
   process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
-const TURNSTILE_CONFIG_ENDPOINT = "/api/turnstile";
+const TURNSTILE_CONFIG_ENDPOINT = "/v1/api/turnstile";
 
 interface TurnstileConfig {
   siteKey: string;

@@ -19,13 +19,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${siteUrl}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
-    { url: `${siteUrl}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${siteUrl}/projects`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${siteUrl}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${siteUrl}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${siteUrl}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${siteUrl}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${siteUrl}/v1`, lastModified: now, changeFrequency: "weekly", priority: 1 },
+    { url: `${siteUrl}/v1/about`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${siteUrl}/v1/projects`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${siteUrl}/v1/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${siteUrl}/v1/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${siteUrl}/v1/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${siteUrl}/v1/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
   try {
@@ -40,14 +40,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ]);
 
     const postRoutes = posts.map((post) => ({
-      url: `${siteUrl}/blog/${post.slug}`,
+      url: `${siteUrl}/v1/blog/${post.slug}`,
       lastModified: post.updatedAt,
       changeFrequency: "monthly" as const,
       priority: 0.7,
     }));
 
     const projectRoutes = projects.map((project) => ({
-      url: `${siteUrl}/projects/${project.number}`,
+      url: `${siteUrl}/v1/projects/${project.number}`,
       lastModified: project.updatedAt,
       changeFrequency: "monthly" as const,
       priority: 0.75,
