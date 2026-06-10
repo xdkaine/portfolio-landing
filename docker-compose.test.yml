@@ -1,0 +1,62 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: xtomm
+      POSTGRES_PASSWORD: testpassword
+      POSTGRES_DB: portfolio
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xtomm -d portfolio"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prisma
+    environment:
+      DATABASE_URL: "postgresql://xtomm:testpassword@db:5432/portfolio?schema=public"
+    command: ["npx", "prisma", "db", "push", "--accept-data-loss"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        NEXT_PUBLIC_SITE_URL: "https://localhost"
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA"
+    environment:
+      DATABASE_URL: "postgresql://xtomm:testpassword@db:5432/portfolio?schema=public"
+      JWT_SECRET: "test-jwt-secret-must-be-at-least-32-chars-long"
+      NEXT_PUBLIC_SITE_URL: "https://localhost"
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA"
+      TURNSTILE_SITE_KEY: "1x00000000000000000000AA"
+      TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA"
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      db-setup:
+        condition: service_completed_successfully
+
+  nginx:
+    image: nginx:1.31.1-alpine
+    command: ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/portfolio/nginx.conf"]
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.test.conf:/etc/nginx/portfolio/nginx.conf:ro
+    depends_on:
+      app:
+        condition: service_started

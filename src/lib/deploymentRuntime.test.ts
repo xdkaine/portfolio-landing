@@ -44,10 +44,8 @@ test("migration tooling is isolated from the web runtime", () => {
     dockerfile,
     /CMD \["\.\/node_modules\/\.bin\/prisma", "migrate", "deploy"\]/,
   );
-  assert.match(composeConfig, /MIGRATE_IMAGE/);
-  assert.match(composeConfig, /target: migrate/);
-  assert.match(composeConfig, /target: runner/);
-  assert.match(composeConfig, /migrate:\s*\n\s*condition: service_completed_successfully/);
+  assert.match(composeConfig, /app:\s*\n\s*image:/);
+  assert.match(composeConfig, /depends_on:\s*\n\s*db:\s*\n\s*condition: service_healthy/);
 });
 
 test("standalone releases remove secrets and source material", () => {

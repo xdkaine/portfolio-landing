@@ -9,6 +9,7 @@ type TurnstileRenderOptions = {
   callback?: (token: string) => void;
   "expired-callback"?: () => void;
   "error-callback"?: (errorCode: string) => boolean | void;
+  "timeout-callback"?: () => void;
 };
 
 declare global {
@@ -20,6 +21,7 @@ declare global {
       ) => string;
       reset: (widgetId?: string) => void;
     };
+    onloadTurnstileCallback?: () => void;
   }
 }
 
@@ -122,21 +124,31 @@ export function TurnstileWidget({
       return;
     }
 
-    widgetIdRef.current = window.turnstile.render(containerRef.current, {
-      sitekey: siteKey,
-      theme: "dark",
-      callback: onTokenChange,
-      "expired-callback": () => onTokenChange(""),
-      "error-callback": (errorCode) => {
-        onTokenChange("");
-        onError?.(errorCode);
-        return false;
-      },
-    });
-  }, [onError, onTokenChange, siteKey]);
+    try {
+      widgetIdRef.current = window.turnstile.render(containerRef.current, {
+        sitekey: siteKey,
+        theme: "dark",
+        callback: onTokenChange,
+        "error-callback": () => onError?.("challenge-failed"),
+        "timeout-callback": () => onError?.("timeout"),
+        "expired-callback": () => {
+          window.turnstile?.reset(widgetIdRef.current ?? undefined);
+        },
+      });
+    } catch (e) {
+      console.error("[turnstile] Failed to render widget:", e);
+      onError?.("render-failed");
+    }
+  }, [siteKey, onTokenChange, onError]);
 
   useEffect(() => {
-    renderTurnstile();
+    window.onloadTurnstileCallback = renderTurnstile;
+    if (window.turnstile) {
+      renderTurnstile();
+    }
+    return () => {
+      delete window.onloadTurnstileCallback;
+    };
   }, [renderTurnstile]);
 
   useEffect(() => {
@@ -156,9 +168,8 @@ export function TurnstileWidget({
   return (
     <>
       <Script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onloadTurnstileCallback"
         strategy="afterInteractive"
-        onLoad={renderTurnstile}
       />
       <div className={className}>
         <p className="text-[10px] tracking-[0.2em] text-steel mb-3">

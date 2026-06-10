@@ -29,34 +29,20 @@ services:
   #     dockerfile: Dockerfile
   #     target: prisma
   #   environment:
+
+  # ─── Prisma DB Init (one-time) ───────────────────────
+  # db-init:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: prisma
+  #   environment:
   #     DATABASE_URL: "postgresql://xtomm:xtomm_secret@db:5432/portfolio?schema=public"
   #   command: ["npx", "prisma", "db", "push"]
   #   depends_on:
   #     db:
   #       condition: service_healthy
   #   restart: "no"
-  # ─── Database Migrations ─────────────────────────────
-  migrate:
-    image: "${MIGRATE_IMAGE:-portfolio-landing-migrate:local}"
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: migrate
-    environment:
-      DATABASE_URL: "postgresql://xtomm:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the deployment environment}@db:5432/portfolio?schema=public"
-    command: ["./node_modules/.bin/prisma", "migrate", "deploy"]
-    read_only: true
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    tmpfs:
-      - /tmp
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: "no"
-    logging: *default-logging
 
   # ─── Next.js App ─────────────────────────────────────
   app:
@@ -106,8 +92,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
   # ─── Nginx Reverse Proxy ─────────────────────────────
   nginx:
     image: nginx:1.31.1-alpine@sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a

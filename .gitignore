@@ -47,3 +47,8 @@ _work/
 
 # runtime uploads
 /public/uploads/
+
+# playwright
+playwright-report/
+test-results/
+coverage-reports/

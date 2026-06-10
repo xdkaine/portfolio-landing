@@ -46,7 +46,8 @@ export function AliasTypewriter({
     ) || "";
 
   return (
-    <span className={`relative inline-block ${className}`} aria-label={activeAlias}>
+    <span className={`relative inline-block ${className}`}>
+      <span className="sr-only">{activeAlias}</span>
       {reserveSpace && (
         <span className="invisible pointer-events-none select-none">
           {longestAlias}
