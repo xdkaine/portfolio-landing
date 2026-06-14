@@ -224,8 +224,10 @@ test("project case studies reject unsafe URLs and oversized content", () => {
 
 test("project media preserves checked-in assets but rejects uploaded SVG", () => {
   assert.equal(isSafeProjectImage("/projects/concept-frame.svg"), true);
+  assert.equal(isSafeProjectImage("/v1/assets/projects/concept-frame.svg"), true);
   assert.equal(isSafeProjectImage("/projects/case-study/frame.webp"), true);
   assert.equal(isSafeProjectImage("/uploads/projects/frame.webp"), true);
+  assert.equal(isSafeProjectImage("/v1/uploads/projects/frame.webp"), true);
   assert.equal(isSafeProjectImage("/uploads/projects/frame.svg"), false);
   assert.equal(isSafeProjectImage("/projects/../secret.svg"), false);
 });
@@ -241,7 +243,7 @@ test("project markdown strips active URL schemes", () => {
   );
   assert.equal(
     transformProjectMarkdownUrl("/uploads/projects/frame.webp"),
-    "/uploads/projects/frame.webp",
+    "/v1/uploads/projects/frame.webp",
   );
 });
 

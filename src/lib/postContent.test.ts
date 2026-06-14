@@ -50,4 +50,8 @@ test("generates unique heading anchors and detects missing image alt text", () =
     { id: "system-design-2", level: 2, text: "System Design" },
   ]);
   assert.equal(missingImageAltCount(document), 1);
+  assert.equal(
+    document?.content?.[2]?.attrs?.src,
+    "/v1/uploads/posts/frame.webp",
+  );
 });

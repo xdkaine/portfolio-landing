@@ -14,6 +14,7 @@ import {
   normalizePostDocument,
   type PostDocument,
 } from "@/lib/postContent";
+import { normalizeV1PublicUrl } from "@/lib/v1Path";
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_TITLE_LENGTH = 180;
@@ -75,7 +76,9 @@ export function toPublicPostSummary(post: PostRecord) {
     updatedAt: post.updatedAt.toISOString(),
     readTime: calculatePostReadTime(document, post.content, post.excerpt),
     tags: post.tags,
-    coverImage: post.coverImage,
+    coverImage: post.coverImage
+      ? normalizeV1PublicUrl(post.coverImage)
+      : null,
     coverAlt: post.coverAlt,
     featured: post.featured,
   };
@@ -227,7 +230,7 @@ function parseEditorialChanges(input: unknown): EditorialChanges {
     if (body.coverImage === null || body.coverImage === "") {
       data.coverImage = null;
     } else if (typeof body.coverImage === "string" && isSafePostMediaSource(body.coverImage.trim())) {
-      data.coverImage = body.coverImage.trim();
+      data.coverImage = normalizeV1PublicUrl(body.coverImage);
     } else {
       throw new PostEditorialError("Cover image URL is invalid", 400);
     }

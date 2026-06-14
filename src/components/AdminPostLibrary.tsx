@@ -148,8 +148,8 @@ export function AdminPostLibrary({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <Link href={`/admin/posts/${post.id}`} className="post-action">EDIT</Link>
-              <Link href={`/admin/posts/${post.id}/preview`} target="_blank" className="post-action">PREVIEW</Link>
+              <Link href={`/v1/admin/posts/${post.id}`} className="post-action">EDIT</Link>
+              <Link href={`/v1/admin/posts/${post.id}/preview`} target="_blank" className="post-action">PREVIEW</Link>
               {post.status === "PUBLISHED" ? (
                 <button className="post-action" disabled={busy === post.id} onClick={() => void transition(post, "archive")}>ARCHIVE</button>
               ) : (

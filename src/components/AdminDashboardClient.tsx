@@ -1244,7 +1244,7 @@ function ProjectForm({
                         label="IMAGE PATH OR URL"
                         value={note.image}
                         onChange={(value) => updateVisualNote(index, "image", value)}
-                        placeholder="/projects/uar-system.png"
+                        placeholder="/v1/assets/projects/uar-system.png"
                       />
                     </div>
                     <div className="md:col-span-2">

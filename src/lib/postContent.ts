@@ -1,3 +1,5 @@
+import { normalizeV1PublicUrl } from "@/lib/v1Path";
+
 export type PostMark = {
   type: "bold" | "italic" | "strike" | "code" | "link";
   attrs?: { href: string; target?: "_blank"; rel?: string };
@@ -29,7 +31,8 @@ export const EMPTY_POST_DOCUMENT: PostDocument = {
 
 const SLUG_PARTS_REGEX = /[^a-z0-9]+/g;
 const WORD_REGEX = /\S+/g;
-const SAFE_INTERNAL_MEDIA_REGEX = /^\/uploads\/posts\/[A-Za-z0-9._-]+$/;
+const SAFE_INTERNAL_MEDIA_REGEX =
+  /^\/(?:v1\/)?uploads\/posts\/[A-Za-z0-9._-]+$/;
 const ALLOWED_BLOCK_NODES = new Set([
   "paragraph",
   "heading",
@@ -94,7 +97,11 @@ function normalizeMarks(input: unknown): PostMark[] | undefined {
     if (!href || !isSafeArticleHref(href)) return [];
     return [{
       type: "link",
-      attrs: { href, target: "_blank", rel: "noopener noreferrer" },
+      attrs: {
+        href,
+        target: "_blank",
+        rel: "noopener noreferrer",
+      },
     }];
   });
 
@@ -125,7 +132,7 @@ function normalizeNode(input: unknown, inline = false): PostNode | null {
     return {
       type,
       attrs: {
-        src,
+        src: normalizeV1PublicUrl(src),
         alt: typeof attrs?.alt === "string" ? attrs.alt.trim() : "",
         caption: typeof attrs?.caption === "string" ? attrs.caption.trim() : "",
       },

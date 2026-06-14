@@ -144,7 +144,7 @@ export default async function ProjectsPage() {
           projects.map((project, i) => (
             <ScrollReveal key={project.id} delay={i * 0.06} variant="row">
               <PublicLink
-                href={`/projects/${project.number}`}
+                href={`/v1/projects/${project.number}`}
                 intent="drill-in"
                 className="group block"
                 aria-label={`Open ${project.title} case study`}
@@ -273,7 +273,7 @@ export default async function ProjectsPage() {
         <ScrollReveal delay={0.2} variant="row">
           <div className="mt-16 flex items-center justify-between">
             <PublicLink
-              href="/"
+              href="/v1"
               intent="section"
               className="text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors"
             >

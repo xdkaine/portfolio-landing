@@ -63,7 +63,10 @@ export function LinkClickTracker() {
       if (!rawHref) return;
 
       const sourcePath = `${window.location.pathname}${window.location.search}`;
-      if (sourcePath.startsWith("/admin") || sourcePath.startsWith("/api")) return;
+      if (
+        sourcePath.startsWith("/v1/admin") ||
+        sourcePath.startsWith("/v1/api")
+      ) return;
 
       const normalized = normalizeDestination(anchor);
       if (!normalized) return;
@@ -85,4 +88,3 @@ export function LinkClickTracker() {
 
   return null;
 }
-

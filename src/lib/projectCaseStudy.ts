@@ -1,3 +1,5 @@
+import { normalizeV1PublicUrl } from "@/lib/v1Path";
+
 export interface ProjectCaseStudyGalleryItem {
   title: string;
   caption: string;
@@ -46,7 +48,7 @@ const MAX_URL_LENGTH = 2_048;
 const SAFE_PROJECT_ASSET_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const SAFE_PROJECT_ASSET_EXTENSION = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
 const SAFE_UPLOADED_PROJECT_IMAGE =
-  /^\/uploads\/projects\/[A-Za-z0-9][A-Za-z0-9._-]*\.(?:gif|jpe?g|png|webp)$/i;
+  /^\/(?:v1\/)?uploads\/projects\/[A-Za-z0-9][A-Za-z0-9._-]*\.(?:gif|jpe?g|png|webp)$/i;
 
 export function isSafeProjectExternalUrl(value: string): boolean {
   if (value.length > MAX_URL_LENGTH) return false;
@@ -59,11 +61,14 @@ export function isSafeProjectExternalUrl(value: string): boolean {
 }
 
 function isSafeCheckedInProjectAsset(value: string): boolean {
-  if (!value.startsWith("/projects/") || !SAFE_PROJECT_ASSET_EXTENSION.test(value)) {
+  const prefix = value.startsWith("/v1/assets/projects/")
+    ? "/v1/assets/projects/"
+    : "/projects/";
+  if (!value.startsWith(prefix) || !SAFE_PROJECT_ASSET_EXTENSION.test(value)) {
     return false;
   }
 
-  const segments = value.slice("/projects/".length).split("/");
+  const segments = value.slice(prefix.length).split("/");
   return (
     segments.length > 0 &&
     segments.every(
@@ -87,7 +92,9 @@ export function transformProjectMarkdownUrl(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return "";
   if (trimmed.startsWith("#")) return trimmed;
-  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
+    return normalizeV1PublicUrl(trimmed);
+  }
   if (trimmed.startsWith("mailto:") || trimmed.startsWith("tel:")) return trimmed;
   return isSafeProjectExternalUrl(trimmed) ? trimmed : "";
 }
@@ -245,7 +252,12 @@ function normalizeGallery(
       const title = normalizeString(item.title) ?? `VISUAL NOTE ${index + 1}`;
       const caption = normalizeString(item.caption) ?? "";
       const alt = normalizeString(item.alt) ?? title;
-      return { title, caption, image, alt };
+      return {
+        title,
+        caption,
+        image: normalizeV1PublicUrl(image),
+        alt,
+      };
     })
     .filter((entry): entry is ProjectCaseStudyGalleryItem => Boolean(entry));
 

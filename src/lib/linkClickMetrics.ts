@@ -117,7 +117,10 @@ function buildPayload(input: unknown): LinkClickPayload | null {
   if (!isSafeRawHref(href)) return null;
   if (classifyDestination(destination) !== external) return null;
   if (!sourcePath.startsWith("/")) return null;
-  if (sourcePath.startsWith("/admin") || sourcePath.startsWith("/api")) return null;
+  if (
+    sourcePath.startsWith("/v1/admin") ||
+    sourcePath.startsWith("/v1/api")
+  ) return null;
 
   return { href, destination, sourcePath, label, external };
 }

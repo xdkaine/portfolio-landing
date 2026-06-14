@@ -23,6 +23,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  async rewrites() {
+    return [
+      {
+        source: "/v1/assets/projects/:path*",
+        destination: "/projects/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

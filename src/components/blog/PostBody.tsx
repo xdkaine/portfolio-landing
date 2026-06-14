@@ -8,6 +8,7 @@ import {
   type PostMark,
   type PostNode,
 } from "@/lib/postContent";
+import { normalizeV1PublicUrl } from "@/lib/v1Path";
 
 function markedText(text: ReactNode, marks: PostMark[] | undefined): ReactNode {
   return (marks ?? []).reduce<ReactNode>((children, mark) => {
@@ -72,6 +73,7 @@ export function LegacyPostBody({ content }: { content: string }) {
     <div className="article-prose">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        urlTransform={normalizeV1PublicUrl}
         components={{
           a: ({ href, children }) => href && isSafeArticleHref(href)
             ? <a href={href} target={href.startsWith("/") || href.startsWith("#") ? undefined : "_blank"} rel="noopener noreferrer">{children}</a>
