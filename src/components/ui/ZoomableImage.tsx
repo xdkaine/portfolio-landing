@@ -22,6 +22,7 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
   const scale = useMotionValue(1);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
