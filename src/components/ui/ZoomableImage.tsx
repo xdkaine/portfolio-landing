@@ -4,16 +4,20 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { motion, AnimatePresence, useMotionValue, useReducedMotion, animate } from "motion/react";
-import { X, ZoomIn } from "lucide-react";
+import { X, ZoomIn, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ZoomableImageProps {
   src: string;
   alt: string;
+  gallery?: { image: string; alt: string }[];
+  index?: number;
 }
 
-export function ZoomableImage({ src, alt }: ZoomableImageProps) {
+export function ZoomableImage({ src, alt, gallery, index = 0 }: ZoomableImageProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(index);
+  
   const shouldReduceMotion = Boolean(useReducedMotion());
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -21,10 +25,18 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
   const y = useMotionValue(0);
   const scale = useMotionValue(1);
 
+  const items = gallery && gallery.length > 0 ? gallery : [{ image: src, alt }];
+  const currentItem = items[currentIndex];
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
+
+  const handleOpen = () => {
+    setCurrentIndex(index);
+    setIsOpen(true);
+  };
 
   // Reset values when closing/opening
   useEffect(() => {
@@ -41,18 +53,44 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
     };
   }, [isOpen, x, y, scale]);
 
-  // Handle escape key
+  // Handle keyboard events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setIsOpen(false);
+      } else if (e.key === "ArrowLeft" && currentIndex > 0) {
+        setCurrentIndex((prev) => prev - 1);
+        x.set(0); y.set(0); scale.set(1);
+      } else if (e.key === "ArrowRight" && currentIndex < items.length - 1) {
+        setCurrentIndex((prev) => prev + 1);
+        x.set(0); y.set(0); scale.set(1);
       }
     };
     if (isOpen) {
       window.addEventListener("keydown", handleKeyDown);
     }
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, currentIndex, items.length, x, y, scale]);
+
+  const handlePrevious = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+      x.set(0);
+      y.set(0);
+      scale.set(1);
+    }
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (currentIndex < items.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      x.set(0);
+      y.set(0);
+      scale.set(1);
+    }
+  };
 
   const handleWheel = (e: React.WheelEvent) => {
     // Zoom in/out to cursor, clamp between 0.5x and 5x
@@ -95,7 +133,7 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
       <button
         type="button"
         className="relative group block w-full cursor-zoom-in appearance-none border-0 bg-transparent p-0 text-left"
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpen}
         aria-label={`Enlarge image: ${alt}`}
       >
         <Image
@@ -128,7 +166,7 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
               ref={containerRef}
               role="dialog"
               aria-modal="true"
-              aria-label={`Expanded image: ${alt}`}
+              aria-label={`Expanded image: ${currentItem.alt}`}
             >
               {/* Controls */}
               <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
@@ -147,13 +185,37 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
                 </button>
               </div>
 
+              {items.length > 1 && (
+                <>
+                  {currentIndex > 0 && (
+                    <button
+                      onClick={handlePrevious}
+                      className="absolute left-6 top-1/2 -translate-y-1/2 z-50 bg-surface/50 hover:bg-surface text-bone p-3 rounded-full border border-iron transition-colors"
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeft className="w-6 h-6" aria-hidden="true" />
+                    </button>
+                  )}
+                  {currentIndex < items.length - 1 && (
+                    <button
+                      onClick={handleNext}
+                      className="absolute right-6 top-1/2 -translate-y-1/2 z-50 bg-surface/50 hover:bg-surface text-bone p-3 rounded-full border border-iron transition-colors"
+                      aria-label="Next image"
+                    >
+                      <ChevronRight className="w-6 h-6" aria-hidden="true" />
+                    </button>
+                  )}
+                </>
+              )}
+
               <motion.div
                 className="relative w-full h-full flex items-center justify-center cursor-zoom-out"
                 onClick={() => setIsOpen(false)} // Clicking open space around the image
               >
                 <motion.img
-                  src={src}
-                  alt={alt}
+                  key={currentIndex}
+                  src={currentItem.image}
+                  alt={currentItem.alt}
                   width={1600}
                   height={1000}
                   style={{ x, y, scale }}

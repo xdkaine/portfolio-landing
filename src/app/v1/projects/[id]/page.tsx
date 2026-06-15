@@ -435,6 +435,8 @@ export default async function ProjectDetailPage({
                     <ZoomableImage
                       src={item.image}
                       alt={item.alt}
+                      gallery={mergedDeepDive.gallery}
+                      index={index}
                     />
                   </div>
                   <div className="p-5">
