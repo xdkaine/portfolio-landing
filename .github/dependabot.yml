@@ -4,16 +4,64 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    labels:
+      - dependencies
+      - npm
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+      include: scope
+    groups:
+      npm-patch-minor:
+        patterns:
+          - "*"
+        update-types:
+          - patch
+          - minor
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
     open-pull-requests-limit: 10
 
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    labels:
+      - dependencies
+      - docker
+    commit-message:
+      prefix: chore(deps)
+      include: scope
+    groups:
+      docker-patch-minor:
+        patterns:
+          - "*"
+        update-types:
+          - patch
+          - minor
     open-pull-requests-limit: 5
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: chore(deps)
+      include: scope
+    groups:
+      actions-patch-minor:
+        patterns:
+          - "*"
+        update-types:
+          - patch
+          - minor
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
     open-pull-requests-limit: 5

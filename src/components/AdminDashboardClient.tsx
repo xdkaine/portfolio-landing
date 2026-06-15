@@ -52,10 +52,10 @@ export default function AdminDashboardClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isMountedRef = useRef(true);
-  const [tab, setTab] = useState<Tab>(() => {
+  const tab = useMemo<Tab>(() => {
     const queryTab = searchParams.get("tab");
     return isTab(queryTab) ? queryTab : "metrics";
-  });
+  }, [searchParams]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [messages, setMessages] = useState<ContactMsg[]>([]);
@@ -106,18 +106,17 @@ export default function AdminDashboardClient() {
   }, []);
 
   useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
+    const timeoutId = window.setTimeout(() => {
+      void fetchData();
+    }, 0);
 
-  useEffect(() => {
-    const queryTab = searchParams.get("tab");
-    setTab(isTab(queryTab) ? queryTab : "metrics");
-  }, [searchParams]);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [fetchData]);
 
   const updateTab = useCallback(
     (nextTab: Tab) => {
-      setTab(nextTab);
-
       const params = new URLSearchParams(searchParams.toString());
       if (nextTab === "metrics") {
         params.delete("tab");
