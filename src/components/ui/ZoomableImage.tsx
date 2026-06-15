@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { motion, AnimatePresence, useMotionValue, useReducedMotion, animate } from "motion/react";
 import { X, ZoomIn } from "lucide-react";
@@ -12,12 +13,17 @@ interface ZoomableImageProps {
 
 export function ZoomableImage({ src, alt }: ZoomableImageProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const shouldReduceMotion = Boolean(useReducedMotion());
   const containerRef = useRef<HTMLDivElement>(null);
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const scale = useMotionValue(1);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Reset values when closing/opening
   useEffect(() => {
@@ -107,58 +113,61 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
         </div>
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={shouldReduceMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
-            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center overflow-hidden overscroll-contain"
-            onClick={() => setIsOpen(false)} // Click background to close
-            onWheel={handleWheel}
-            ref={containerRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Expanded image: ${alt}`}
-          >
-            {/* Controls */}
-            <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
-              <span className="text-ash text-xs tracking-[0.2em] hidden md:block select-none pointer-events-none">
-                SCROLL TO ZOOM &bull; DRAG TO PAN
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsOpen(false);
-                }}
-                className="bg-surface/50 hover:bg-surface text-bone p-3 rounded-full border border-iron transition-colors"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5" aria-hidden="true" />
-              </button>
-            </div>
-
+      {mounted && createPortal(
+        <AnimatePresence>
+          {isOpen && (
             <motion.div
-              className="relative w-full h-full flex items-center justify-center cursor-zoom-out"
-              onClick={() => setIsOpen(false)} // Clicking open space around the image
+              initial={shouldReduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
+              className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center overflow-hidden overscroll-contain"
+              onClick={() => setIsOpen(false)} // Click background to close
+              onWheel={handleWheel}
+              ref={containerRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Expanded image: ${alt}`}
             >
-              <motion.img
-                src={src}
-                alt={alt}
-                width={1600}
-                height={1000}
-                style={{ x, y, scale }}
-                drag
-                dragMomentum={false} // Prevents sliding away endlessly
-                className="max-h-[100vh] max-w-[100vw] object-contain shadow-2xl select-none cursor-move"
-                draggable={false}
-                onClick={(e) => e.stopPropagation()} // Clicking image itself
-              />
+              {/* Controls */}
+              <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
+                <span className="text-ash text-xs tracking-[0.2em] hidden md:block select-none pointer-events-none">
+                  SCROLL TO ZOOM &bull; DRAG TO PAN
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(false);
+                  }}
+                  className="bg-surface/50 hover:bg-surface text-bone p-3 rounded-full border border-iron transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" aria-hidden="true" />
+                </button>
+              </div>
+
+              <motion.div
+                className="relative w-full h-full flex items-center justify-center cursor-zoom-out"
+                onClick={() => setIsOpen(false)} // Clicking open space around the image
+              >
+                <motion.img
+                  src={src}
+                  alt={alt}
+                  width={1600}
+                  height={1000}
+                  style={{ x, y, scale }}
+                  drag
+                  dragMomentum={false} // Prevents sliding away endlessly
+                  className="max-h-[100vh] max-w-[100vw] object-contain shadow-2xl select-none cursor-move"
+                  draggable={false}
+                  onClick={(e) => e.stopPropagation()} // Clicking image itself
+                />
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }
