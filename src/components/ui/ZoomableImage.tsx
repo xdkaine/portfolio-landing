@@ -151,7 +151,7 @@ export function ZoomableImage({ src, alt }: ZoomableImageProps) {
                 style={{ x, y, scale }}
                 drag
                 dragMomentum={false} // Prevents sliding away endlessly
-                className="max-h-[85vh] max-w-[90vw] object-contain shadow-2xl select-none cursor-move"
+                className="max-h-[100vh] max-w-[100vw] object-contain shadow-2xl select-none cursor-move"
                 draggable={false}
                 onClick={(e) => e.stopPropagation()} // Clicking image itself
               />
