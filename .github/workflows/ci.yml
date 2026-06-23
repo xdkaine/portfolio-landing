@@ -434,6 +434,9 @@ jobs:
                APP_IMAGE="$APP_IMAGE" compose exec -T nginx wget -q -O - http://127.0.0.1/v1/api/health | grep -q "\"revision\":\"$GITHUB_SHA\"" && \
                curl -fsS "$PUBLIC_SITE_URL/v1/api/health" | grep -q "\"revision\":\"$GITHUB_SHA\""; then
               if verify_turnstile; then
+                # Persist APP_IMAGE so manual restarts and compose commands work without explicitly passing it
+                sed -i '/^[[:space:]]*APP_IMAGE[[:space:]]*=/d' .env
+                echo "APP_IMAGE=\"$APP_IMAGE\"" >> .env
                 APP_IMAGE="$APP_IMAGE" compose ps
                 exit 0
               fi
