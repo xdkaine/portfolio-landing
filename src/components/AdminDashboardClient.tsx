@@ -16,6 +16,15 @@ import remarkGfm from "remark-gfm";
 import { AdminMetricsDashboard } from "@/components/AdminMetricsDashboard";
 import { AdminPostLibrary } from "@/components/AdminPostLibrary";
 import {
+  ChevronUp,
+  ChevronDown,
+  Trash2,
+  Image as ImageIcon,
+  ArrowUpToLine,
+  ArrowDownToLine,
+  Pencil,
+} from "lucide-react";
+import {
   deleteProjectRecord,
   fetchAdminDashboardData,
   saveProjectRecord,
@@ -725,6 +734,7 @@ interface VisualNoteFormItem {
   caption: string;
   image: string;
   alt: string;
+  _expanded?: boolean;
 }
 
 const emptyVisualNote = (): VisualNoteFormItem => ({
@@ -732,6 +742,7 @@ const emptyVisualNote = (): VisualNoteFormItem => ({
   caption: "",
   image: "",
   alt: "",
+  _expanded: true,
 });
 
 function markdownToPlainText(markdown: string): string {
@@ -793,6 +804,7 @@ function ProjectForm({
           caption: item.caption || "",
           image: item.image || "",
           alt: item.alt || "",
+          _expanded: false,
         }))
       : [],
   );
@@ -812,6 +824,16 @@ function ProjectForm({
         itemIndex === index ? { ...item, [field]: value } : item,
       ),
     );
+  };
+
+  const moveVisualNoteToIndex = (currentIndex: number, targetIndex: number) => {
+    setVisualNotes((prev) => {
+      if (targetIndex < 0 || targetIndex >= prev.length || currentIndex === targetIndex) return prev;
+      const nextNotes = [...prev];
+      const [movedNote] = nextNotes.splice(currentIndex, 1);
+      nextNotes.splice(targetIndex, 0, movedNote);
+      return nextNotes;
+    });
   };
 
   const moveVisualNote = (index: number, direction: -1 | 1) => {
@@ -1065,89 +1087,96 @@ function ProjectForm({
             placeholder="Optional: how did you approach the solution?"
           />
         </div>
-        <div className="md:col-span-2">
-          <AdminTextarea
-            label="WRITE-UP MARKDOWN"
-            value={form.writeup}
-            onChange={(v) => setForm({ ...form, writeup: v })}
-            placeholder="# What You Built\n\nUse markdown: headings, lists, links, code, and images…"
-            rows={12}
-          />
-        </div>
-        <div className="md:col-span-2 border border-iron bg-surface/20 p-4">
-          <span className="text-[10px] tracking-[0.2em] text-steel block mb-3">
-            WRITE-UP PREVIEW
-          </span>
-          {form.writeup.trim() ? (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              urlTransform={transformProjectMarkdownUrl}
-              components={{
-                p: ({ children }) => (
-                  <p className="text-xs md:text-sm text-ash leading-relaxed mb-3 last:mb-0">
-                    {children}
-                  </p>
-                ),
-                h1: ({ children }) => (
-                  <h3 className="font-display text-xl text-bone tracking-tight mb-3">
-                    {children}
-                  </h3>
-                ),
-                h2: ({ children }) => (
-                  <h4 className="font-display text-lg text-bone tracking-tight mb-2">
-                    {children}
-                  </h4>
-                ),
-                ul: ({ children }) => (
-                  <ul className="list-disc pl-5 space-y-1 text-xs md:text-sm text-ash mb-3">
-                    {children}
-                  </ul>
-                ),
-                ol: ({ children }) => (
-                  <ol className="list-decimal pl-5 space-y-1 text-xs md:text-sm text-ash mb-3">
-                    {children}
-                  </ol>
-                ),
-                code: ({ children }) => (
-                  <code className="text-[11px] bg-void border border-iron px-1.5 py-0.5 text-smoke">
-                    {children}
-                  </code>
-                ),
-                pre: ({ children }) => (
-                  <pre className="text-[11px] bg-void border border-iron p-3 mb-3 overflow-x-auto text-smoke">
-                    {children}
-                  </pre>
-                ),
-                img: ({ src, alt }) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={src ?? ""}
-                    alt={alt ?? ""}
-                    width={1600}
-                    height={1000}
-                    loading="lazy"
-                    className="w-full h-auto border border-iron mb-3"
-                  />
-                ),
-                a: ({ href, children }) => (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-ember underline underline-offset-2"
-                  >
-                    {children}
-                  </a>
-                ),
-              }}
-            >
-              {form.writeup}
-            </ReactMarkdown>
-          ) : (
-            <p className="text-[10px] tracking-[0.15em] text-iron">
-              Add markdown above to preview rendered output.
-            </p>
-          )}
+        <div className="md:col-span-2 grid lg:grid-cols-2 gap-4">
+          <div className="flex flex-col h-[500px]">
+            <label htmlFor="writeup-markdown-editor" className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+              WRITE-UP MARKDOWN
+            </label>
+            <textarea
+              id="writeup-markdown-editor"
+              value={form.writeup}
+              onChange={(e) => setForm({ ...form, writeup: e.target.value })}
+              placeholder="# What You Built\n\nUse markdown: headings, lists, links, code, and images…"
+              className="flex-1 w-full bg-void border border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-xs p-3 transition-colors resize-none overflow-y-auto"
+            />
+          </div>
+          <div className="flex flex-col h-[500px]">
+            <span className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+              WRITE-UP PREVIEW
+            </span>
+            <div className="flex-1 border border-iron bg-surface/20 p-4 overflow-y-auto">
+              {form.writeup.trim() ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  urlTransform={transformProjectMarkdownUrl}
+                  components={{
+                    p: ({ children }) => (
+                      <p className="text-xs md:text-sm text-ash leading-relaxed mb-3 last:mb-0">
+                        {children}
+                      </p>
+                    ),
+                    h1: ({ children }) => (
+                      <h3 className="font-display text-xl text-bone tracking-tight mb-3">
+                        {children}
+                      </h3>
+                    ),
+                    h2: ({ children }) => (
+                      <h4 className="font-display text-lg text-bone tracking-tight mb-2">
+                        {children}
+                      </h4>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="list-disc pl-5 space-y-1 text-xs md:text-sm text-ash mb-3">
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal pl-5 space-y-1 text-xs md:text-sm text-ash mb-3">
+                        {children}
+                      </ol>
+                    ),
+                    code: ({ children }) => (
+                      <code className="text-[11px] bg-void border border-iron px-1.5 py-0.5 text-smoke">
+                        {children}
+                      </code>
+                    ),
+                    pre: ({ children }) => (
+                      <pre className="text-[11px] bg-void border border-iron p-3 mb-3 overflow-x-auto text-smoke">
+                        {children}
+                      </pre>
+                    ),
+                    img: ({ src, alt }) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={src ?? ""}
+                        alt={alt ?? ""}
+                        width={1600}
+                        height={1000}
+                        loading="lazy"
+                        className="w-full h-auto border border-iron mb-3"
+                      />
+                    ),
+                    a: ({ href, children }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-ember underline underline-offset-2"
+                      >
+                        {children}
+                      </a>
+                    ),
+                  }}
+                >
+                  {form.writeup}
+                </ReactMarkdown>
+              ) : (
+                <p className="text-[10px] tracking-[0.15em] text-iron">
+                  Add markdown above to preview rendered output.
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
@@ -1218,27 +1247,92 @@ function ProjectForm({
           ) : (
             <div className="space-y-4">
               {visualNotes.map((note, index) => (
-                <div key={`visual-note-${index}`} className="border border-iron p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[10px] tracking-[0.2em] text-ash">
-                      NOTE {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <div className="flex items-center gap-2">
+                <div key={`visual-note-${index}`} className="border border-iron bg-void transition-colors">
+                  <div className={`flex flex-col md:flex-row md:items-center justify-between p-4 gap-4 ${note._expanded ? "border-b border-iron bg-surface/20" : "hover:bg-surface/10"}`}>
+                    <div className="flex items-center gap-4">
+                      {note.image ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={note.image} alt="" className="w-12 h-12 object-cover border border-iron bg-void" />
+                      ) : (
+                        <div className="w-12 h-12 flex items-center justify-center border border-iron bg-void text-iron">
+                          <ImageIcon size={18} />
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-[10px] tracking-[0.2em] text-ash block">
+                          NOTE {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <span className="text-xs text-bone block mt-0.5 truncate max-w-[200px] md:max-w-[300px]">
+                          {note.title || "Untitled"}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center flex-wrap gap-3">
+                      <div className="flex items-center gap-1 bg-void border border-iron px-2 py-1.5" title="Move to position">
+                        <span className="text-[10px] tracking-[0.2em] text-steel">POS:</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={visualNotes.length}
+                          value={index + 1}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            if (!isNaN(val) && val > 0 && val <= visualNotes.length) {
+                              moveVisualNoteToIndex(index, val - 1);
+                            }
+                          }}
+                          className="w-8 bg-transparent text-bone text-[10px] tracking-[0.1em] text-center focus:outline-none focus:text-ember transition-colors"
+                        />
+                      </div>
+                      
+                      <div className="flex items-center gap-1.5 px-2">
+                        <button
+                          type="button"
+                          onClick={() => moveVisualNoteToIndex(index, 0)}
+                          disabled={index === 0}
+                          title="Move to Top"
+                          className="text-ash hover:text-bone disabled:opacity-30 transition-colors p-1"
+                        >
+                          <ArrowUpToLine size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveVisualNote(index, -1)}
+                          disabled={index === 0}
+                          title="Move Up"
+                          className="text-ash hover:text-bone disabled:opacity-30 transition-colors p-1"
+                        >
+                          <ChevronUp size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveVisualNote(index, 1)}
+                          disabled={index === visualNotes.length - 1}
+                          title="Move Down"
+                          className="text-ash hover:text-bone disabled:opacity-30 transition-colors p-1"
+                        >
+                          <ChevronDown size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveVisualNoteToIndex(index, visualNotes.length - 1)}
+                          disabled={index === visualNotes.length - 1}
+                          title="Move to Bottom"
+                          className="text-ash hover:text-bone disabled:opacity-30 transition-colors p-1"
+                        >
+                          <ArrowDownToLine size={14} />
+                        </button>
+                      </div>
+
+                      <div className="hidden md:block w-px h-6 bg-iron mx-1" />
+
                       <button
                         type="button"
-                        onClick={() => moveVisualNote(index, -1)}
-                        disabled={index === 0}
-                        className="text-[10px] tracking-[0.15em] text-ash hover:text-bone disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        onClick={() => setVisualNotes(prev => prev.map((item, i) => i === index ? { ...item, _expanded: !item._expanded } : item))}
+                        className="text-[10px] tracking-[0.15em] text-ember hover:text-ember/80 flex items-center gap-1.5 transition-colors px-2 py-1.5 border border-transparent hover:border-ember/30"
                       >
-                        UP
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveVisualNote(index, 1)}
-                        disabled={index === visualNotes.length - 1}
-                        className="text-[10px] tracking-[0.15em] text-ash hover:text-bone disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        DOWN
+                        <Pencil size={12} /> {note._expanded ? "COLLAPSE" : "EDIT"}
                       </button>
                       <button
                         type="button"
@@ -1247,82 +1341,85 @@ function ProjectForm({
                             prev.filter((_, itemIndex) => itemIndex !== index),
                           )
                         }
-                        className="text-[10px] tracking-[0.15em] text-ash hover:text-red-400 transition-colors ml-2"
+                        title="Remove Note"
+                        className="text-ash hover:text-red-400 transition-colors p-1.5 border border-transparent hover:border-red-400/30"
                       >
-                        REMOVE
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-3">
-                    <AdminTextInput
-                      label="NOTE TITLE"
-                      value={note.title}
-                      onChange={(value) => updateVisualNote(index, "title", value)}
-                      placeholder="SYSTEM FLOW"
-                    />
-                    <AdminTextInput
-                      label="ALT TEXT"
-                      value={note.alt}
-                      onChange={(value) => updateVisualNote(index, "alt", value)}
-                      placeholder="Short accessible image description…"
-                    />
-                    <div className="md:col-span-2">
+                  {note._expanded && (
+                    <div className="p-4 grid md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
                       <AdminTextInput
-                        label="IMAGE PATH OR URL"
-                        value={note.image}
-                        onChange={(value) => updateVisualNote(index, "image", value)}
-                        placeholder="/v1/assets/projects/uar-system.png"
+                        label="NOTE TITLE"
+                        value={note.title}
+                        onChange={(value) => updateVisualNote(index, "title", value)}
+                        placeholder="SYSTEM FLOW"
                       />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label htmlFor={`visual-note-upload-${index}`} className="text-[10px] tracking-[0.2em] text-steel block mb-2">
-                        UPLOAD IMAGE
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          id={`visual-note-upload-${index}`}
-                          name={`visual-note-upload-${index}`}
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp,image/gif"
-                          onChange={(event) => {
-                            const file = event.target.files?.[0];
-                            if (file) {
-                              void uploadVisualNoteImage(index, file);
-                            }
-                            event.currentTarget.value = "";
-                          }}
-                          className="text-[10px] tracking-[0.15em] text-ash file:mr-3 file:border file:border-iron file:bg-void file:text-smoke file:px-3 file:py-1 file:text-[10px] file:tracking-[0.15em] hover:file:border-ember"
+                      <AdminTextInput
+                        label="ALT TEXT"
+                        value={note.alt}
+                        onChange={(value) => updateVisualNote(index, "alt", value)}
+                        placeholder="Short accessible image description…"
+                      />
+                      <div className="md:col-span-2">
+                        <AdminTextInput
+                          label="IMAGE PATH OR URL"
+                          value={note.image}
+                          onChange={(value) => updateVisualNote(index, "image", value)}
+                          placeholder="/v1/assets/projects/uar-system.png"
                         />
-                        {uploadingVisualNoteIndex === index ? (
-                          <span className="text-[10px] tracking-[0.15em] text-steel">
-                            UPLOADING…
+                      </div>
+                      <div className="md:col-span-2">
+                        <label htmlFor={`visual-note-upload-${index}`} className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+                          UPLOAD IMAGE
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            id={`visual-note-upload-${index}`}
+                            name={`visual-note-upload-${index}`}
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/gif"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              if (file) {
+                                void uploadVisualNoteImage(index, file);
+                              }
+                              event.currentTarget.value = "";
+                            }}
+                            className="text-[10px] tracking-[0.15em] text-ash file:mr-3 file:border file:border-iron file:bg-void file:text-smoke file:px-3 file:py-1 file:text-[10px] file:tracking-[0.15em] hover:file:border-ember cursor-pointer"
+                          />
+                          {uploadingVisualNoteIndex === index ? (
+                            <span className="text-[10px] tracking-[0.15em] text-steel animate-pulse">
+                              UPLOADING…
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="md:col-span-2">
+                        <AdminTextarea
+                          label="CAPTION"
+                          value={note.caption}
+                          onChange={(value) => updateVisualNote(index, "caption", value)}
+                          placeholder="Explain what this visual shows…"
+                        />
+                      </div>
+                      {note.image && (
+                        <div className="md:col-span-2 mt-2">
+                          <span className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+                            PREVIEW
                           </span>
-                        ) : null}
-                      </div>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={note.image}
+                            alt={note.alt || note.title || 'Preview'}
+                            className="w-auto max-h-64 border border-iron object-contain bg-surface/20"
+                          />
+                        </div>
+                      )}
                     </div>
-                    <div className="md:col-span-2">
-                      <AdminTextarea
-                        label="CAPTION"
-                        value={note.caption}
-                        onChange={(value) => updateVisualNote(index, "caption", value)}
-                        placeholder="Explain what this visual shows…"
-                      />
-                    </div>
-                    {note.image && (
-                      <div className="md:col-span-2 mt-2">
-                        <span className="text-[10px] tracking-[0.2em] text-steel block mb-2">
-                          PREVIEW
-                        </span>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={note.image}
-                          alt={note.alt || note.title || 'Preview'}
-                          className="w-auto max-h-64 border border-iron object-contain bg-surface/20"
-                        />
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1366,11 +1463,11 @@ function ProjectForm({
           autoComplete="url"
         />
       </div>
-      <div className="flex gap-3 mt-6">
-        <button type="button" onClick={handleSave} className="text-[10px] tracking-[0.2em] bg-ember text-void px-6 py-2 hover:bg-ember/80 transition-colors">
-          SAVE
+      <div className="flex gap-3 mt-8 sticky bottom-0 bg-void/90 backdrop-blur-md p-4 border-t border-iron z-10 -mx-6 -mb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <button type="button" onClick={handleSave} className="text-[10px] tracking-[0.2em] bg-ember text-void px-8 py-3 hover:bg-ember/80 transition-colors">
+          SAVE PROJECT
         </button>
-        <button type="button" onClick={onCancel} className="text-[10px] tracking-[0.2em] text-ash hover:text-bone px-6 py-2 border border-iron">
+        <button type="button" onClick={onCancel} className="text-[10px] tracking-[0.2em] text-ash hover:text-bone px-8 py-3 border border-iron hover:bg-surface/30 transition-colors">
           CANCEL
         </button>
       </div>
