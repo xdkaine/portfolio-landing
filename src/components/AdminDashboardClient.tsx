@@ -814,6 +814,17 @@ function ProjectForm({
     );
   };
 
+  const moveVisualNote = (index: number, direction: -1 | 1) => {
+    setVisualNotes((prev) => {
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const nextNotes = [...prev];
+      const [movedNote] = nextNotes.splice(index, 1);
+      nextNotes.splice(nextIndex, 0, movedNote);
+      return nextNotes;
+    });
+  };
+
   const uploadVisualNoteImage = async (index: number, file: File) => {
     setVisualNoteUploadNotice("");
     setUploadingVisualNoteIndex(index);
@@ -848,8 +859,8 @@ function ProjectForm({
 
   const bulkUploadImages = async (files: FileList) => {
     if (files.length === 0) return;
-    if (files.length > 5) {
-      setVisualNoteUploadNotice("You can upload a maximum of 5 images at a time.");
+    if (files.length > 20) {
+      setVisualNoteUploadNotice("You can upload a maximum of 20 images at a time.");
       return;
     }
 
@@ -1212,17 +1223,35 @@ function ProjectForm({
                     <span className="text-[10px] tracking-[0.2em] text-ash">
                       NOTE {String(index + 1).padStart(2, "0")}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setVisualNotes((prev) =>
-                          prev.filter((_, itemIndex) => itemIndex !== index),
-                        )
-                      }
-                      className="text-[10px] tracking-[0.15em] text-ash hover:text-red-400 transition-colors"
-                    >
-                      REMOVE
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => moveVisualNote(index, -1)}
+                        disabled={index === 0}
+                        className="text-[10px] tracking-[0.15em] text-ash hover:text-bone disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        UP
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveVisualNote(index, 1)}
+                        disabled={index === visualNotes.length - 1}
+                        className="text-[10px] tracking-[0.15em] text-ash hover:text-bone disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        DOWN
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setVisualNotes((prev) =>
+                            prev.filter((_, itemIndex) => itemIndex !== index),
+                          )
+                        }
+                        className="text-[10px] tracking-[0.15em] text-ash hover:text-red-400 transition-colors ml-2"
+                      >
+                        REMOVE
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-3">
@@ -1280,6 +1309,19 @@ function ProjectForm({
                         placeholder="Explain what this visual shows…"
                       />
                     </div>
+                    {note.image && (
+                      <div className="md:col-span-2 mt-2">
+                        <span className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+                          PREVIEW
+                        </span>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={note.image}
+                          alt={note.alt || note.title || 'Preview'}
+                          className="w-auto max-h-64 border border-iron object-contain bg-surface/20"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
