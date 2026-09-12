@@ -1,8 +1,8 @@
 #!/usr/bin/python3
-"""Root-owned, fixed-scope deployment entrypoint for the portfolio runner."""
+"""Root-owned, fixed-scope deployment entrypoint for the release puller."""
 import datetime, fcntl, json, os, pathlib, re, subprocess, sys, urllib.request
 
-K = ['/usr/local/bin/kubectl', '-n', 'portfolio']
+K = ['/usr/local/bin/kubectl', '--cache-dir=/var/lib/portfolio-release/kube-cache', '-n', 'portfolio']
 os.environ['KUBECONFIG'] = '/etc/rancher/k3s/k3s.yaml'
 os.environ['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 def run(*args, **kwargs):

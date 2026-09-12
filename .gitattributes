@@ -1,3 +1,6 @@
 *.sh text eol=lf
+deploy/k3s/*.py text eol=lf
+deploy/k3s/*.service text eol=lf
+deploy/k3s/*.timer text eol=lf
 Dockerfile text eol=lf
 nginx/*.conf text eol=lf
