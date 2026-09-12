@@ -32,7 +32,7 @@ class DeploymentTests(unittest.TestCase):
         def urlopen(req,**kwargs):
             url=req if isinstance(req,str) else req.full_url
             if url.endswith('turnstile'):body={'required':True,'siteKey':'public-key'}
-            else:body={'status':'ok','revision':'wrong' if failure=='health' else revision}
+            else:body={'status':'ok','revision':'wrong' if failure=='health' and url.startswith('https://') else revision}
             return io.BytesIO(json.dumps(body).encode())
         realpath=pathlib.Path
         with tempfile.TemporaryDirectory() as tmp:

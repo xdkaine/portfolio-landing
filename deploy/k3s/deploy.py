@@ -36,7 +36,7 @@ def main():
             run('rollout','status','deployment/app','--timeout=180s')
             ip=json.loads(get('get','service','nginx','-o','json'))['spec']['clusterIP']
             for url in ['http://'+ip+'/v1/api/health','https://phao.dev/v1/api/health']:
-                req=urllib.request.Request(url,headers={'Cache-Control':'no-cache'})
+                req=urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'portfolio-deploy/1.0'})
                 with urllib.request.urlopen(req,timeout=30) as r: body=json.load(r)
                 if body.get('status')!='ok' or body.get('revision')!=revision:
                     raise RuntimeError('Release health/revision mismatch')
