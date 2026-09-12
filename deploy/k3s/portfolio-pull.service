@@ -1,0 +1,23 @@
+[Unit]
+Description=Pull and deploy tested portfolio releases
+Wants=network-online.target
+After=network-online.target k3s.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/portfolio-pull
+TimeoutStartSec=15min
+StateDirectory=portfolio-release
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/var/backups/portfolio-deploy /var/lock
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+

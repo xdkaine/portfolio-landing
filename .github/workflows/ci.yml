@@ -181,9 +181,9 @@ jobs:
           sbom: true
           provenance: mode=max
 
-  deploy:
-    name: Deploy to K3s
-    runs-on: [self-hosted, linux, portfolio-production-deploy]
+  publish:
+    name: Publish release and verify rollout
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [docker, test-e2e]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -192,18 +192,46 @@ jobs:
       group: portfolio-production
       cancel-in-progress: false
     permissions:
-      contents: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      APP_DIGEST: ${{ needs.docker.outputs.app-digest }}
+      MIGRATION_DIGEST: ${{ needs.docker.outputs.migration-digest }}
     steps:
-      - name: Deploy immutable images and verify production
-        env:
-          APP_DIGEST: ${{ needs.docker.outputs.app-digest }}
-          MIGRATION_DIGEST: ${{ needs.docker.outputs.migration-digest }}
-          REVISION: ${{ github.sha }}
+      - name: Publish a tested release for the VM to pull
+        shell: bash
         run: |
           set -euo pipefail
-          sudo -n /usr/local/sbin/portfolio-deploy "$APP_DIGEST" "$MIGRATION_DIGEST" "$REVISION"
-      - name: Summarize deployment
-        env:
-          REVISION: ${{ github.sha }}
+          current="$(gh api "repos/$GH_REPO/commits/main" --jq .sha)"
+          test "$current" = "$GITHUB_SHA" || { echo "A newer main commit exists; refusing stale publication"; exit 1; }
+          python3 - <<'PY'
+          import json, os, re
+          for key in ['APP_DIGEST','MIGRATION_DIGEST']:
+              assert re.fullmatch(r'sha256:[0-9a-f]{64}',os.environ[key])
+          release={'schema':1,'repository':os.environ['GITHUB_REPOSITORY'],'revision':os.environ['GITHUB_SHA'],'runId':int(os.environ['GITHUB_RUN_ID']),'runAttempt':int(os.environ['GITHUB_RUN_ATTEMPT']),'appDigest':os.environ['APP_DIGEST'],'migrationDigest':os.environ['MIGRATION_DIGEST']}
+          with open('release.json','w') as f: json.dump(release,f,indent=2)
+          PY
+          tag="production-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          gh release create "$tag" release.json --target "$GITHUB_SHA" --draft --title "Production ${GITHUB_SHA:0:12}" --notes "Tested immutable images for the portfolio pull-based deployment."
+          gh release edit "$tag" --draft=false --latest
+          echo "Published $tag; waiting for the VM to pull and deploy it." >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify the public production revision
+        shell: bash
         run: |
-          echo "Deployed $REVISION to portfolio on k3s-01; verified https://phao.dev/v1/api/health" >> "$GITHUB_STEP_SUMMARY"
+          python3 - <<'PY'
+          import json, os, time, urllib.request
+          deadline=time.monotonic()+900
+          while time.monotonic()<deadline:
+              try:
+                  req=urllib.request.Request('https://phao.dev/v1/api/health',headers={'User-Agent':'portfolio-deploy/1.0','Cache-Control':'no-cache'})
+                  with urllib.request.urlopen(req,timeout=15) as r: health=json.load(r)
+                  if health.get('status')=='ok' and health.get('revision')==os.environ['GITHUB_SHA']:
+                      print('Verified production release',os.environ['GITHUB_SHA'])
+                      break
+              except Exception as error:
+                  print('Production health check pending:',type(error).__name__)
+              time.sleep(15)
+          else:
+              raise SystemExit('The VM did not deploy this release; inspect portfolio-pull.service on k3s-01')
+          PY

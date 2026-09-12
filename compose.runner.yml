@@ -1,3 +1,4 @@
+# Historical TrueNAS runner configuration; not used by current K3s delivery.
 name: portfolio-runner
 
 # GitHub Actions self-hosted runner
