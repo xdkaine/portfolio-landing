@@ -1,0 +1,914 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "name": "portfolio"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolume",
+      "metadata": {
+        "name": "portfolio-pgdata"
+      },
+      "spec": {
+        "capacity": {
+          "storage": "5Gi"
+        },
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "persistentVolumeReclaimPolicy": "Retain",
+        "storageClassName": "",
+        "local": {
+          "path": "/srv/portfolio/pgdata"
+        },
+        "nodeAffinity": {
+          "required": {
+            "nodeSelectorTerms": [
+              {
+                "matchExpressions": [
+                  {
+                    "key": "kubernetes.io/hostname",
+                    "operator": "In",
+                    "values": [
+                      "k3s-01"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "pgdata",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "",
+        "volumeName": "portfolio-pgdata",
+        "resources": {
+          "requests": {
+            "storage": "5Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolume",
+      "metadata": {
+        "name": "portfolio-project-uploads"
+      },
+      "spec": {
+        "capacity": {
+          "storage": "2Gi"
+        },
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "persistentVolumeReclaimPolicy": "Retain",
+        "storageClassName": "",
+        "local": {
+          "path": "/srv/portfolio/project_uploads"
+        },
+        "nodeAffinity": {
+          "required": {
+            "nodeSelectorTerms": [
+              {
+                "matchExpressions": [
+                  {
+                    "key": "kubernetes.io/hostname",
+                    "operator": "In",
+                    "values": [
+                      "k3s-01"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "project-uploads",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "",
+        "volumeName": "portfolio-project-uploads",
+        "resources": {
+          "requests": {
+            "storage": "2Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolume",
+      "metadata": {
+        "name": "portfolio-post-uploads"
+      },
+      "spec": {
+        "capacity": {
+          "storage": "2Gi"
+        },
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "persistentVolumeReclaimPolicy": "Retain",
+        "storageClassName": "",
+        "local": {
+          "path": "/srv/portfolio/post_uploads"
+        },
+        "nodeAffinity": {
+          "required": {
+            "nodeSelectorTerms": [
+              {
+                "matchExpressions": [
+                  {
+                    "key": "kubernetes.io/hostname",
+                    "operator": "In",
+                    "values": [
+                      "k3s-01"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "post-uploads",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "",
+        "volumeName": "portfolio-post-uploads",
+        "resources": {
+          "requests": {
+            "storage": "2Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolume",
+      "metadata": {
+        "name": "portfolio-public-data"
+      },
+      "spec": {
+        "capacity": {
+          "storage": "1Gi"
+        },
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "persistentVolumeReclaimPolicy": "Retain",
+        "storageClassName": "",
+        "local": {
+          "path": "/srv/portfolio/public_data"
+        },
+        "nodeAffinity": {
+          "required": {
+            "nodeSelectorTerms": [
+              {
+                "matchExpressions": [
+                  {
+                    "key": "kubernetes.io/hostname",
+                    "operator": "In",
+                    "values": [
+                      "k3s-01"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "public-data",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "",
+        "volumeName": "portfolio-public-data",
+        "resources": {
+          "requests": {
+            "storage": "1Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "db",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "Recreate"
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "db"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "db"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 70,
+              "runAsGroup": 70,
+              "runAsNonRoot": true,
+              "fsGroup": 70,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "containers": [
+              {
+                "name": "db",
+                "image": "postgres:17-alpine@sha256:dc17045ccfd343b49600570ea734b9c4991cf1c3f3302e67df51e3b402dd55c4",
+                "ports": [
+                  {
+                    "containerPort": 5432
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "readOnlyRootFilesystem": true,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "resources": {
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "64Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "db-env"
+                    }
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "pgdata",
+                    "mountPath": "/var/lib/postgresql/data",
+                    "readOnly": false
+                  },
+                  {
+                    "name": "run",
+                    "mountPath": "/var/run/postgresql",
+                    "readOnly": false
+                  },
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp",
+                    "readOnly": false
+                  }
+                ],
+                "readinessProbe": {
+                  "exec": {
+                    "command": [
+                      "pg_isready",
+                      "-U",
+                      "xtomm",
+                      "-d",
+                      "portfolio"
+                    ]
+                  },
+                  "periodSeconds": 5
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "pgdata",
+                "persistentVolumeClaim": {
+                  "claimName": "pgdata"
+                }
+              },
+              {
+                "name": "run",
+                "emptyDir": {
+                  "sizeLimit": "256Mi"
+                }
+              },
+              {
+                "name": "tmp",
+                "emptyDir": {
+                  "sizeLimit": "256Mi"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "db",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "selector": {
+          "app": "db"
+        },
+        "ports": [
+          {
+            "port": 5432,
+            "targetPort": 5432
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "app",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "replicas": 0,
+        "strategy": {
+          "type": "Recreate"
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "app"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "app"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 1001,
+              "runAsGroup": 1001,
+              "runAsNonRoot": true,
+              "fsGroup": 1001,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "containers": [
+              {
+                "name": "app",
+                "image": "ghcr.io/xdkaine/portfolio-landing@sha256:256c3421f16b2d02386c40564f45b3267dc7519e311fc90554d115c61c251f80",
+                "ports": [
+                  {
+                    "containerPort": 3000
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "readOnlyRootFilesystem": true,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "192Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "1Gi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "app-env"
+                    }
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "project-uploads",
+                    "mountPath": "/app/uploads/projects",
+                    "readOnly": false
+                  },
+                  {
+                    "name": "post-uploads",
+                    "mountPath": "/app/uploads/posts",
+                    "readOnly": false
+                  },
+                  {
+                    "name": "public-data",
+                    "mountPath": "/app/legacy-public",
+                    "readOnly": true
+                  },
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp",
+                    "readOnly": false
+                  },
+                  {
+                    "name": "cache",
+                    "mountPath": "/app/.next/cache",
+                    "readOnly": false
+                  }
+                ],
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/v1/api/health",
+                    "port": 3000
+                  },
+                  "periodSeconds": 5
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "path": "/v1/api/health",
+                    "port": 3000
+                  },
+                  "periodSeconds": 5,
+                  "failureThreshold": 60
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "project-uploads",
+                "persistentVolumeClaim": {
+                  "claimName": "project-uploads"
+                }
+              },
+              {
+                "name": "post-uploads",
+                "persistentVolumeClaim": {
+                  "claimName": "post-uploads"
+                }
+              },
+              {
+                "name": "public-data",
+                "persistentVolumeClaim": {
+                  "claimName": "public-data"
+                }
+              },
+              {
+                "name": "tmp",
+                "emptyDir": {
+                  "sizeLimit": "256Mi"
+                }
+              },
+              {
+                "name": "cache",
+                "emptyDir": {
+                  "sizeLimit": "256Mi"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "app",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "selector": {
+          "app": "app"
+        },
+        "ports": [
+          {
+            "port": 3000,
+            "targetPort": 3000
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "nginx-config",
+        "namespace": "portfolio"
+      },
+      "data": {
+        "nginx.conf": "pid /tmp/nginx.pid;\nworker_processes auto;\n\nevents {\n    worker_connections 1024;\n}\n\nhttp {\n    server_tokens off;\n\n    # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac Gzip \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n    gzip on;\n    gzip_vary on;\n    gzip_proxied any;\n    gzip_comp_level 6;\n    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;\n\n    # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac Request Limits \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n    client_max_body_size 1m;\n    client_body_timeout 15s;\n\n    # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac Rate limiting \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n    map $http_cf_connecting_ip $trusted_client_ip {\n        default $http_cf_connecting_ip;\n        \"\" $remote_addr;\n    }\n\n    limit_req_zone $trusted_client_ip zone=api:10m rate=10r/s;\n    limit_req_zone $trusted_client_ip zone=auth:10m rate=3r/m;\n    limit_req_zone $trusted_client_ip zone=contact:10m rate=2r/m;\n    limit_req_status 429;\n\n    # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac Docker DNS \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n    # Docker service IPs change when containers are recreated. Resolve `app`\n    # through Docker's embedded DNS instead of pinning the IP at nginx start.\n    resolver 10.43.0.10 valid=1s ipv6=off;\n\n    # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac HTTP Server (Cloudflare Tunnel points here) \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n    server {\n        listen 8080;\n        server_name _;\n        set $nextjs_upstream http://app.portfolio.svc.cluster.local:3000;\n\n        # Nginx 1.29.3+ can merge parent headers into locations that define\n        # cache headers, keeping this upgrade-safe as one mounted config file.\n        add_header_inherit merge;\n        add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\" always;\n        add_header X-Frame-Options \"DENY\" always;\n        add_header X-Content-Type-Options \"nosniff\" always;\n        add_header Referrer-Policy \"strict-origin-when-cross-origin\" always;\n        add_header Permissions-Policy \"camera=(), microphone=(), geolocation=()\" always;\n        add_header Cross-Origin-Opener-Policy \"same-origin\" always;\n        add_header Cross-Origin-Resource-Policy \"same-site\" always;\n        add_header Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://challenges.cloudflare.com https://cloudflareinsights.com; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';\" always;\n\n        # Keep one authoritative edge policy instead of returning duplicate,\n        # potentially conflicting application and proxy security headers.\n        proxy_hide_header Content-Security-Policy;\n        proxy_hide_header Strict-Transport-Security;\n        proxy_hide_header X-Frame-Options;\n        proxy_hide_header X-Content-Type-Options;\n        proxy_hide_header Referrer-Policy;\n        proxy_hide_header Permissions-Policy;\n        proxy_hide_header Cross-Origin-Opener-Policy;\n        proxy_hide_header Cross-Origin-Resource-Policy;\n\n        # This app does not expose Server Actions; reject probe requests\n        # before they reach the Next.js App Router decoder.\n        if ($http_next_action != \"\") {\n            return 404;\n        }\n\n        location = /health {\n            return 200 'ok';\n            add_header Cache-Control \"no-store\" always;\n        }\n\n        # Static fallback page served when Next.js is unavailable.\n        location = /fallback-404.html {\n            root /etc/nginx/portfolio;\n            internal;\n            add_header Cache-Control \"no-store\" always;\n        }\n\n        location @next_static_miss {\n            internal;\n            add_header Cache-Control \"no-store\" always;\n            return 404 'Not Found';\n        }\n\n        # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac Auth API (strict rate limit) \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n        location /v1/api/auth/ {\n            limit_req zone=auth burst=5 nodelay;\n            proxy_pass $nextjs_upstream;\n            proxy_http_version 1.1;\n            proxy_set_header Host $host;\n            proxy_set_header X-Real-IP $trusted_client_ip;\n            proxy_set_header X-Forwarded-For $trusted_client_ip;\n            proxy_set_header X-Forwarded-Proto https;\n            proxy_hide_header Content-Security-Policy;\n            proxy_hide_header Strict-Transport-Security;\n            proxy_hide_header X-Frame-Options;\n            proxy_hide_header X-Content-Type-Options;\n            proxy_hide_header Referrer-Policy;\n            proxy_hide_header Permissions-Policy;\n            proxy_hide_header Cross-Origin-Opener-Policy;\n            proxy_hide_header Cross-Origin-Resource-Policy;\n            proxy_hide_header Cache-Control;\n            proxy_hide_header Expires;\n            add_header Cache-Control \"no-store, no-cache, max-age=0, must-revalidate\" always;\n            add_header Pragma \"no-cache\" always;\n            add_header Expires \"0\" always;\n        }\n\n        # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac Contact API (strict rate limit) \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n        location /v1/api/contact {\n            limit_req zone=contact burst=3 nodelay;\n            proxy_pass $nextjs_upstream;\n            proxy_http_version 1.1;\n            proxy_set_header Host $host;\n            proxy_set_header X-Real-IP $trusted_client_ip;\n            proxy_set_header X-Forwarded-For $trusted_client_ip;\n            proxy_set_header X-Forwarded-Proto https;\n            proxy_hide_header Content-Security-Policy;\n            proxy_hide_header Strict-Transport-Security;\n            proxy_hide_header X-Frame-Options;\n            proxy_hide_header X-Content-Type-Options;\n            proxy_hide_header Referrer-Policy;\n            proxy_hide_header Permissions-Policy;\n            proxy_hide_header Cross-Origin-Opener-Policy;\n            proxy_hide_header Cross-Origin-Resource-Policy;\n            proxy_hide_header Cache-Control;\n            proxy_hide_header Expires;\n            add_header Cache-Control \"no-store, no-cache, max-age=0, must-revalidate\" always;\n            add_header Pragma \"no-cache\" always;\n            add_header Expires \"0\" always;\n        }\n\n        # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac Upload API \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n        location /v1/api/uploads/ {\n            # Support multi-image uploads (up to 5 x 10 MB each) without\n            # allowing oversized request bodies on every application route.\n            client_max_body_size 55m;\n            limit_req zone=api burst=10 nodelay;\n            proxy_pass $nextjs_upstream;\n            proxy_http_version 1.1;\n            proxy_set_header Host $host;\n            proxy_set_header X-Real-IP $trusted_client_ip;\n            proxy_set_header X-Forwarded-For $trusted_client_ip;\n            proxy_set_header X-Forwarded-Proto https;\n            proxy_hide_header Content-Security-Policy;\n            proxy_hide_header Strict-Transport-Security;\n            proxy_hide_header X-Frame-Options;\n            proxy_hide_header X-Content-Type-Options;\n            proxy_hide_header Referrer-Policy;\n            proxy_hide_header Permissions-Policy;\n            proxy_hide_header Cross-Origin-Opener-Policy;\n            proxy_hide_header Cross-Origin-Resource-Policy;\n            proxy_hide_header Cache-Control;\n            proxy_hide_header Expires;\n            add_header Cache-Control \"no-store, no-cache, max-age=0, must-revalidate\" always;\n            add_header Pragma \"no-cache\" always;\n            add_header Expires \"0\" always;\n        }\n\n        # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac General API \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n        location /v1/api/ {\n            limit_req zone=api burst=20 nodelay;\n            proxy_pass $nextjs_upstream;\n            proxy_http_version 1.1;\n            proxy_set_header Host $host;\n            proxy_set_header X-Real-IP $trusted_client_ip;\n            proxy_set_header X-Forwarded-For $trusted_client_ip;\n            proxy_set_header X-Forwarded-Proto https;\n            proxy_hide_header Content-Security-Policy;\n            proxy_hide_header Strict-Transport-Security;\n            proxy_hide_header X-Frame-Options;\n            proxy_hide_header X-Content-Type-Options;\n            proxy_hide_header Referrer-Policy;\n            proxy_hide_header Permissions-Policy;\n            proxy_hide_header Cross-Origin-Opener-Policy;\n            proxy_hide_header Cross-Origin-Resource-Policy;\n            proxy_hide_header Cache-Control;\n            proxy_hide_header Expires;\n            add_header Cache-Control \"no-store, no-cache, max-age=0, must-revalidate\" always;\n            add_header Pragma \"no-cache\" always;\n            add_header Expires \"0\" always;\n        }\n\n        # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac Static assets (long cache) \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n        location /_next/static/ {\n            proxy_pass $nextjs_upstream;\n            proxy_http_version 1.1;\n            proxy_set_header Host $host;\n            proxy_set_header X-Real-IP $trusted_client_ip;\n            proxy_set_header X-Forwarded-For $trusted_client_ip;\n            proxy_set_header X-Forwarded-Proto https;\n            proxy_intercept_errors on;\n            error_page 404 = @next_static_miss;\n            proxy_cache_valid 200 365d;\n            proxy_hide_header Content-Security-Policy;\n            proxy_hide_header Strict-Transport-Security;\n            proxy_hide_header X-Frame-Options;\n            proxy_hide_header X-Content-Type-Options;\n            proxy_hide_header Referrer-Policy;\n            proxy_hide_header Permissions-Policy;\n            proxy_hide_header Cross-Origin-Opener-Policy;\n            proxy_hide_header Cross-Origin-Resource-Policy;\n            proxy_hide_header Cache-Control;\n            add_header Cache-Control \"public, max-age=31536000, immutable\";\n        }\n\n        # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac Optimized images and uploads keep upstream cache headers \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n        location /_next/image {\n            proxy_pass $nextjs_upstream;\n            proxy_http_version 1.1;\n            proxy_set_header Host $host;\n            proxy_set_header X-Real-IP $trusted_client_ip;\n            proxy_set_header X-Forwarded-For $trusted_client_ip;\n            proxy_set_header X-Forwarded-Proto https;\n        }\n\n        location /v1/uploads/ {\n            proxy_pass $nextjs_upstream;\n            proxy_http_version 1.1;\n            proxy_set_header Host $host;\n            proxy_set_header X-Real-IP $trusted_client_ip;\n            proxy_set_header X-Forwarded-For $trusted_client_ip;\n            proxy_set_header X-Forwarded-Proto https;\n        }\n\n        # \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac Everything else \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n        location / {\n            proxy_pass $nextjs_upstream;\n            proxy_http_version 1.1;\n            proxy_set_header Host $host;\n            proxy_set_header X-Real-IP $trusted_client_ip;\n            proxy_set_header X-Forwarded-For $trusted_client_ip;\n            proxy_set_header X-Forwarded-Proto https;\n            proxy_hide_header Content-Security-Policy;\n            proxy_hide_header Strict-Transport-Security;\n            proxy_hide_header X-Frame-Options;\n            proxy_hide_header X-Content-Type-Options;\n            proxy_hide_header Referrer-Policy;\n            proxy_hide_header Permissions-Policy;\n            proxy_hide_header Cross-Origin-Opener-Policy;\n            proxy_hide_header Cross-Origin-Resource-Policy;\n            proxy_hide_header Cache-Control;\n            proxy_hide_header Expires;\n            add_header Cache-Control \"no-store, no-cache, max-age=0, must-revalidate\" always;\n            add_header Pragma \"no-cache\" always;\n            add_header Expires \"0\" always;\n            proxy_intercept_errors on;\n            error_page 500 502 503 504 =503 /fallback-404.html;\n        }\n    }\n}\n",
+        "fallback-404.html": "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>404 | Temporarily Unavailable</title>\n  <style>\n    :root {\n      color-scheme: dark;\n      --bg: #0b0d10;\n      --card: #12161b;\n      --border: #232a33;\n      --text: #f2f5f7;\n      --muted: #97a5b6;\n      --accent: #e67e22;\n    }\n\n    * {\n      box-sizing: border-box;\n    }\n\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: grid;\n      place-items: center;\n      padding: 24px;\n      background: radial-gradient(1200px 600px at 20% -10%, #1a2330 0%, var(--bg) 50%);\n      color: var(--text);\n      font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif;\n    }\n\n    main {\n      width: 100%;\n      max-width: 640px;\n      background: rgba(18, 22, 27, 0.9);\n      border: 1px solid var(--border);\n      border-radius: 16px;\n      padding: 32px;\n      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);\n    }\n\n    h1 {\n      margin: 0 0 10px;\n      font-size: clamp(28px, 5vw, 40px);\n      line-height: 1.1;\n      letter-spacing: 0.02em;\n    }\n\n    p {\n      margin: 0;\n      color: var(--muted);\n      line-height: 1.6;\n    }\n\n    .status {\n      display: inline-block;\n      margin-bottom: 14px;\n      padding: 4px 10px;\n      border-radius: 999px;\n      font-size: 12px;\n      letter-spacing: 0.08em;\n      text-transform: uppercase;\n      background: rgba(230, 126, 34, 0.15);\n      border: 1px solid rgba(230, 126, 34, 0.35);\n      color: var(--accent);\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <span class=\"status\">404</span>\n    <h1>Site temporarily unavailable</h1>\n    <p>\n      The application is not reachable right now. Please try again shortly.\n    </p>\n  </main>\n</body>\n</html>\n"
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "nginx",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "Recreate"
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "nginx"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "nginx"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 101,
+              "runAsGroup": 101,
+              "runAsNonRoot": true,
+              "fsGroup": 101,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "containers": [
+              {
+                "name": "nginx",
+                "image": "nginx:1.31.1-alpine@sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a",
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "readOnlyRootFilesystem": true,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "resources": {
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "64Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                },
+                "command": [
+                  "nginx",
+                  "-g",
+                  "daemon off;",
+                  "-c",
+                  "/etc/nginx/portfolio/nginx.conf"
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp",
+                    "readOnly": false
+                  },
+                  {
+                    "name": "cache",
+                    "mountPath": "/var/cache/nginx",
+                    "readOnly": false
+                  },
+                  {
+                    "name": "config",
+                    "mountPath": "/etc/nginx/portfolio",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "tmp",
+                "emptyDir": {
+                  "sizeLimit": "256Mi"
+                }
+              },
+              {
+                "name": "cache",
+                "emptyDir": {
+                  "sizeLimit": "256Mi"
+                }
+              },
+              {
+                "name": "config",
+                "configMap": {
+                  "name": "nginx-config"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "nginx",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "selector": {
+          "app": "nginx"
+        },
+        "ports": [
+          {
+            "port": 80,
+            "targetPort": 8080
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "cloudflared",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "replicas": 0,
+        "strategy": {
+          "type": "Recreate"
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "cloudflared"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "cloudflared"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 65532,
+              "runAsGroup": 65532,
+              "runAsNonRoot": true,
+              "fsGroup": 65532,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "containers": [
+              {
+                "name": "cloudflared",
+                "image": "cloudflare/cloudflared:2026.5.2@sha256:12ff5c6992a9863db4da270746af7c244bcaee49353039af8104268a18d6c4f0",
+                "ports": [
+                  {
+                    "containerPort": 2000
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "readOnlyRootFilesystem": true,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "resources": {
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "64Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "tunnel-env"
+                    }
+                  }
+                ],
+                "args": [
+                  "tunnel",
+                  "--no-autoupdate",
+                  "--metrics",
+                  "0.0.0.0:2000",
+                  "run"
+                ],
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/ready",
+                    "port": 2000
+                  },
+                  "periodSeconds": 5
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "cloudflared",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "selector": {
+          "app": "cloudflared"
+        },
+        "ports": [
+          {
+            "port": 2000,
+            "targetPort": 2000
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "db-ingress",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "db"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "app"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "protocol": "TCP",
+                "port": 5432
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "app-ingress",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "app"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "nginx"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "protocol": "TCP",
+                "port": 3000
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "nginx-ingress",
+        "namespace": "portfolio"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "nginx"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "cloudflared"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "protocol": "TCP",
+                "port": 8080
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
