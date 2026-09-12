@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   distDir: isDev ? ".next-dev" : ".next",
-  experimental: {
-    viewTransition: true,
-  },
   outputFileTracingExcludes: {
     "/*": [
       ".env*",

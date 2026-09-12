@@ -21,13 +21,13 @@
     "@base-ui/react": "^1.5.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
-    "@tiptap/core": "3.26.1",
-    "@tiptap/extension-code-block-lowlight": "3.26.1",
-    "@tiptap/extension-image": "3.26.1",
-    "@tiptap/markdown": "3.26.1",
-    "@tiptap/pm": "3.26.1",
-    "@tiptap/react": "3.26.1",
-    "@tiptap/starter-kit": "3.26.1",
+    "@tiptap/core": "3.31.3",
+    "@tiptap/extension-code-block-lowlight": "3.31.3",
+    "@tiptap/extension-image": "3.31.3",
+    "@tiptap/markdown": "3.31.3",
+    "@tiptap/pm": "3.31.3",
+    "@tiptap/react": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -36,7 +36,7 @@
     "lowlight": "^3.3.0",
     "lucide-react": "^0.577.0",
     "motion": "^12.40.0",
-    "next": "16.2.9",
+    "next": "16.3.5",
     "pg": "^8.21.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
@@ -54,7 +54,7 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "eslint": "^9",
-    "eslint-config-next": "16.2.9",
+    "eslint-config-next": "16.3.5",
     "monocart-coverage-reports": "^2.12.12",
     "playwright": "1.61.0",
     "prisma": "^7.8.0",
@@ -64,8 +64,10 @@
     "typescript": "^5"
   },
   "overrides": {
-    "@hono/node-server": "1.19.13",
-    "fast-uri": "3.1.2",
-    "postcss": "8.5.15"
+    "@hono/node-server": "1.19.17",
+    "fast-uri": "3.1.7",
+    "postcss": "8.5.28",
+    "deepmerge-ts": "8.0.2",
+    "mysql2": "3.24.4"
   }
 }
