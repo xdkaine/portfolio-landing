@@ -44,6 +44,8 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm run lint
       - run: npm test
+      - name: Test K3s deployment failure handling
+        run: python3 -m unittest discover -s deploy/k3s/tests -v
       - run: npm audit --audit-level=high
 
   # ─── Build ──────────────────────────────────────────
@@ -205,4 +207,3 @@ jobs:
           REVISION: ${{ github.sha }}
         run: |
           echo "Deployed $REVISION to portfolio on k3s-01; verified https://phao.dev/v1/api/health" >> "$GITHUB_STEP_SUMMARY"
-

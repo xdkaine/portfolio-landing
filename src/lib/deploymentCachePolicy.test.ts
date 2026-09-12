@@ -121,17 +121,7 @@ test("large request bodies are limited to upload routes", () => {
   assert.doesNotMatch(locationBlock("/v1/api/auth/"), /client_max_body_size\s+55m;/);
 });
 
-test("deployment reloads nginx in place after syncing mounted config", () => {
-  assert.match(
-    workflowConfig,
-    /compose exec -T nginx nginx -t -c \/etc\/nginx\/portfolio\/nginx\.conf/,
-  );
-  assert.match(
-    workflowConfig,
-    /compose exec -T nginx nginx -s reload -c \/etc\/nginx\/portfolio\/nginx\.conf/,
-  );
-  assert.doesNotMatch(workflowConfig, /force-recreate --no-deps nginx/);
-});
+
 
 test("nginx re-resolves the app service after container replacement", () => {
   assert.match(nginxConfig, /resolver\s+127\.0\.0\.11\s+valid=1s\s+ipv6=off;/);
@@ -139,35 +129,13 @@ test("nginx re-resolves the app service after container replacement", () => {
   assert.doesNotMatch(nginxConfig, /upstream\s+nextjs/);
 });
 
-test("deployment verifies app health through nginx", () => {
-  assert.match(
-    workflowConfig,
-    /compose exec -T nginx wget -q -O - http:\/\/127\.0\.0\.1\/v1\/api\/health \| grep -q "\\"revision\\":\\"\$GITHUB_SHA\\""/,
-  );
-});
 
-test("deployment verifies the public route reaches the same revision", () => {
-  assert.match(
-    workflowConfig,
-    /curl -fsS "\$PUBLIC_SITE_URL\/v1\/api\/health" \| grep -q "\\"revision\\":\\"\$GITHUB_SHA\\""/,
-  );
-});
 
-test("deployment refuses local fallback images in production", () => {
-  assert.match(workflowConfig, /Refusing to deploy without the immutable GHCR image/);
-  assert.match(workflowConfig, /running_app_image/);
-});
 
-test("deployment validates configuration and can restore the previous app image", () => {
-  assert.match(workflowConfig, /compose config --quiet/);
-  assert.match(workflowConfig, /POSTGRES_PASSWORD is missing from \$DEPLOY_PATH\/\.env/);
-  assert.match(workflowConfig, /The running PostgreSQL database rejected POSTGRES_PASSWORD/);
-  assert.match(workflowConfig, /compose exec -T -e PGPASSWORD="\$POSTGRES_PASSWORD" db psql -h 127\.0\.0\.1/);
-  assert.match(workflowConfig, /compose exec -T -e PGPASSWORD="\$POSTGRES_PASSWORD" db pg_dump -h 127\.0\.0\.1/);
-  assert.match(workflowConfig, /gzip -t "\$backup_path"/);
-  assert.match(workflowConfig, /previous_app_image/);
-  assert.match(workflowConfig, /compose up -d --no-deps app/);
-});
+
+
+
+
 
 test("container builds publish supply-chain attestations", () => {
   assert.match(workflowConfig, /sbom:\s+true/);
