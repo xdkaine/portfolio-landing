@@ -16,11 +16,13 @@ spec.loader.exec_module(deploy)
 class DeploymentTests(unittest.TestCase):
     def exercise(self, failure=None):
         calls=[]
+        self.migration_manifest=None
         revision='a'*40
         digest='sha256:'+'b'*64
         previous='ghcr.io/xdkaine/portfolio-landing@sha256:'+'c'*64
         def run(*args, **kwargs):
             calls.append(args)
+            if args[0]=='create':self.migration_manifest=json.loads(kwargs['input'])
             if failure=='dump' and args[0]=='exec':
                 raise subprocess.CalledProcessError(1,args)
             if failure=='migration' and args[0]=='wait':
@@ -49,6 +51,12 @@ class DeploymentTests(unittest.TestCase):
                     with self.assertRaises((RuntimeError,subprocess.CalledProcessError)):deploy.main()
                 else:deploy.main()
         return calls,previous
+
+    def test_migration_pod_is_not_selected_by_live_web_service(self):
+        self.exercise()
+        web_service_selector={'app':'app'}
+        labels=self.migration_manifest['spec']['template']['metadata']['labels']
+        self.assertFalse(all(labels.get(key)==value for key,value in web_service_selector.items()))
 
     def test_rejects_mutable_foreign_and_injected_images(self):
         for value in ['latest','ghcr.io/other/app:main','sha256:'+'a'*64+';id','sha256:abc','a'*64]:
