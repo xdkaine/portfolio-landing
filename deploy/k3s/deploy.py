@@ -12,7 +12,7 @@ def get(*args):
 def image(digest):
     if not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
         raise ValueError('Expected an immutable SHA256 image digest')
-    return 'ghcr.io/xdkaine/portfolio-landing@' + digest
+    return 'docker.io/library/portfolio-local@' + digest
 def main():
     if len(sys.argv) != 4 or not re.fullmatch('[0-9a-f]{40}', sys.argv[3]):
         raise ValueError('Usage: portfolio-deploy APP_DIGEST MIGRATION_DIGEST REVISION')
