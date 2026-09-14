@@ -2,7 +2,7 @@
 import json,os,time,uuid
 from pathlib import Path
 key=os.environ['LOCAL_CI_KEY'];branch=os.environ['GITHUB_REF_NAME'];rev=os.environ['GITHUB_SHA']
-if branch not in (['main','dev'] if key=='repairte' else ['main']):raise SystemExit('Non-deployment branch: tests complete')
+if branch not in ['main','dev']:raise SystemExit('Non-deployment branch: tests complete')
 outbox=Path.home()/'outbox';ready=outbox/'ready.json'
 assert not ready.exists(),'An earlier deployment is pending'
 data=json.loads(Path('release/release.json').read_text());data['branch']=branch
@@ -14,6 +14,6 @@ for _ in range(240):
   result=json.loads(status.read_text())
   if result.get('revision')==rev and result.get('requestId')==request_id:
    assert result['status']=='applied','Local deployment needs review'
-   print('Verified production revision '+rev);break
+   print('Verified '+branch+' revision '+rev);break
  time.sleep(5)
 else:raise RuntimeError('Deployment verification timed out')
