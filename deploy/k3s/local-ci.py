@@ -32,6 +32,9 @@ try:
  run('python3','deploy/k3s/package-local.py','app=portfolio-app:'+rev,'migrate=portfolio-migrate:'+rev)
  run('docker','image','prune','--all','--force')
  if branch=='main':run('python3','deploy/k3s/submit-local.py')
+except Exception:
+ subprocess.run([*compose,'logs','--tail=80'])
+ raise
 finally:
  subprocess.run([*compose,'down','-v','--remove-orphans'])
  subprocess.run(['docker','image','prune','--all','--force'])
