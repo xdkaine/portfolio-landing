@@ -42,8 +42,6 @@ services:
       TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA"
     expose:
       - "3000"
-    ports:
-      - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
@@ -52,11 +50,12 @@ services:
 
   nginx:
     image: nginx:1.31.1-alpine
-    command: ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/portfolio/nginx.conf"]
+    command: ["/bin/sh", "/etc/nginx/portfolio/start-ci.sh"]
     ports:
-      - "80:80"
+      - "127.0.0.1:18089:80"
     volumes:
       - ./nginx/nginx.test.conf:/etc/nginx/portfolio/nginx.conf:ro
+      - ./deploy/k3s/test-nginx.sh:/etc/nginx/portfolio/start-ci.sh:ro
     depends_on:
       app:
         condition: service_started

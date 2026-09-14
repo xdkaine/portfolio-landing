@@ -12,7 +12,7 @@ def get(*args):
 def image(digest):
     if not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
         raise ValueError('Expected an immutable SHA256 image digest')
-    return 'ghcr.io/xdkaine/portfolio-landing@' + digest
+    return 'docker.io/library/portfolio-local@' + digest
 def main():
     if len(sys.argv) != 4 or not re.fullmatch('[0-9a-f]{40}', sys.argv[3]):
         raise ValueError('Usage: portfolio-deploy APP_DIGEST MIGRATION_DIGEST REVISION')
@@ -28,7 +28,7 @@ def main():
         # Never automatically restore a database over writes made after a release.
         previous = json.loads(get('get','deployment','app','-o','json'))['spec']['template']['spec']['containers'][0]['image']
         job = 'migrate-' + revision[:12] + '-' + stamp.lower()
-        manifest = {'apiVersion':'batch/v1','kind':'Job','metadata':{'name':job,'namespace':'portfolio'},'spec':{'backoffLimit':0,'activeDeadlineSeconds':300,'ttlSecondsAfterFinished':86400,'template':{'metadata':{'labels':{'app':'app'}},'spec':{'restartPolicy':'Never','automountServiceAccountToken':False,'securityContext':{'runAsUser':1001,'runAsGroup':1001,'runAsNonRoot':True,'seccompProfile':{'type':'RuntimeDefault'}},'containers':[{'name':'migrate','image':migration,'envFrom':[{'secretRef':{'name':'app-env'}}],'securityContext':{'allowPrivilegeEscalation':False,'readOnlyRootFilesystem':True,'capabilities':{'drop':['ALL']}},'resources':{'requests':{'cpu':'50m','memory':'128Mi'},'limits':{'cpu':'1','memory':'512Mi'}},'volumeMounts':[{'name':'tmp','mountPath':'/tmp'}]}],'volumes':[{'name':'tmp','emptyDir':{'sizeLimit':'64Mi'}}]}}}}
+        manifest = {'apiVersion':'batch/v1','kind':'Job','metadata':{'name':job,'namespace':'portfolio'},'spec':{'backoffLimit':0,'activeDeadlineSeconds':300,'ttlSecondsAfterFinished':86400,'template':{'metadata':{'labels':{'app':'portfolio-migrate'}},'spec':{'restartPolicy':'Never','automountServiceAccountToken':False,'securityContext':{'runAsUser':1001,'runAsGroup':1001,'runAsNonRoot':True,'seccompProfile':{'type':'RuntimeDefault'}},'containers':[{'name':'migrate','image':migration,'envFrom':[{'secretRef':{'name':'app-env'}}],'securityContext':{'allowPrivilegeEscalation':False,'readOnlyRootFilesystem':True,'capabilities':{'drop':['ALL']}},'resources':{'requests':{'cpu':'50m','memory':'128Mi'},'limits':{'cpu':'1','memory':'512Mi'}},'volumeMounts':[{'name':'tmp','mountPath':'/tmp'}]}],'volumes':[{'name':'tmp','emptyDir':{'sizeLimit':'64Mi'}}]}}}}
         run('create','-f','-',input=json.dumps(manifest).encode())
         run('wait','--for=condition=complete','job/'+job,'--timeout=310s')
         try:
