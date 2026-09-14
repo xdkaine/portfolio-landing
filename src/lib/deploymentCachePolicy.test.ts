@@ -137,9 +137,10 @@ test("nginx re-resolves the app service after container replacement", () => {
 
 
 
-test("container builds publish supply-chain attestations", () => {
-  assert.match(workflowConfig, /sbom:\s+true/);
-  assert.match(workflowConfig, /provenance:\s+mode=max/);
+test("container delivery uses the private local runner without publishing build artifacts", () => {
+  assert.match(workflowConfig, /runs-on:\s*\[self-hosted, Linux, X64, portfolio-local\]/);
+  assert.match(workflowConfig, /k3s-ci-job python3 deploy\/k3s\/local-ci\.py/);
+  assert.doesNotMatch(workflowConfig, /upload-artifact|build-push-action|gh release|packages:\s*write|cache-to:\s*type=gha/);
 });
 
 test("project API routes opt out of Next route caching", () => {
