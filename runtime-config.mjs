@@ -52,6 +52,11 @@ export function assertProductionRuntimeConfiguration(
   requireValue(environment, "TURNSTILE_SECRET_KEY");
   requireValue(environment, "TURNSTILE_SITE_KEY");
   requireHttpsUrl(environment, "NEXT_PUBLIC_SITE_URL");
+  const mode = environment.ADMIN_AUTH_MODE ?? "password";
+  if (mode !== "password" && mode !== "oidc") throw new Error("ADMIN_AUTH_MODE must be password or oidc.");
+  if (mode === "oidc") {
+    for (const name of ["OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET", "OIDC_ADMIN_BINDINGS"]) requireValue(environment, name);
+  }
 }
 
 export { DEVELOPMENT_SECRET };
