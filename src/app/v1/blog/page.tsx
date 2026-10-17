@@ -12,7 +12,7 @@ export const revalidate = 0;
 
 export const metadata: Metadata = {
   ...createPublicPageMetadata({
-    title: "Blog | Journal",
+    title: "Engineering Blog",
     description:
       "Notes from the build on systems, interfaces, experiments, engineering, and the decisions behind them.",
     path: "/v1/blog",

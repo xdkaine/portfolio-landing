@@ -1,9 +1,9 @@
 import { createPublicPageMetadata } from "@/lib/siteMetadata";
 
 export const metadata = createPublicPageMetadata({
-  title: "About | Me! ",
+  title: "About — Systems Engineering & Development",
   description:
-    "About a systems engineer and full-stack developer focused on building anything and everything.",
+    "Meet Thomas Phao, a systems engineer and developer building reliable infrastructure and thoughtful web applications.",
   path: "/v1/about",
   imageAlt: "About the systems engineer behind this portfolio.",
 });

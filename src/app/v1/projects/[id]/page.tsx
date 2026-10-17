@@ -20,7 +20,7 @@ import {
   normalizeProjectStatus,
   type DisplayProjectStatus,
 } from "@/lib/projectPresentation";
-import { DEFAULT_SOCIAL_IMAGE } from "@/lib/siteMetadata";
+import { DEFAULT_SOCIAL_IMAGE, PORTFOLIO_NAME } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export const dynamic = "force-dynamic";
@@ -66,10 +66,10 @@ function createBaseCaseStudy(project: NormalizedProject): ProjectCaseStudyViewMo
 
 function getStatusClass(status: DisplayProjectStatus): string {
   if (status === "LIVE") {
-    return "text-emerald-400 border-emerald-400/30";
+    return "text-status-live border-status-live/30";
   }
   if (status === "IN PROGRESS") {
-    return "text-amber-400 border-amber-400/30";
+    return "text-status-progress border-status-progress/30";
   }
   return "text-steel border-iron";
 }
@@ -113,7 +113,7 @@ export async function generateMetadata({
     createBaseCaseStudy(normalizedProject),
     project.caseStudy,
   );
-  const title = `${normalizedProject.title} | Projects`;
+  const title = `${normalizedProject.title} | Projects | ${PORTFOLIO_NAME}`;
   const description = caseStudy.subtitle || normalizedProject.description;
   const canonical = `/v1/projects/${normalizedProject.number}`;
   const previewImage = caseStudy.gallery[0];
@@ -122,7 +122,7 @@ export async function generateMetadata({
     : DEFAULT_SOCIAL_IMAGE;
 
   return {
-    title,
+    title: { absolute: title },
     description,
     authors: [{ name: settings.siteName }],
     alternates: { canonical },
@@ -337,20 +337,20 @@ export default async function ProjectDetailPage({
               <div className="space-y-4 text-xs">
                 {mergedDeepDive.role ? (
                   <div className="flex justify-between gap-4">
-                    <span className="text-iron tracking-[0.12em]">ROLE</span>
+                    <span className="text-steel tracking-[0.12em]">ROLE</span>
                     <span className="text-bone text-right">{mergedDeepDive.role}</span>
                   </div>
                 ) : null}
                 {mergedDeepDive.timeline ? (
                   <div className="flex justify-between gap-4">
-                    <span className="text-iron tracking-[0.12em]">TIMELINE</span>
+                    <span className="text-steel tracking-[0.12em]">TIMELINE</span>
                     <span className="text-bone text-right">
                       {mergedDeepDive.timeline}
                     </span>
                   </div>
                 ) : null}
                 <div className="flex justify-between gap-4">
-                  <span className="text-iron tracking-[0.12em]">YEAR</span>
+                  <span className="text-steel tracking-[0.12em]">YEAR</span>
                   <span className="text-bone text-right">
                     {normalizedProject.year}
                   </span>
@@ -517,7 +517,7 @@ export default async function ProjectDetailPage({
                 {"//"}
               </PublicLink>
             ) : (
-              <span className="text-iron">PREV: --</span>
+              <span className="text-steel">PREV: --</span>
             )}
 
             {nextProject ? (
@@ -530,7 +530,7 @@ export default async function ProjectDetailPage({
                 {"//"}
               </PublicLink>
             ) : (
-              <span className="text-iron">NEXT: --</span>
+              <span className="text-steel">NEXT: --</span>
             )}
           </div>
         </div>

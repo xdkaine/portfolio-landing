@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useInView, useReducedMotion } from "motion/react";
+import { motion, useInView } from "motion/react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useRef } from "react";
 
 interface SplitTextProps {
@@ -28,7 +29,7 @@ export function SplitText({
           initial={shouldReduceMotion ? false : { opacity: 0, y: 80, rotateX: -40 }}
           animate={
             shouldReduceMotion
-              ? undefined
+              ? { opacity: 1, y: 0, rotateX: 0 }
               : isInView
                 ? { opacity: 1, y: 0, rotateX: 0 }
                 : {}

@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useRef, type ReactNode } from "react";
 
 /**
@@ -69,7 +70,7 @@ export function ScrollParallax({
     <motion.div
       ref={ref}
       className={className}
-      style={shouldReduceMotion ? undefined : { y, scale, opacity, rotate }}
+      style={shouldReduceMotion ? { y: 0, scale: 1, opacity: 1, rotate: 0 } : { y, scale, opacity, rotate }}
     >
       {children}
     </motion.div>
@@ -110,7 +111,7 @@ export function ScrollZoom({
     <motion.div
       ref={ref}
       className={className}
-      style={shouldReduceMotion ? undefined : { scale, opacity }}
+      style={shouldReduceMotion ? { scale: 1, opacity: 1 } : { scale, opacity }}
     >
       {children}
     </motion.div>

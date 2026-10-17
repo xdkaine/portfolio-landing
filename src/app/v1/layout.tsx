@@ -1,6 +1,5 @@
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { TitleTypewriter } from "@/components/TitleTypewriter";
 import { LinkClickTracker } from "@/components/LinkClickTracker";
 import { BackgroundContextMenu } from "@/components/BackgroundContextMenu";
 import { PublicTransitionSurface } from "@/components/PublicTransition";
@@ -29,10 +28,6 @@ export default async function V1Layout({
       >
         SKIP TO MAIN CONTENT
       </a>
-      <TitleTypewriter
-        brandName={primaryBrandName}
-        brandAliases={brandAliases}
-      />
       <LinkClickTracker />
       <BackgroundContextMenu />
       <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />

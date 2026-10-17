@@ -1,7 +1,7 @@
 import { createPublicPageMetadata } from "@/lib/siteMetadata";
 
 export const metadata = createPublicPageMetadata({
-  title: "Contact | Start a Conversation",
+  title: "Contact",
   description:
     "Get in touch about software engineering work, product builds, collaborations, or other projects.",
   path: "/v1/contact",
