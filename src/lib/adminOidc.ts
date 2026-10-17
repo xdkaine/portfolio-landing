@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isGrantId } from "@/lib/testAccessPolicy";
 import { EncryptJWT, jwtDecrypt } from "jose";
 import * as oidc from "openid-client";
 import { assertJwtSecretConfiguration } from "../../runtime-config.mjs";
@@ -14,6 +15,7 @@ export interface LoginTransaction {
   state: string;
   nonce: string;
   verifier: string;
+  approvalId?: string;
 }
 
 function transactionKey() {
@@ -42,7 +44,7 @@ export async function openLoginTransaction(token: string, config: AdminOidcConfi
     throw new Error("Invalid login transaction");
   }
   return { origin: config.origin, state: payload.state as string, nonce: payload.nonce as string,
-    verifier: payload.verifier as string };
+    verifier: payload.verifier as string, ...(payload.approvalId !== undefined ? { approvalId: checkedApprovalId(payload.approvalId) } : {}) };
 }
 
 export async function adminProviderConfiguration(config: AdminOidcConfig): Promise<oidc.Configuration> {
@@ -63,9 +65,15 @@ export async function adminProviderConfiguration(config: AdminOidcConfig): Promi
   return provider;
 }
 
-export async function beginAdminLogin(config: AdminOidcConfig, provider?: oidc.Configuration) {
+function checkedApprovalId(value: unknown): string {
+  if (!isGrantId(value)) throw new Error("Invalid approval destination");
+  return value;
+}
+
+export async function beginAdminLogin(config: AdminOidcConfig, provider?: oidc.Configuration, approvalId?: string) {
+  if (approvalId !== undefined) checkedApprovalId(approvalId);
   const transaction: LoginTransaction = { origin: config.origin, state: oidc.randomState(),
-    nonce: oidc.randomNonce(), verifier: oidc.randomPKCECodeVerifier() };
+    nonce: oidc.randomNonce(), verifier: oidc.randomPKCECodeVerifier(), ...(approvalId ? { approvalId } : {}) };
   const authorizationUrl = oidc.buildAuthorizationUrl(provider ?? await adminProviderConfiguration(config), {
     redirect_uri: config.callbackUri,
     scope: "openid profile amr",
@@ -74,6 +82,7 @@ export async function beginAdminLogin(config: AdminOidcConfig, provider?: oidc.C
     nonce: transaction.nonce,
     code_challenge: await oidc.calculatePKCECodeChallenge(transaction.verifier),
     code_challenge_method: "S256",
+    ...(approvalId ? { prompt: "login", max_age: "300" } : {}),
   });
   return { authorizationUrl, cookie: await sealLoginTransaction(transaction) };
 }
@@ -104,8 +113,9 @@ export async function completeAdminLogin(
   const tokens = await oidc.authorizationCodeGrant(provider ?? await adminProviderConfiguration(config), callback, {
     expectedState: transaction.state, expectedNonce: transaction.nonce,
     pkceCodeVerifier: transaction.verifier, idTokenExpected: true,
+    ...(transaction.approvalId ? { maxAge: 300 } : {}),
   });
   const claims = tokens.claims();
   if (!claims) throw new Error("Missing identity token");
-  return adminIdentityFromClaims(claims, config);
+  return { ...adminIdentityFromClaims(claims, config), ...(transaction.approvalId ? { approvalId: transaction.approvalId } : {}) };
 }

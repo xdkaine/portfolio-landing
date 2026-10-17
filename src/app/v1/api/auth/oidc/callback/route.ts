@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { sealOwnerReceipt, TEST_APPROVAL_COOKIE, OWNER_APPROVAL_SECONDS } from "@/lib/testAccessPolicy";
 import { NextResponse } from "next/server";
 import { completeAdminLogin, OIDC_TRANSACTION_COOKIE } from "@/lib/adminOidc";
 import { adminOidcConfig } from "@/lib/oidcConfig";
@@ -18,8 +19,12 @@ export async function GET(request: Request) {
     if (!user || user.role !== "ADMIN" || !await isAdminProviderSessionLive(config, identity.providerSession)) {
       throw new Error("Admin access denied");
     }
-    await createSession(user.id, user.role, identity.providerSession);
-    return NextResponse.redirect(new URL("/v1/admin", config.origin), { status: 303, headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } });
+    if (identity.approvalId && process.env.ENABLE_APPROVED_TEST_SESSIONS !== "true") throw new Error("Approval unavailable");
+    const sessionToken = await createSession(user.id, user.role, identity.providerSession);
+    if (identity.approvalId) {
+      jar.set(TEST_APPROVAL_COOKIE, await sealOwnerReceipt(identity.approvalId, user.id, sessionToken), { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: OWNER_APPROVAL_SECONDS });
+    }
+    return NextResponse.redirect(new URL(identity.approvalId ? `/v1/test-access/approve/${identity.approvalId}` : "/v1/admin", config.origin), { status: 303, headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } });
   } catch {
     // No provider error messages, codes, tokens, or credentials enter the response or logs.
     return new NextResponse(null, { status: 303, headers: {

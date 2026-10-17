@@ -104,3 +104,22 @@ model SiteSetting {
 
   @@map("site_settings")
 }
+
+
+// Short owner-approved verification grants; never accepted by CMS authentication.
+model TestAccessGrant {
+  id                 String   @id
+  proofHash          String   @map("proof_hash")
+  displayCode        String   @map("display_code")
+  state              String   @default("PENDING")
+  createdAt          DateTime @default(now()) @map("created_at")
+  expiresAt          DateTime @map("expires_at")
+  approvedById       String?  @map("approved_by_id")
+  approvedAt         DateTime? @map("approved_at")
+  sessionExpiresAt   DateTime? @map("session_expires_at")
+  consumedAt         DateTime? @map("consumed_at")
+  identityCiphertext String?  @map("identity_ciphertext")
+
+  @@index([expiresAt])
+  @@map("test_access_grants")
+}
