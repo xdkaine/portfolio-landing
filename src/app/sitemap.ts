@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 
+// Portfolio content is available at runtime, not in the image build database.
+export const dynamic = "force-dynamic";
+
 function getSiteUrl(): string {
   const fallback = "https://phao.dev";
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
