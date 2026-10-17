@@ -1,0 +1,14 @@
+{
+  "name": "@portfolio/next-root-glob",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Next ESLint root-directory discovery adapter using tinyglobby",
+  "main": "index.cjs",
+  "files": [
+    "index.cjs",
+    "README.md"
+  ],
+  "dependencies": {
+    "tinyglobby": "0.2.17"
+  }
+}

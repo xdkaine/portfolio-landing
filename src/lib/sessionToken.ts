@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { validProviderSession, type AdminProviderSession } from "@/lib/oidcSession";
 import {
   assertJwtSecretConfiguration,
   DEVELOPMENT_SECRET,
@@ -16,6 +17,7 @@ export type SessionRole = "ADMIN" | "EDITOR";
 export interface SessionTokenClaims {
   userId: string;
   role: SessionRole;
+  oidc?: AdminProviderSession;
 }
 
 function configuredSecret(): string | null {
@@ -40,15 +42,18 @@ function isSessionRole(value: unknown): value is SessionRole {
 export async function signSessionToken(
   userId: string,
   role: SessionRole,
+  oidc?: AdminProviderSession,
 ): Promise<string> {
-  return new SignJWT({ userId, role })
+  if (oidc && !validProviderSession(oidc)) throw new Error("Invalid provider session");
+  const expires = Math.floor(Date.now() / 1000) + SESSION_MAX_AGE_SECONDS;
+  return new SignJWT({ userId, role, ...(oidc ? { oidc } : {}) })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(userId)
     .setIssuer(SESSION_ISSUER)
     .setAudience(SESSION_AUDIENCE)
     .setJti(crypto.randomUUID())
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
+    .setExpirationTime(oidc ? Math.min(expires, oidc.expiresAt) : expires)
     .sign(jwtSecret());
 }
 
@@ -68,11 +73,12 @@ export async function verifySessionToken(
       typeof userId !== "string" ||
       payload.sub !== userId ||
       !isSessionRole(payload.role)
+      || (payload.oidc !== undefined && !validProviderSession(payload.oidc))
     ) {
       return null;
     }
 
-    return { userId, role: payload.role };
+    return { userId, role: payload.role, ...(payload.oidc ? { oidc: payload.oidc as AdminProviderSession } : {}) };
   } catch {
     return null;
   }

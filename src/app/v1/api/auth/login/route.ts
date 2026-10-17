@@ -5,9 +5,13 @@ import { isTurnstileRequired, verifyTurnstile } from "@/lib/turnstile";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { rejectCrossSiteMutation } from "@/lib/requestSecurity";
 import bcrypt from "bcryptjs";
+import { isAdminSsoEnabled } from "@/lib/oidcConfig";
 
 export async function POST(request: Request) {
   try {
+    if (isAdminSsoEnabled()) {
+      return NextResponse.json({ error: "Use auth.edge single sign-on" }, { status: 403 });
+    }
     const rejected = rejectCrossSiteMutation(request);
     if (rejected) return rejected;
 

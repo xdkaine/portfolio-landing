@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/sessionToken";
+import { isAdminSsoEnabled } from "@/lib/oidcConfig";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -32,16 +33,15 @@ export async function proxy(request: NextRequest) {
 
   if (token) {
     try {
-      isAuthenticated = Boolean(await verifySessionToken(token));
+      const claims = await verifySessionToken(token);
+      isAuthenticated = Boolean(claims && (!isAdminSsoEnabled() || claims.oidc));
     } catch {
       // Invalid or expired token — treat as unauthenticated
     }
   }
 
-  // Redirect authenticated users away from /v1/login
-  if (pathname === "/v1/login" && isAuthenticated) {
-    return NextResponse.redirect(new URL("/v1/admin", request.url));
-  }
+  // The login page verifies the database and live SSO session before redirecting.
+  // Checking only a signed cookie here creates a loop for revoked sessions.
 
   // Redirect unauthenticated users away from /v1/admin
   if (pathname.startsWith("/v1/admin") && !isAuthenticated) {

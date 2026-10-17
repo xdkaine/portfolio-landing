@@ -1,4 +1,7 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
+import { adminOidcConfig, isAdminSsoEnabled, mappedAdminId } from "@/lib/oidcConfig";
+import { isAdminProviderSessionLive, type AdminProviderSession } from "@/lib/oidcSession";
 import { prisma } from "@/lib/prisma";
 import {
   COOKIE_NAME,
@@ -17,8 +20,8 @@ export interface AuthenticatedSession {
   role: SessionRole;
 }
 
-export async function createSession(userId: string, role: SessionRole) {
-  const token = await signSessionToken(userId, role);
+export async function createSession(userId: string, role: SessionRole, oidc?: AdminProviderSession) {
+  const token = await signSessionToken(userId, role, oidc);
 
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
@@ -26,13 +29,13 @@ export async function createSession(userId: string, role: SessionRole) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: SESSION_MAX_AGE_SECONDS,
+    maxAge: oidc ? Math.min(SESSION_MAX_AGE_SECONDS, oidc.expiresAt - Math.floor(Date.now() / 1000)) : SESSION_MAX_AGE_SECONDS,
   });
 
   return token;
 }
 
-export async function verifySession(): Promise<AuthenticatedSession | null> {
+export const verifySession = cache(async (): Promise<AuthenticatedSession | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
 
@@ -41,6 +44,14 @@ export async function verifySession(): Promise<AuthenticatedSession | null> {
   try {
     const claims = await verifySessionToken(token);
     if (!claims) return null;
+
+    if (isAdminSsoEnabled()) {
+      const config = adminOidcConfig();
+      if (!claims.oidc || claims.role !== "ADMIN" || mappedAdminId(config, claims.oidc.subject) !== claims.userId
+        || !await isAdminProviderSessionLive(config, claims.oidc)) return null;
+    } else if (claims.oidc) {
+      return null;
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: claims.userId },
@@ -60,7 +71,7 @@ export async function verifySession(): Promise<AuthenticatedSession | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function destroySession() {
   const cookieStore = await cookies();
