@@ -2,7 +2,8 @@
 FROM node:26-alpine AS deps
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
+COPY tooling/next-root-glob ./tooling/next-root-glob
 RUN npm ci --ignore-scripts
 
 # ─── Stage 2: Generate Prisma Client ──────────────────
