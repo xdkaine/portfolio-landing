@@ -31,7 +31,9 @@ Login state, nonce, and verifier are stored in a ten-minute encrypted, HTTP-only
 Secure, SameSite=Lax cookie. The maintained `openid-client` library validates the
 authorization response, PKCE, issuer, audience, nonce, expiration, and signature.
 The callback uses the configured canonical origin instead of incoming Host or
-forwarded headers. Credentials, authorization codes and tokens are not logged.
+forwarded headers. Application code does not log credentials, authorization codes
+or tokens. Review ingress callback-query logging separately when configuring a
+production client; application error handling does not control proxy access logs.
 
 Every authenticated admin request also checks the exact client/subject/provider
 session against auth.edge `/session/status` with `require_mfa=true`. A revoked
