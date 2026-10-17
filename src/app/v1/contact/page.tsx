@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { PublicLink } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import {
@@ -223,7 +224,7 @@ export default function ContactPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-iron"
+                    className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-steel"
                     placeholder="YOUR NAME"
                   />
                 </div>
@@ -248,7 +249,7 @@ export default function ContactPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
                     }
-                    className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-iron"
+                    className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-steel"
                     placeholder="YOUR@EMAIL.COM"
                   />
                 </div>
@@ -271,7 +272,7 @@ export default function ContactPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, message: e.target.value })
                     }
-                    className="w-full bg-transparent border-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm p-4 transition-colors duration-300 resize-none placeholder:text-iron"
+                    className="w-full bg-transparent border-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm p-4 transition-colors duration-300 resize-none placeholder:text-steel"
                     placeholder="WHAT'S ON YOUR MIND?"
                   />
                 </div>

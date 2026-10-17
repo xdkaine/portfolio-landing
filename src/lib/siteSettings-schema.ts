@@ -34,7 +34,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteName: "Kaine",
   siteAliases: "Kaine, Tommy",
   siteDescription:
-    "Building anything & everything. Portfolio of Kaine.",
+    "Systems engineering and web development by Thomas Phao. Explore infrastructure projects, application case studies, and practical engineering notes.",
   heroSubtitle: "DEVELOPER - DESIGNER - BUILDER",
   contactEmail: "hello@phao.dev",
   socialGithub: "https://github.com/xdkaine",

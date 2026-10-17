@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useInView, useReducedMotion } from "motion/react";
+import { motion, useInView } from "motion/react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useRef, type ReactNode } from "react";
 
 interface ScrollRevealProps {
