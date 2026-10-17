@@ -97,13 +97,13 @@ export default async function ProjectsPage() {
         <ScrollReveal delay={0.15} variant="rule">
           <div className="mt-10 flex flex-wrap gap-8 border-t border-b border-iron py-4">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-emerald-400" />
+              <span className="w-2 h-2 bg-status-live" />
               <span className="text-[10px] tracking-[0.2em] text-ash">
                 LIVE ({String(liveCount).padStart(2, "0")})
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-amber-400" />
+              <span className="w-2 h-2 bg-status-progress" />
               <span className="text-[10px] tracking-[0.2em] text-ash">
                 IN PROGRESS ({String(inProgressCount).padStart(2, "0")})
               </span>
@@ -114,7 +114,7 @@ export default async function ProjectsPage() {
                 ARCHIVED ({String(archivedCount).padStart(2, "0")})
               </span>
             </div>
-            <span className="text-[10px] tracking-[0.2em] text-iron ml-auto hidden md:block">
+            <span className="text-[10px] tracking-[0.2em] text-steel ml-auto hidden md:block">
               TOTAL: {String(projects.length).padStart(2, "0")} ENTRIES
             </span>
           </div>
@@ -124,7 +124,7 @@ export default async function ProjectsPage() {
       {/* Table header */}
       <section className="px-6 md:px-12 lg:px-24 mb-2">
         <ScrollReveal delay={0.2} variant="rule">
-          <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_80px] gap-4 text-[10px] tracking-[0.2em] text-iron border-b border-iron pb-2">
+          <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_80px] gap-4 text-[10px] tracking-[0.2em] text-steel border-b border-iron pb-2">
             <span>PERMS</span>
             <span>NAME</span>
             <span>TAGS</span>
@@ -138,7 +138,7 @@ export default async function ProjectsPage() {
       <section className="px-6 md:px-12 lg:px-24 pb-24">
         {projects.length === 0 ? (
           <div className="border-b border-iron py-16 text-center">
-            <p className="text-iron text-xs tracking-[0.2em]">NO PROJECTS PUBLISHED</p>
+            <p className="text-steel text-xs tracking-[0.2em]">NO PROJECTS PUBLISHED</p>
           </div>
         ) : (
           projects.map((project, i) => (
@@ -152,7 +152,7 @@ export default async function ProjectsPage() {
                 <article className="border-b border-iron py-6 hover:bg-surface transition-[background-color,transform] duration-300 hover:translate-x-1 [content-visibility:auto] [contain-intrinsic-size:1px_168px]">
                   {/* Desktop row */}
                   <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_80px] gap-4 items-center">
-                    <span className="text-[10px] text-iron tracking-tight">
+                    <span className="text-[10px] text-steel tracking-tight">
                       {permissionString(project.status)}
                     </span>
 
@@ -188,7 +188,7 @@ export default async function ProjectsPage() {
                         </span>
                       ))}
                       {project.tags.length > 2 && (
-                        <span className="text-[9px] text-iron">
+                        <span className="text-[9px] text-steel">
                           +{project.tags.length - 2}
                         </span>
                       )}
@@ -197,9 +197,9 @@ export default async function ProjectsPage() {
                     <span
                       className={`text-[10px] tracking-[0.15em] px-2 py-0.5 inline-block w-fit ${
                         project.status === "LIVE"
-                          ? "text-emerald-400 border border-emerald-400/30"
+                          ? "text-status-live border border-status-live/30"
                           : project.status === "IN PROGRESS"
-                            ? "text-amber-400 border border-amber-400/30"
+                            ? "text-status-progress border border-status-progress/30"
                             : "text-steel border border-iron"
                       }`}
                     >
@@ -219,16 +219,16 @@ export default async function ProjectsPage() {
                           {project.number}
                           {"//"}
                         </span>
-                        <span className="text-[9px] text-iron tracking-tight">
+                        <span className="text-[9px] text-steel tracking-tight">
                           {permissionString(project.status)}
                         </span>
                       </div>
                       <span
                         className={`text-[9px] tracking-widest px-1.5 py-0.5 ${
                           project.status === "LIVE"
-                            ? "text-emerald-400 border border-emerald-400/30"
+                            ? "text-status-live border border-status-live/30"
                             : project.status === "IN PROGRESS"
-                              ? "text-amber-400 border border-amber-400/30"
+                              ? "text-status-progress border border-status-progress/30"
                               : "text-steel border border-iron"
                         }`}
                       >
@@ -279,7 +279,7 @@ export default async function ProjectsPage() {
             >
               &larr; BACK TO INDEX
             </PublicLink>
-            <span className="text-[10px] text-iron tracking-[0.2em]">
+            <span className="text-[10px] text-steel tracking-[0.2em]">
               {String(projects.length).padStart(2, "0")} ENTRIES LISTED
             </span>
           </div>

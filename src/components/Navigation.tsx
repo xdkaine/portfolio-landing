@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, useReducedMotion, useScroll, useSpring, AnimatePresence } from "motion/react";
+import { motion, useScroll, useSpring, AnimatePresence } from "motion/react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useState, useEffect } from "react";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
 import { PublicLink } from "@/components/PublicTransition";

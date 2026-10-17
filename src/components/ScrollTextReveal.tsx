@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useRef } from "react";
 
 /**
@@ -85,7 +86,7 @@ function Word({ text, index, total, progress, isWord, className, shouldReduceMot
   return (
     <motion.span
       className={`inline-block transition-colors ${className}`}
-      style={shouldReduceMotion ? undefined : { opacity, y }}
+      style={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity, y }}
     >
       {text}
       {isWord && "\u00A0"}
@@ -159,7 +160,7 @@ function Line({
   const x = useTransform(progress, [start, end], [-10, 0]);
 
   return (
-    <motion.p className={className} style={shouldReduceMotion ? undefined : { opacity, y, x }}>
+    <motion.p className={className} style={shouldReduceMotion ? { opacity: 1, y: 0, x: 0 } : { opacity, y, x }}>
       {text}
     </motion.p>
   );

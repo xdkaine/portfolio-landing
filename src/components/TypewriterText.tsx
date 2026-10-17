@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useReducedMotion } from "motion/react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 interface TypewriterTextProps {
   text: string;

@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { motion, AnimatePresence, useMotionValue, useReducedMotion, animate } from "motion/react";
+import { motion, AnimatePresence, useMotionValue, animate } from "motion/react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { X, ZoomIn, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ZoomableImageProps {

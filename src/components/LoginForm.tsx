@@ -136,7 +136,7 @@ export default function LoginForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-iron"
+                className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-steel"
                 placeholder="OPERATOR@EXAMPLE.COM"
                 autoComplete="email"
                 spellCheck={false}
@@ -157,7 +157,7 @@ export default function LoginForm() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-iron"
+                className="w-full bg-transparent border-b-2 border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-sm py-3 transition-colors duration-300 placeholder:text-steel"
                 placeholder="••••••••"
                 autoComplete="current-password"
               />
@@ -211,7 +211,7 @@ export default function LoginForm() {
           </form>
         </div>
 
-        <p className="text-iron text-[10px] tracking-[0.2em] mt-6 text-center">
+        <p className="text-steel text-[10px] tracking-[0.2em] mt-6 text-center">
           UNAUTHORIZED ACCESS IS PROHIBITED
         </p>
       </motion.div>

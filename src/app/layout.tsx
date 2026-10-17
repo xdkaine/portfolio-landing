@@ -59,19 +59,21 @@ function resolveSiteUrl(): string {
 
 export async function generateMetadata(): Promise<Metadata> {
   const { getSiteSettings } = await import("@/lib/siteSettings");
-  const { DEFAULT_SOCIAL_IMAGE } = await import("@/lib/siteMetadata");
+  const { DEFAULT_SOCIAL_IMAGE, PORTFOLIO_NAME, PORTFOLIO_TITLE } = await import(
+    "@/lib/siteMetadata"
+  );
   const settings = await getSiteSettings();
   const siteUrl = resolveSiteUrl();
   const googleVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
-  const fullTitle = `${settings.siteName} - Developer & Designer`;
+  const fullTitle = PORTFOLIO_TITLE;
 
   return {
     metadataBase: new URL(siteUrl),
-    title: fullTitle,
+    title: { default: fullTitle, template: `%s | ${PORTFOLIO_NAME}` },
     description: settings.siteDescription,
     applicationName: `${settings.siteName} Portfolio`,
-    authors: [{ name: settings.siteName, url: siteUrl }],
-    creator: settings.siteName,
+    authors: [{ name: PORTFOLIO_NAME, url: siteUrl }],
+    creator: PORTFOLIO_NAME,
     publisher: settings.siteName,
     referrer: "strict-origin-when-cross-origin",
     alternates: {

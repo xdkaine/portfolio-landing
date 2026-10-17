@@ -69,10 +69,10 @@ export default function AboutPage() {
                   key={spec.label}
                   className="flex items-center gap-4"
                 >
-                  <span className="text-[10px] tracking-[0.2em] text-iron w-28 shrink-0">
+                  <span className="text-[10px] tracking-[0.2em] text-steel w-28 shrink-0">
                     {spec.label}
                   </span>
-                  <span className="text-iron">:</span>
+                  <span className="text-steel">:</span>
                   <span
                     className={`text-xs tracking-[0.1em] ${
                       spec.accent ? "text-ember" : "text-bone"
@@ -133,7 +133,7 @@ export default function AboutPage() {
                     const isLast = ii === group.items.length - 1;
                     return (
                       <div key={item} className="flex items-center gap-2">
-                        <span className="text-iron text-xs">
+                        <span className="text-steel text-xs">
                           {isLast ? "\u2514\u2500\u2500" : "\u251C\u2500\u2500"}
                         </span>
                         <span className="text-xs text-bone tracking-[0.05em]">
