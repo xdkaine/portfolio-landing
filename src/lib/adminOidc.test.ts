@@ -9,6 +9,7 @@ import { signSessionToken, verifySessionToken } from "@/lib/sessionToken";
 import { NextRequest } from "next/server";
 import { proxy } from "../proxy";
 import { POST as passwordLogin } from "../app/v1/api/auth/login/route";
+import { GET as startSso } from "../app/v1/api/auth/oidc/start/route";
 
 const environment = {
   ADMIN_AUTH_MODE: "oidc", NEXT_PUBLIC_SITE_URL: "https://portfolio-dev.example.com",
@@ -39,6 +40,16 @@ test("SSO configuration requires explicit identity bindings and a canonical HTTP
   assert.throws(() => adminOidcConfig({ ...environment, OIDC_ADMIN_BINDINGS: "{}" }));
   assert.throws(() => adminOidcConfig({ ...environment, NEXT_PUBLIC_SITE_URL: "http://example.com" }));
   assert.throws(() => adminOidcConfig({ ...environment, NEXT_PUBLIC_SITE_URL: "https://example.com/path" }));
+});
+
+test("alias hosts enter SSO on the canonical host before setting a transaction cookie", async t => {
+  const previous = Object.fromEntries(Object.keys(environment).map(key => [key, process.env[key]]));
+  Object.assign(process.env, environment);
+  t.after(() => { for (const [key,value] of Object.entries(previous)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; } });
+  const response = await startSso(new Request("https://www.portfolio-dev.example.com/v1/api/auth/oidc/start", { headers: {host:"www.portfolio-dev.example.com"} }));
+  assert.equal(response.status,303);
+  assert.equal(response.headers.get("location"),config.origin+"/v1/api/auth/oidc/start");
+  assert.equal(response.headers.get("set-cookie"),null);
 });
 
 test("authorization requests use PKCE S256 and encrypted, expiring, origin-bound transactions", async () => {

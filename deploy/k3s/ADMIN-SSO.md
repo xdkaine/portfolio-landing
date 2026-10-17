@@ -31,7 +31,9 @@ Login state, nonce, and verifier are stored in a ten-minute encrypted, HTTP-only
 Secure, SameSite=Lax cookie. The maintained `openid-client` library validates the
 authorization response, PKCE, issuer, audience, nonce, expiration, and signature.
 The callback uses the configured canonical origin instead of incoming Host or
-forwarded headers. Application code does not log credentials, authorization codes
+forwarded headers. Alias hosts such as `www.phao.dev` first redirect to the
+canonical SSO start endpoint so its host-only cookie returns to the callback.
+Application code does not log credentials, authorization codes
 or tokens. Review ingress callback-query logging separately when configuring a
 production client; application error handling does not control proxy access logs.
 
