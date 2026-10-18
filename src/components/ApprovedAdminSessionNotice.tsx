@@ -14,7 +14,7 @@ export default function ApprovedAdminSessionNotice({ expiresAt }: { expiresAt: s
     return () => window.clearInterval(timer);
   }, [expiresAt]);
   return (
-    <aside aria-label="Owner-approved admin test session" className="border-b border-ember bg-void px-6 py-4 text-bone flex flex-wrap items-center justify-between gap-4">
+    <aside aria-label="Owner-approved admin test session" className="mt-20 border-b border-ember bg-void px-6 py-4 text-bone flex flex-wrap items-center justify-between gap-4">
       <p className="text-sm">Owner-approved admin test session · Full CMS permissions · Expires in{" "}
         <time dateTime={expiresAt}>{seconds === null ? "…" : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`}</time>
       </p>
