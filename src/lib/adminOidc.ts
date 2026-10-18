@@ -79,10 +79,13 @@ export async function beginAdminLogin(config: AdminOidcConfig, provider?: oidc.C
 }
 
 export function adminIdentityFromClaims(claims: Record<string, unknown>, config: AdminOidcConfig) {
+  const central = config.linkMode === "idp";
   const session = { subject: claims.sub, sid: claims.sid,
-    expiresAt: claims.provider_session_expires_at };
+    expiresAt: claims.provider_session_expires_at,
+    ...(central ? { appUserId: claims.app_user_id, linkVersion: claims.app_link_version,
+      policyVersion: claims.app_policy_version, clientId: config.clientId } : {}) };
   if (!validProviderSession(session)) throw new Error("Missing provider session");
-  const userId = mappedAdminId(config, session.subject);
+  const userId = central ? session.appUserId : mappedAdminId(config, session.subject);
   if (!userId) throw new Error("Admin identity is not authorized");
   return { userId, providerSession: session as AdminProviderSession };
 }
