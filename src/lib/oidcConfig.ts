@@ -4,6 +4,7 @@ export interface AdminOidcConfig {
   origin: string;
   clientId: string;
   clientSecret: string;
+  linkMode: "local" | "idp";
   bindings: Record<string, string>;
   callbackUri: string;
 }
@@ -24,6 +25,10 @@ export function adminOidcConfig(environment: Record<string, string | undefined> 
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(clientId) || clientSecret.length < 32) {
     throw new Error("Admin SSO client credentials are not configured");
   }
+  const linkMode = environment.OIDC_ACCOUNT_LINK_MODE ?? "local";
+  if (linkMode !== "local" && linkMode !== "idp") throw new Error("Invalid account link mode");
+  if (linkMode === "idp") return { origin, clientId, clientSecret, linkMode, bindings: {},
+    callbackUri: `${origin}/v1/api/auth/oidc/callback` };
   const bindings: unknown = JSON.parse(environment.OIDC_ADMIN_BINDINGS ?? "null");
   if (!bindings || typeof bindings !== "object" || Array.isArray(bindings)) {
     throw new Error("Admin SSO identity bindings are not configured");
@@ -33,7 +38,7 @@ export function adminOidcConfig(environment: Record<string, string | undefined> 
     !/^[A-Za-z0-9_-]{1,128}$/.test(sub) || typeof id !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(id))) {
     throw new Error("Invalid admin SSO identity binding");
   }
-  return { origin, clientId, clientSecret, bindings: Object.fromEntries(entries),
+  return { origin, clientId, clientSecret, linkMode, bindings: Object.fromEntries(entries),
     callbackUri: `${origin}/v1/api/auth/oidc/callback` };
 }
 

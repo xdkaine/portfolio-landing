@@ -23,11 +23,11 @@ const originalSecret = process.env.JWT_SECRET;
 test.before(() => { process.env.JWT_SECRET = "test-session-secret-with-at-least-32-characters"; });
 test.after(() => { if (originalSecret === undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET = originalSecret; });
 
-function provider() {
+function provider(providerConfig = config) {
   const p = new oidc.Configuration({ issuer: ADMIN_OIDC_ISSUER,
     authorization_endpoint: `${ADMIN_OIDC_ISSUER}/auth`, token_endpoint: `${ADMIN_OIDC_ISSUER}/token`,
     jwks_uri: `${ADMIN_OIDC_ISSUER}/jwks`, authorization_response_iss_parameter_supported: true,
-  }, config.clientId, { id_token_signed_response_alg: "RS256" }, oidc.ClientSecretBasic(config.clientSecret));
+  }, providerConfig.clientId, { id_token_signed_response_alg: "RS256" }, oidc.ClientSecretBasic(providerConfig.clientSecret));
   oidc.enableNonRepudiationChecks(p);
   return p;
 }
@@ -107,6 +107,51 @@ test("email and token role claims cannot grant admin access; provider sessions a
   assert.throws(() => adminIdentityFromClaims({ sub: "not-approved", email: "owner@example.com", role: "ADMIN", sid: session.sid, provider_session_expires_at: session.expiresAt }, config));
   assert.throws(() => adminIdentityFromClaims({ sub: session.subject }, config));
   assert.throws(() => adminIdentityFromClaims({ sub: session.subject, sid: session.sid, provider_session_expires_at: 1 }, config));
+});
+
+test("central mode requires signed account/version claims and preserves them in its client-bound session", async () => {
+  const centralConfig = adminOidcConfig({ ...environment, OIDC_ACCOUNT_LINK_MODE: "idp", OIDC_ADMIN_BINDINGS: "unused-invalid-legacy-config" });
+  const p = provider(centralConfig), flow = await beginAdminLogin(centralConfig, p);
+  const tx = await openLoginTransaction(flow.cookie, centralConfig);
+  const {privateKey,publicKey} = await keyPair;
+  const jwk = {...await exportJWK(publicKey),kid:"central-key",alg:"RS256",use:"sig"};
+  p[oidc.customFetch] = async url => {
+    if (String(url).endsWith('/jwks')) return Response.json({keys:[jwk]});
+    const idToken = await new SignJWT({nonce:tx.nonce,sid:session.sid,provider_session_expires_at:session.expiresAt,
+      app_user_id:"existing-admin-id",app_link_version:3,app_policy_version:2})
+      .setProtectedHeader({alg:"RS256",kid:"central-key"}).setIssuer(ADMIN_OIDC_ISSUER)
+      .setAudience(centralConfig.clientId).setSubject(session.subject).setIssuedAt().setExpirationTime('5m').sign(privateKey);
+    return Response.json({access_token:'isolated-access',token_type:'Bearer',id_token:idToken,expires_in:300});
+  };
+  const callback = new URL(centralConfig.callbackUri);
+  callback.search = new URLSearchParams({code:'isolated-code',state:tx.state,iss:ADMIN_OIDC_ISSUER}).toString();
+  const identity = await completeAdminLogin(callback,flow.cookie,centralConfig,p);
+  const expected = {...session,appUserId:'existing-admin-id',linkVersion:3,policyVersion:2,clientId:centralConfig.clientId};
+  assert.deepEqual(identity,{userId:'existing-admin-id',providerSession:expected});
+  const token = await signSessionToken(identity.userId,'ADMIN',identity.providerSession);
+  assert.deepEqual(await verifySessionToken(token),{userId:'existing-admin-id',role:'ADMIN',oidc:expected});
+  const claims = {sub:session.subject,sid:session.sid,provider_session_expires_at:session.expiresAt,
+    app_user_id:'existing-admin-id',app_link_version:3,app_policy_version:2};
+  for (const invalid of [{app_user_id:undefined},{app_link_version:undefined},{app_policy_version:undefined},
+    {app_link_version:'3'},{app_policy_version:0},{app_user_id:'../other'}])
+    assert.throws(()=>adminIdentityFromClaims({...claims,...invalid},centralConfig));
+  assert.throws(()=>adminIdentityFromClaims({sub:session.subject,sid:session.sid,provider_session_expires_at:session.expiresAt},centralConfig));
+  assert.throws(()=>adminOidcConfig({...environment,OIDC_ACCOUNT_LINK_MODE:'other'}));
+});
+
+test("central liveness carries mapping versions and denies legacy sessions or another client's session", async () => {
+  const centralConfig = adminOidcConfig({...environment,OIDC_ACCOUNT_LINK_MODE:'idp'});
+  const centralSession = {...session,appUserId:'existing-admin-id',linkVersion:3,policyVersion:2,clientId:centralConfig.clientId};
+  let calls=0;
+  const fetcher:typeof fetch=async(_url,init)=>{calls++;assert.deepEqual(JSON.parse(String(init?.body)),{
+    sid:session.sid,sub:session.subject,require_mfa:true,app_user_id:'existing-admin-id',app_link_version:3,app_policy_version:2,
+  });return Response.json({active:true});};
+  assert.equal(await isAdminProviderSessionLive(centralConfig,session,fetcher),false);
+  assert.equal(await isAdminProviderSessionLive(centralConfig,{...centralSession,clientId:'another-client'},fetcher),false);
+  assert.equal(calls,0);
+  assert.equal(await isAdminProviderSessionLive(centralConfig,centralSession,fetcher),true);
+  assert.equal(await isAdminProviderSessionLive(centralConfig,centralSession,async()=>Response.json({active:false})),false);
+  assert.equal(await isAdminProviderSessionLive(centralConfig,centralSession,async()=>{throw Error('offline');}),false);
 });
 
 test("central session validation requires active MFA and fails closed on revoke, outage, or malformed response", async () => {
