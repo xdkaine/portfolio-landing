@@ -281,9 +281,8 @@ export default function HomePageClient({
           </div>
 
           <p className="mt-8 max-w-2xl text-base md:text-lg leading-relaxed text-ash">
-            I&apos;m Thomas Phao, a systems engineer and developer. I build
-            reliable infrastructure and thoughtful web applications, and share
-            the decisions and lessons behind them here.
+            I&apos;m a systems engineer. I build infrastructure and applications,
+            and this is where I share the systems I deploy and the work behind them.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -404,7 +403,7 @@ export default function HomePageClient({
       {/* Manifesto */}
       <section className="py-32 md:py-48 px-6 md:px-12 lg:px-24 border-t border-iron">
         <ScrollTextReveal
-          text="BUILDING ANYTHING & EVERYTHING. FRONTEND."
+          text="BUILDING ANYTHING & EVERYTHING."
           mode="word"
           className="font-display text-3xl md:text-5xl lg:text-6xl leading-[1.2] max-w-5xl gap-x-[0.3em]"
           itemClassName="text-bone"

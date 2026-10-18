@@ -8,7 +8,7 @@ interface FooterChucklesProps {
 }
 
 export function FooterChuckles({ gifUrl = "" }: FooterChucklesProps) {
-  const [showGif, setShowGif] = useState(false);
+  const [showGif, setShowGif] = useState(true);
   const settings = useSiteSettings({ footerChucklesGifUrl: gifUrl });
   const normalizedGifUrl = settings.footerChucklesGifUrl.trim();
   const hasGif = normalizedGifUrl.length > 0;
