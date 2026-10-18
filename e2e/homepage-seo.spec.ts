@@ -51,7 +51,7 @@ test.describe("Homepage first render", () => {
   test("provides an introduction, working actions, and social metadata", async ({ page, request }) => {
     await page.goto("/v1");
     await expect(page).toHaveTitle("Thomas Phao — Systems Engineer & Developer");
-    await expect(page.getByText(/I'm Thomas Phao, a systems engineer and developer/)).toBeVisible();
+    await expect(page.getByText(/I'm a systems engineer\. I build infrastructure and applications/)).toBeVisible();
 
     const projects = page.getByRole("link", { name: "VIEW PROJECTS", exact: true });
     await expect(projects).toHaveAttribute("href", "/v1/projects");
