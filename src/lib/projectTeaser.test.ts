@@ -17,3 +17,8 @@ test("legacy projects use a bounded, readable teaser with no CSS clipping", () =
   assert(uninterrupted.endsWith("workflows…") || uninterrupted.endsWith("Infrastructure…"));
   assert.equal(getProjectTeaser({ description: "  Short description.  ", caseStudy: { subtitle: " ", pitch: "Legacy pitch." } }), "Legacy pitch.");
 });
+
+test("initials in a name do not cut a project summary mid-sentence", () => {
+  const sentence = "The User Access Request Portal is an identity and access workflow system built for Mitchell C. Hill Student Data Center.";
+  assert.equal(getProjectTeaser({ description: sentence + " Extra implementation detail. ".repeat(30) }), sentence);
+});
