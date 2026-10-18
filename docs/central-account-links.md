@@ -23,6 +23,9 @@ fingerprint. Verify an actual sign-in selects the same user, ADMIN access remain
 valid, and disabling/re-enabling the central link does not revive the old
 application session. Keep other applications' policies unchanged during each test.
 
-Recovery: set `OIDC_ACCOUNT_LINK_MODE=local`, retain the original bindings and
-client credentials, restart only this application's deployment and verify sign-in.
-Do this before disabling its IdP policy or rolling back the shared issuer.
+Recovery: retain the original bindings and client credentials. Coordinate
+`OIDC_ACCOUNT_LINK_MODE=local` on this application's deployment with disabling
+only this client's central policy, then verify sign-in before shared-issuer
+recovery. Sign-in can require a retry between those two changes because central
+policy intentionally rejects requests without mapping evidence. Public pages
+remain available. The old application accounts and roles are retained.
