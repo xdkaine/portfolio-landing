@@ -4,6 +4,9 @@ import { motion, useInView } from "motion/react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useMemo, useRef } from "react";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
+import { TitleTypewriter } from "@/components/TitleTypewriter";
+import { PORTFOLIO_NAME, PORTFOLIO_TITLE } from "@/lib/siteMetadata";
+import { PORTFOLIO_PROFILE } from "@/lib/portfolioProfile";
 import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Marquee } from "@/components/Marquee";
@@ -155,9 +158,14 @@ function ProjectCard({
             </div>
 
             {/* Description */}
-            <p className="text-ash text-sm md:text-base leading-relaxed flex-1">
-              {project.description}
-            </p>
+            <div className="flex-1 min-w-0">
+              <p className="text-ash text-sm md:text-base leading-relaxed" data-project-teaser>
+                {project.description}
+              </p>
+              <span className="mt-4 inline-block text-[11px] tracking-[0.15em] text-ash group-hover:text-ember transition-colors">
+                VIEW CASE STUDY <span aria-hidden="true">&rarr;</span>
+              </span>
+            </div>
 
             {/* Status + Arrow */}
             <div className="flex items-center gap-4 md:flex-col md:items-end md:gap-2 shrink-0">
@@ -242,6 +250,7 @@ export default function HomePageClient({
 
   return (
     <>
+      <TitleTypewriter brandName={siteSettings.siteName} brandAliases={brandAliases} />
       <noscript>
         <style>{`.home-content-reveal { opacity: 1 !important; transform: none !important; clip-path: none !important; }`}</style>
       </noscript>
@@ -250,17 +259,20 @@ export default function HomePageClient({
         <section className="min-h-svh flex flex-col justify-center pt-32 pb-36 px-6 md:px-12 lg:px-24 relative">
           <div className="overflow-visible pb-[0.24em]">
             <h1 className="font-display text-[20vw] md:text-[16vw] leading-[1.08] tracking-tighter text-bone">
-              {brandAliases.length > 1 ? (
-                <AliasTypewriter
-                  aliases={brandAliases}
-                />
-              ) : (
-                <TypewriterText
-                  text={siteSettings.siteName}
-                  startDelay={300}
-                  typingSpeed={75}
-                />
-              )}
+              <span className="sr-only">{PORTFOLIO_TITLE}</span>
+              <span aria-hidden="true">
+                {brandAliases.length > 1 ? (
+                  <AliasTypewriter
+                    aliases={brandAliases}
+                  />
+                ) : (
+                  <TypewriterText
+                    text={siteSettings.siteName}
+                    startDelay={300}
+                    typingSpeed={75}
+                  />
+                )}
+              </span>
             </h1>
           </div>
 
@@ -281,9 +293,9 @@ export default function HomePageClient({
           </div>
 
           <p className="mt-8 max-w-2xl text-base md:text-lg leading-relaxed text-ash">
-            I&apos;m Thomas Phao, a systems engineer and developer. I build
-            reliable infrastructure and thoughtful web applications, and share
-            the decisions and lessons behind them here.
+            I&apos;m {PORTFOLIO_NAME}, a systems engineer and developer. I build
+            infrastructure and applications, and this is where I share the
+            systems I deploy and the work behind them.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -344,9 +356,8 @@ export default function HomePageClient({
                 ease: [0.16, 1, 0.3, 1],
               }}
             >
-              <p>48.8566&deg; N</p>
-              <p>2.3522&deg; E</p>
-              <p className="mt-2 text-steel">2025</p>
+              <p>{PORTFOLIO_PROFILE.location}</p>
+              <p className="mt-2">APPLICATIONS / INFRASTRUCTURE</p>
             </motion.div>
           </ScrollParallax>
         </section>
@@ -395,7 +406,7 @@ export default function HomePageClient({
       <section className="py-24 md:py-32 px-6 md:px-12 lg:px-24 border-t border-iron">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-8">
           <ScrollCounter value={6} label="PROJECTS SHIPPED" suffix="+" delay={0} />
-          <ScrollCounter value={5} label="YEARS EXPERIENCE" suffix="+" delay={0.08} />
+          <ScrollCounter value={PORTFOLIO_PROFILE.experienceYears} label="YEARS EXPERIENCE" suffix="+" delay={0.08} />
           <ScrollCounter value={8} label="TECHNOLOGIES" suffix="+" delay={0.16} />
           <ScrollCounter value={24} label="HOUR RESPONSE" suffix="H" delay={0.24} />
         </div>
@@ -404,7 +415,7 @@ export default function HomePageClient({
       {/* Manifesto */}
       <section className="py-32 md:py-48 px-6 md:px-12 lg:px-24 border-t border-iron">
         <ScrollTextReveal
-          text="BUILDING ANYTHING & EVERYTHING. FRONTEND."
+          text="BUILDING ANYTHING & EVERYTHING."
           mode="word"
           className="font-display text-3xl md:text-5xl lg:text-6xl leading-[1.2] max-w-5xl gap-x-[0.3em]"
           itemClassName="text-bone"
