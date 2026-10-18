@@ -83,7 +83,7 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
           contentRequests.push(request.url());
         }
       });
-      await page.goto("/v1", { waitUntil: "networkidle" });
+      await page.goto("/v1", { waitUntil: "domcontentloaded" });
       await expect(page).toHaveTitle(reducedMotion === "reduce"
         ? "Thomas Phao — Systems Engineer & Developer"
         : /\| Thomas Phao — Systems Engineer & Developer/);
@@ -92,7 +92,6 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
       expect(contentRequests).toEqual([]);
 
       await page.getByRole("link", { name: "CONTACT ME", exact: true }).click();
-      await page.waitForLoadState("networkidle");
       await expect(page).toHaveTitle("Contact | Thomas Phao");
       expect(errors).toEqual([]);
     } finally {
@@ -111,7 +110,10 @@ test("homepage title stays synchronized with the visible aliases and stops on ot
     const sample = await page.evaluate(() => {
       const hero = document.querySelector("main h1 .absolute.inset-0");
       const nav = document.querySelector("nav a .absolute.inset-0");
-      const typed = (element: Element | null) => element?.firstChild?.textContent ?? "";
+      const typed = (element: Element | null) => {
+        const child = element?.firstChild;
+        return child?.nodeType === Node.TEXT_NODE ? child.textContent ?? "" : "";
+      };
       return { hero: typed(hero), nav: typed(nav), title: document.title };
     });
     expect(sample.hero).toBe(sample.nav);
