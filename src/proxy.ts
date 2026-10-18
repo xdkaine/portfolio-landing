@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/sessionToken";
+import { approvedAdminSessionsEnabled } from "@/lib/approvedAdminSession";
+import { openTestIdentity, TEST_ACCESS_COOKIE } from "@/lib/testAccessPolicy";
 import { isAdminSsoEnabled } from "@/lib/oidcConfig";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -42,6 +44,16 @@ export async function proxy(request: NextRequest) {
 
   // The login page verifies the database and live SSO session before redirecting.
   // Checking only a signed cookie here creates a loop for revoked sessions.
+
+  // Routing hint only: the protected admin layout and all CMS APIs recheck
+  // current grant state, role, binding, expiry and provider MFA via verifySession.
+  if (!isAuthenticated && pathname.startsWith("/v1/admin") && approvedAdminSessionsEnabled()) {
+    const approvedToken = request.cookies.get(TEST_ACCESS_COOKIE)?.value;
+    if (approvedToken) {
+      try { await openTestIdentity("admin-session", approvedToken); isAuthenticated = true; }
+      catch { /* Invalid or expired approval cannot reach the protected layout. */ }
+    }
+  }
 
   // Redirect unauthenticated users away from /v1/admin
   if (pathname.startsWith("/v1/admin") && !isAuthenticated) {

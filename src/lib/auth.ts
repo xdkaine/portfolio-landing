@@ -3,6 +3,8 @@ import { cache } from "react";
 import { adminOidcConfig, isAdminSsoEnabled, mappedAdminId } from "@/lib/oidcConfig";
 import { isAdminProviderSessionLive, type AdminProviderSession } from "@/lib/oidcSession";
 import { prisma } from "@/lib/prisma";
+import { approvedAdminSessionsEnabled, resolveApprovedAdminSession } from "@/lib/approvedAdminSession";
+import { openTestIdentity, TEST_ACCESS_COOKIE, TEST_REQUEST_COOKIE, TEST_ACCESS_SCOPE } from "@/lib/testAccessPolicy";
 import {
   COOKIE_NAME,
   SESSION_MAX_AGE_SECONDS,
@@ -18,6 +20,7 @@ export interface AuthenticatedSession {
   email: string;
   name: string | null;
   role: SessionRole;
+  approvedTestSession?: { grantId: string; expiresAt: string };
 }
 
 export async function createSession(userId: string, role: SessionRole, oidc?: AdminProviderSession) {
@@ -35,9 +38,7 @@ export async function createSession(userId: string, role: SessionRole, oidc?: Ad
   return token;
 }
 
-export const verifySession = cache(async (): Promise<AuthenticatedSession | null> => {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
+async function verifyOwnerSession(token: string | undefined): Promise<AuthenticatedSession | null> {
 
   if (!token) return null;
 
@@ -71,11 +72,40 @@ export const verifySession = cache(async (): Promise<AuthenticatedSession | null
   } catch {
     return null;
   }
+}
+
+export const verifySession = cache(async (): Promise<AuthenticatedSession | null> => {
+  const jar = await cookies();
+  const owner = await verifyOwnerSession(jar.get(COOKIE_NAME)?.value);
+  if (owner) return owner;
+  return resolveApprovedAdminSession(jar.get(TEST_ACCESS_COOKIE)?.value, {
+    enabled: approvedAdminSessionsEnabled(),
+    loadGrant: id => prisma.testAccessGrant.findUnique({ where: { id } }),
+    loadUser: id => prisma.user.findUnique({ where: { id }, select: { id: true, email: true, name: true, role: true } }),
+    mappedUserId: subject => mappedAdminId(adminOidcConfig(), subject),
+    providerSessionLive: session => isAdminProviderSessionLive(adminOidcConfig(), session),
+  });
 });
+
+export async function destroyApprovedAdminSession() {
+  const jar = await cookies();
+  const token = jar.get(TEST_ACCESS_COOKIE)?.value;
+  try {
+    let identity = null;
+    try { if (token) identity = await openTestIdentity("admin-session", token); } catch { /* Expired tokens already fail closed. */ }
+    if (identity) await prisma.testAccessGrant.updateMany({
+      where: { id: identity.grantId, approvedById: identity.userId, scope: TEST_ACCESS_SCOPE, state: "APPROVED", consumedAt: { not: null } },
+      data: { state: "REVOKED", identityCiphertext: null },
+    });
+  } finally {
+    jar.delete(TEST_ACCESS_COOKIE);
+    jar.delete(TEST_REQUEST_COOKIE);
+  }
+}
 
 export async function destroySession() {
   const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  try { await destroyApprovedAdminSession(); } finally { cookieStore.delete(COOKIE_NAME); }
 }
 
 export async function requireAuth() {

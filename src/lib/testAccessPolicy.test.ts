@@ -12,6 +12,7 @@ import {
   sealOwnerReceipt,
   sealTestIdentity,
   verifyOwnerReceipt,
+  TEST_ACCESS_SCOPE,
   type ConsumableGrant,
 } from "@/lib/testAccessPolicy";
 import { verifySessionToken } from "@/lib/sessionToken";
@@ -57,6 +58,7 @@ test("test request proofs are random and hashed; wrong browsers and malformed pr
 test("only unconsumed approved requests with the matching browser proof can be redeemed", () => {
   const proof = newRequestProof();
   const grant: ConsumableGrant = {
+    scope: TEST_ACCESS_SCOPE,
     proofHash: proofDigest(proof),
     state: "APPROVED",
     expiresAt: new Date(Date.now() + 60000),
@@ -66,6 +68,7 @@ test("only unconsumed approved requests with the matching browser proof can be r
   };
   assert(canConsumeGrant(grant, proof));
   for (const change of [
+    { scope: "portfolio:verify" },
     { state: "PENDING" },
     { state: "DENIED" },
     { state: "REVOKED" },
@@ -78,45 +81,45 @@ test("only unconsumed approved requests with the matching browser proof can be r
     assert(!canConsumeGrant({ ...grant, ...change }, proof));
   assert(!canConsumeGrant(grant, newRequestProof()));
 });
-test("encrypted verification grants are scoped to one request and cannot authenticate to the CMS", async () => {
+test("encrypted admin grants require their own validator and cannot masquerade as normal owner JWTs", async () => {
   const identity = {
     grantId: randomUUID(),
     userId: "owner",
     oidc: providerSession,
   };
   const expires = Math.floor(Date.now() / 1000) + 300;
-  const token = await sealTestIdentity("verification", identity, expires);
+  const token = await sealTestIdentity("admin-session", identity, expires);
   assert(!token.includes(providerSession.sid));
-  assert.deepEqual(await openTestIdentity("verification", token), identity);
+  assert.deepEqual(await openTestIdentity("admin-session", token), identity);
   assert.equal(await verifySessionToken(token), null);
   await assert.rejects(openTestIdentity("approval-identity", token));
   await assert.rejects(
-    openTestIdentity("verification", token.slice(0, -10) + "tampered"),
+    openTestIdentity("admin-session", token.slice(0, -10) + "tampered"),
   );
   await assert.rejects(
     sealTestIdentity(
-      "verification",
+      "admin-session",
       identity,
       Math.floor(Date.now() / 1000) - 1,
     ),
   );
   await assert.rejects(
     sealTestIdentity(
-      "verification",
+      "admin-session",
       identity,
       Math.floor(Date.now() / 1000) + 601,
     ),
   );
   await assert.rejects(
     sealTestIdentity(
-      "verification",
+      "admin-session",
       { ...identity, oidc: { ...providerSession, expiresAt: expires - 1 } },
       expires,
     ),
   );
   await assert.rejects(
     sealTestIdentity(
-      "verification",
+      "admin-session",
       { ...identity, grantId: "https://evil.example" },
       expires,
     ),
@@ -182,7 +185,7 @@ test("approval OAuth transactions have an encrypted local-only destination and d
   const otherToken = await new EncryptJWT({})
     .setProtectedHeader({ alg: "dir", enc: "A256GCM" })
     .encrypt(new Uint8Array(32));
-  await assert.rejects(openTestIdentity("verification", otherToken));
+  await assert.rejects(openTestIdentity("admin-session", otherToken));
 });
 test("approval code exchange accepts fresh signed authentication and rejects missing or stale auth_time", async () => {
   const { privateKey, publicKey } = await generateKeyPair("RS256"),

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PRIVATE_ROUTE_ROBOTS } from "@/lib/siteMetadata";
 export const metadata: Metadata = {
-  title: "Owner-approved test access",
+  title: "Owner-approved admin access",
   robots: PRIVATE_ROUTE_ROBOTS,
   referrer: "no-referrer",
 };

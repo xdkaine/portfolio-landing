@@ -25,11 +25,14 @@ export default function TestAccessRequest() {
         },
       );
       const data = await response.json();
-      if (!response.ok) throw Error(data.error || "Request unavailable");
+      if (!response.ok) {
+        if (response.status === 410) setRequest(null);
+        throw Error(data.error || "Request unavailable");
+      }
       if (action === "create") setRequest(data);
       else if (response.status === 202)
         setMessage("Waiting for your approval.");
-      else window.location.assign(data.destination);
+      else window.location.replace("/v1/admin");
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Request unavailable",
@@ -41,17 +44,18 @@ export default function TestAccessRequest() {
   return (
     <section className="mx-auto max-w-2xl px-6 py-24 text-bone">
       <p className="text-xs tracking-widest text-ember">
-        OWNER-APPROVED TEST ACCESS
+        OWNER-APPROVED ADMIN ACCESS
       </p>
-      <h1 className="mt-4 text-4xl">Verify this portfolio</h1>
+      <h1 className="mt-4 text-4xl">Open the actual admin</h1>
       <p className="mt-6 text-ash">
-        Request a ten-minute, read-only verification session. The owner signs in
-        through auth.edge on their own device, compares the code, and approves
-        this request.
+        Request a session in the real admin dashboard for up to ten minutes.
+        The owner signs in through auth.edge on their own device, compares the
+        code, and explicitly approves this browser.
       </p>
       <p className="mt-4 text-ash">
-        This access cannot edit portfolio content, open the CMS, or read contact
-        messages. It expires automatically and can be revoked by the owner.
+        This grants full CMS permissions, including private settings, messages,
+        and content edits. It expires automatically and the owner can revoke it.
+        Passwords, passkeys and authenticator codes stay on the owner&apos;s device.
       </p>
       {!request ? (
         <button

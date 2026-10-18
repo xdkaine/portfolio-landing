@@ -106,8 +106,9 @@ model SiteSetting {
 }
 
 
-// Short owner-approved verification grants; never accepted by CMS authentication.
+// Explicitly scoped, short owner-approved sessions; legacy verification grants stay inert.
 model TestAccessGrant {
+  scope              String   @default("portfolio:verify")
   id                 String   @id
   proofHash          String   @map("proof_hash")
   displayCode        String   @map("display_code")
