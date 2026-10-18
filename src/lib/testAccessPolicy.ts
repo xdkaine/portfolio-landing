@@ -11,7 +11,7 @@ export const OWNER_APPROVAL_SECONDS = 300;
 export const TEST_REQUEST_COOKIE = "portfolio-test-request";
 export const TEST_ACCESS_COOKIE = "portfolio-test-access";
 export const TEST_APPROVAL_COOKIE = "portfolio-test-owner-approval";
-export const TEST_ACCESS_SCOPE = "portfolio:verify";
+export const TEST_ACCESS_SCOPE = "portfolio:admin:test";
 export const isGrantId = (value: unknown): value is string =>
   typeof value === "string" &&
   /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(
@@ -28,7 +28,7 @@ export function matchesProof(value: string, digest: string) {
     Buffer.from(digest, "hex"),
   );
 }
-type TokenKind = "approval-identity" | "verification" | "owner-receipt";
+type TokenKind = "approval-identity" | "admin-session" | "owner-receipt";
 function encryptionKey(kind: TokenKind) {
   assertJwtSecretConfiguration();
   return createHash("sha256")
@@ -77,7 +77,7 @@ export interface ApprovedTestIdentity {
   oidc: AdminProviderSession;
 }
 export async function sealTestIdentity(
-  kind: "approval-identity" | "verification",
+  kind: "approval-identity" | "admin-session",
   identity: ApprovedTestIdentity,
   expiresAt: number,
 ) {
@@ -91,7 +91,7 @@ export async function sealTestIdentity(
   return seal(kind, { ...identity }, expiresAt);
 }
 export async function openTestIdentity(
-  kind: "approval-identity" | "verification",
+  kind: "approval-identity" | "admin-session",
   token: string,
 ): Promise<ApprovedTestIdentity> {
   const payload = await open(kind, token);
@@ -132,6 +132,7 @@ export async function verifyOwnerReceipt(
   }
 }
 export interface ConsumableGrant {
+  scope: string;
   proofHash: string;
   state: string;
   expiresAt: Date;
@@ -145,6 +146,7 @@ export function canConsumeGrant(
   now = new Date(),
 ) {
   return (
+    grant.scope === TEST_ACCESS_SCOPE &&
     matchesProof(proof, grant.proofHash) &&
     grant.state === "APPROVED" &&
     grant.expiresAt > now &&

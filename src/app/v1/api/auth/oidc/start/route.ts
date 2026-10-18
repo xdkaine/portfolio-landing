@@ -1,3 +1,4 @@
+import { isRequestingBrowser } from "@/lib/testAccess";
 import { cookies } from "next/headers";
 import { isGrantId } from "@/lib/testAccessPolicy";
 import { NextResponse } from "next/server";
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
   try {
     const config = adminOidcConfig();
     const approvalId = new URL(request.url).searchParams.get("approval") ?? undefined;
-    if (approvalId !== undefined && (process.env.ENABLE_APPROVED_TEST_SESSIONS !== "true" || !isGrantId(approvalId))) return new NextResponse(null, { status: 404 });
+    if (approvalId !== undefined && (process.env.ENABLE_APPROVED_ADMIN_SESSIONS !== "true" || !isGrantId(approvalId))) return new NextResponse(null, { status: 404 });
     // Set the host-only transaction cookie on the registered callback host.
     // Production also serves www.phao.dev, which must enter SSO at the apex.
     if (request.headers.get("host")?.toLowerCase() !== new URL(config.origin).host) {
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
       if (approvalId) canonical.searchParams.set("approval", approvalId);
       return NextResponse.redirect(canonical, 303);
     }
+    if (approvalId && await isRequestingBrowser(approvalId)) return NextResponse.redirect(new URL(`/v1/test-access/approve/${approvalId}`, config.origin), 303);
     const flow = await beginAdminLogin(config, undefined, approvalId);
     const jar = await cookies();
     jar.set(OIDC_TRANSACTION_COOKIE, flow.cookie, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: OIDC_TRANSACTION_SECONDS });

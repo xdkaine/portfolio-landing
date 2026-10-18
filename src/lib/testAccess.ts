@@ -1,27 +1,21 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 import {
   adminOidcConfig,
-  isAdminSsoEnabled,
-  mappedAdminId,
 } from "@/lib/oidcConfig";
-import { isAdminProviderSessionLive } from "@/lib/oidcSession";
-import { prisma } from "@/lib/prisma";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/sessionToken";
 import {
-  openTestIdentity,
-  TEST_ACCESS_COOKIE,
   TEST_APPROVAL_COOKIE,
+  TEST_REQUEST_COOKIE,
+  matchesProof,
   verifyOwnerReceipt,
 } from "@/lib/testAccessPolicy";
 
-export function testAccessEnabled() {
-  return (
-    process.env.ENABLE_APPROVED_TEST_SESSIONS === "true" && isAdminSsoEnabled()
-  );
-}
+import { approvedAdminSessionsEnabled } from "@/lib/approvedAdminSession";
+export const testAccessEnabled = approvedAdminSessionsEnabled;
 export const testCookieOptions = {
   httpOnly: true,
   secure: true,
@@ -44,10 +38,17 @@ export function requireTestOrigin(request: Request) {
     );
   return null;
 }
+export async function isRequestingBrowser(grantId: string) {
+  const proof = (await cookies()).get(TEST_REQUEST_COOKIE)?.value;
+  if (!proof) return false;
+  const grant = await prisma.testAccessGrant.findUnique({ where: { id: grantId }, select: { proofHash: true } });
+  return Boolean(grant && matchesProof(proof, grant.proofHash));
+}
+
 export async function verifiedApprovalOwner(grantId: string) {
-  if (!testAccessEnabled()) return null;
+  if (!testAccessEnabled() || await isRequestingBrowser(grantId)) return null;
   const session = await verifySession();
-  if (!session || session.role !== "ADMIN") return null;
+  if (!session || session.role !== "ADMIN" || session.approvedTestSession) return null;
   const jar = await cookies(),
     token = jar.get(COOKIE_NAME)?.value,
     receipt = jar.get(TEST_APPROVAL_COOKIE)?.value;
@@ -59,38 +60,4 @@ export async function verifiedApprovalOwner(grantId: string) {
     return null;
   const claims = await verifySessionToken(token);
   return claims?.oidc ? { userId: session.userId, oidc: claims.oidc } : null;
-}
-export async function approvedVerificationSession() {
-  try {
-    if (!testAccessEnabled()) return null;
-    const token = (await cookies()).get(TEST_ACCESS_COOKIE)?.value;
-    if (!token) return null;
-    const identity = await openTestIdentity("verification", token);
-    const [grant, user] = await Promise.all([
-      prisma.testAccessGrant.findUnique({ where: { id: identity.grantId } }),
-      prisma.user.findUnique({
-        where: { id: identity.userId },
-        select: { role: true },
-      }),
-    ]);
-    if (
-      !grant ||
-      grant.state !== "APPROVED" ||
-      !grant.consumedAt ||
-      grant.approvedById !== identity.userId ||
-      !grant.sessionExpiresAt ||
-      grant.sessionExpiresAt <= new Date() ||
-      user?.role !== "ADMIN"
-    )
-      return null;
-    const config = adminOidcConfig();
-    if (
-      mappedAdminId(config, identity.oidc.subject) !== identity.userId ||
-      !(await isAdminProviderSessionLive(config, identity.oidc))
-    )
-      return null;
-    return { grantId: grant.id, expiresAt: grant.sessionExpiresAt };
-  } catch {
-    return null;
-  }
 }

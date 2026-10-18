@@ -1,26 +1,30 @@
-# Owner-approved portfolio verification
+# Owner-approved actual admin sessions
 
-This optional feature provides a ten-minute verification session after the owner explicitly approves a request on another device. It uses the existing auth.edge OIDC client and identity binding. It does not register an automation identity, copy an owner password, or replace normal admin authentication.
+This optional feature opens the real `/v1/admin` CMS in the requesting browser after the owner explicitly approves full admin access on another device. It uses the existing auth.edge client, existing mapped ADMIN account and current MFA session. It creates no automation account and shares no owner password, passkey, authenticator code, access token or refresh token.
 
-The requesting browser opens `/v1/test-access`, creates a request, and displays an eight-character comparison code and approval URL. The owner opens that URL on their own device, completes a fresh auth.edge sign-in, compares the code, and chooses Approve or Deny. The requester then checks approval and opens `/v1/test-access/verify`.
+## Flow and permissions
 
-The verification screen reports an active owner-approved MFA session, the running release, and public project/published-post counts. Its separate encrypted cookie is not accepted by the CMS or normal admin session verification. It cannot edit content, open private settings or read contact messages. Public pages stay anonymous. This is delegated verification access; it does not prove that a separate automation identity completed an interactive OIDC login.
+1. The requester uses the approved-admin link on the SSO login screen, or opens `/v1/test-access`, and creates a request.
+2. The owner opens the displayed URL on their phone or another browser (the requesting browser is rejected before owner SSO), completes fresh auth.edge SSO, compares the eight-character code, and reads the **full CMS permissions** notice before choosing Approve or Deny. Full access includes private settings/messages and creating, editing and deleting content; it is not a read-only verification grant.
+3. The same requesting browser checks approval and opens the actual admin dashboard. A banner shows the remaining time and an End button. The previous `/v1/test-access/verify` bookmark redirects to the real admin.
+4. The owner can revoke from their approval page. Either the normal admin Logout button or End this admin test session revokes the grant and removes the requester cookie. Neither ends the owner's central auth.edge session.
 
-## Controls
+Every CMS page is protected by the admin server layout. Every CMS API uses the same `verifySession()` authorization path. A delegated session rechecks its database grant, explicit scope, prior one-time consumption, expiry, current ADMIN role, current subject binding and live provider MFA on every request. Already displayed data cannot be withdrawn, but revocation rejects subsequent protected requests. A delegated session cannot approve further sessions: approval requires the normal owner's SSO cookie and a fresh receipt bound to the exact request and cookie.
 
-- Disabled by default. Requires `ENABLE_APPROVED_TEST_SESSIONS=true` and existing OIDC mode. Enable in DEV first; production activation is a separate release/configuration decision.
-- The additive `test_access_grants` migration stores only request/audit state, a hashed browser proof, and a temporarily encrypted provider identity. No owner password, access token or refresh token is stored there.
-- Request proofs and verification cookies are HTTP-only, Secure and SameSite=Lax. Mutations require the exact configured Origin, and cross-site requests fail closed. Request creation and polling are rate limited.
-- The OAuth transaction seals the approval request ID and uses the existing PKCE/state/nonce checks. Approval logins request `prompt=login` and `max_age=300`; the signed ID token must contain recent `auth_time`.
-- A five-minute encrypted owner receipt binds the approval screen to that exact request, approved local identity, and current owner SSO cookie. GET never approves access; the owner must submit an explicit decision.
-- Requests expire after ten minutes. Approved access lasts at most ten minutes and cannot exceed the provider session lifetime. Redemption uses an atomic conditional database update, so concurrent requests and replays cannot create additional sessions. Temporary provider ciphertext is cleared on redemption.
-- Each verification request checks the grant, existing ADMIN role, configured identity mapping, and live auth.edge MFA session. Owner revocation and provider revocation end access. Logging out revokes the verification grant and clears its separate cookies.
-- Approval links and codes are request identifiers, not login credentials. The owner should approve only a request they initiated and whose code matches their current agent request.
+## Activation and legacy safety
 
-## Validation and recovery
+- Disabled by default. Requires **`ENABLE_APPROVED_ADMIN_SESSIONS=true`** and existing `ADMIN_AUTH_MODE=oidc`. The former `ENABLE_APPROVED_TEST_SESSIONS` flag does not enable admin access.
+- Enable in DEV first with protected configuration/database backups. Production deployment or activation is a separate decision.
+- The additive migration adds a scope column whose default is the old `portfolio:verify` value. New requests explicitly use `portfolio:admin:test`. Old pending or approved verification rows and old verification cookies can never become admin permissions. Audit rows are retained.
+- The new encrypted `admin-session` token has its own key purpose/audience and scope. It is accepted only by the grant-aware CMS validator; it is never treated as a normal owner JWT. The normal eight-hour owner login remains unchanged. Redemption clears any normal owner cookie in the requesting browser so it cannot outlive the short grant; it never clears the owner's cookies on the separate approval device. Browser separation is checked by possession of the request proof, not by hardware attestation.
+- Requests expire after ten minutes. Approved sessions last at most ten minutes from approval, clipped to provider expiry. Cookies are HTTP-only, Secure, SameSite=Lax and host-only. Their secrets never appear in a URL or client JavaScript.
+- PKCE/state/nonce and recent signed `auth_time` checks remain mandatory. Owner approval requires `prompt=login`, `max_age=300`, a five-minute receipt bound to request/user/current owner JWT, and an explicit POST. GET never grants access.
+- Exact Origin checks, cross-site rejection, request/poll rate limits, hashed requester proofs, atomic one-time redemption and clearing temporary identity ciphertext remain in place.
 
-Unit tests exercise real encryption and signed OIDC exchanges, wrong-browser proofs, tampering, purpose substitution, invalid return destinations, missing/stale authentication times, expiry limits, and denied/revoked/consumed requests. An isolated PostgreSQL test verifies one successful redemption from eight concurrent attempts. The default CI browser test verifies that every feature route is disabled without explicit activation.
+## Acceptance and recovery
 
-Before enabling a DEV canary, test the real two-device approval, denial, revocation and expiration flows; confirm that no CMS endpoint accepts the verification cookie and that normal owner admin SSO/login/logout still works. Preserve current application/Secret revisions and a database recovery point. Disabling the feature flag immediately closes its routes and verification sessions without changing normal SSO. Roll back the app image if required; retain the additive audit table rather than restoring an old content database.
+CI covers real cryptography and signed OIDC exchanges; it rejects legacy scope/token substitution, inactive/revoked/unconsumed grants, stale role/binding/MFA, overlong expiry, missing/stale owner authentication and wrong-browser/replayed redemption. The default-off browser regression verifies every approval route is unavailable unless explicitly enabled.
 
-Pending/expired audit rows are retained; no cleanup timer is installed by this feature. Monitor growth and define retention before broad production use. This first version is limited to the portfolio; other services need their own scoped integration and review.
+After DEV CI succeeds, activate only the new DEV flag. Verify anonymous admin/API protection and public access; obtain a fresh human approval for the new full-admin scope. Test the actual dashboard, project/post navigation and logout, and confirm the grant is revoked and protected routes require login again. Use disposable DEV records if editing tests are separately needed; preserve existing content and avoid opening private credential fields or messages during the login/navigation test.
+
+Disabling the new flag immediately denies delegated CMS authorization while normal owner SSO keeps working. Preserve additive audit rows on rollback; do not restore an old content database just to remove this feature. No cleanup timer is installed: monitor audit growth and define retention before broad production use. This integration grants access only to this portfolio, not other auth.edge applications.

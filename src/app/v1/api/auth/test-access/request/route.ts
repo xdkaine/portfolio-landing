@@ -15,6 +15,7 @@ import {
   proofDigest,
   TEST_REQUEST_COOKIE,
   TEST_ACCESS_SECONDS,
+  TEST_ACCESS_SCOPE,
 } from "@/lib/testAccessPolicy";
 
 export async function POST(request: Request) {
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
   const grant = await prisma.testAccessGrant.create({
     data: {
       id: randomUUID(),
+      scope: TEST_ACCESS_SCOPE,
       proofHash: proofDigest(proof),
       displayCode: randomBytes(4).toString("hex").toUpperCase(),
       expiresAt: new Date(now.getTime() + TEST_ACCESS_SECONDS * 1000),

@@ -11,6 +11,7 @@ import {
   isGrantId,
   sealTestIdentity,
   TEST_ACCESS_SECONDS,
+  TEST_ACCESS_SCOPE,
 } from "@/lib/testAccessPolicy";
 
 export async function POST(
@@ -44,7 +45,7 @@ export async function POST(
       expires,
     );
     await prisma.testAccessGrant.updateMany({
-      where: { id, state: "PENDING", expiresAt: { gt: now } },
+      where: { id, scope: TEST_ACCESS_SCOPE, state: "PENDING", expiresAt: { gt: now } },
       data: {
         state: "APPROVED",
         approvedById: owner.userId,
@@ -55,7 +56,7 @@ export async function POST(
     });
   } else if (decision === "deny") {
     await prisma.testAccessGrant.updateMany({
-      where: { id, state: "PENDING", expiresAt: { gt: now } },
+      where: { id, scope: TEST_ACCESS_SCOPE, state: "PENDING", expiresAt: { gt: now } },
       data: {
         state: "DENIED",
         approvedById: owner.userId,
@@ -64,7 +65,7 @@ export async function POST(
     });
   } else {
     await prisma.testAccessGrant.updateMany({
-      where: { id, state: "APPROVED", approvedById: owner.userId },
+      where: { id, scope: TEST_ACCESS_SCOPE, state: "APPROVED", approvedById: owner.userId },
       data: { state: "REVOKED", identityCiphertext: null },
     });
   }

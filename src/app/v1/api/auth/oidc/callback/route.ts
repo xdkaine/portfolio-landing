@@ -1,3 +1,4 @@
+import { isRequestingBrowser } from "@/lib/testAccess";
 import { cookies } from "next/headers";
 import { sealOwnerReceipt, TEST_APPROVAL_COOKIE, OWNER_APPROVAL_SECONDS } from "@/lib/testAccessPolicy";
 import { NextResponse } from "next/server";
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
     if (!user || user.role !== "ADMIN" || !await isAdminProviderSessionLive(config, identity.providerSession)) {
       throw new Error("Admin access denied");
     }
-    if (identity.approvalId && process.env.ENABLE_APPROVED_TEST_SESSIONS !== "true") throw new Error("Approval unavailable");
+    if (identity.approvalId && (process.env.ENABLE_APPROVED_ADMIN_SESSIONS !== "true" || await isRequestingBrowser(identity.approvalId))) throw new Error("Approval unavailable");
     const sessionToken = await createSession(user.id, user.role, identity.providerSession);
     if (identity.approvalId) {
       jar.set(TEST_APPROVAL_COOKIE, await sealOwnerReceipt(identity.approvalId, user.id, sessionToken), { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: OWNER_APPROVAL_SECONDS });

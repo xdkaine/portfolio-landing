@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-test("owner-approved verification routes fail closed unless explicitly enabled", async ({
+test("owner-approved admin routes fail closed unless explicitly enabled", async ({
   request,
 }) => {
   const id = "8c476c23-89f2-4a0d-b874-703ee35f00b9";

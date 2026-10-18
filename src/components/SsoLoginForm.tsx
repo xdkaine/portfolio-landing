@@ -1,4 +1,4 @@
-export default function SsoLoginForm({ failed }: { failed: boolean }) {
+export default function SsoLoginForm({ failed, approvedAdminEnabled = false }: { failed: boolean; approvedAdminEnabled?: boolean }) {
   return (
     <section className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-md">
@@ -19,6 +19,7 @@ export default function SsoLoginForm({ failed }: { failed: boolean }) {
           <a href="/v1/api/auth/oidc/start" className="block text-center border-2 border-bone hover:border-ember hover:bg-ember text-bone hover:text-void px-6 py-4 text-xs tracking-[0.15em] transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ember">
             CONTINUE WITH AUTH.EDGE &rarr;
           </a>
+          {approvedAdminEnabled ? <a href="/v1/test-access" className="block mt-6 text-center text-bone text-xs underline">REQUEST OWNER-APPROVED ADMIN TEST ACCESS</a> : null}
           <a href="/v1" className="block mt-6 text-center text-steel text-xs hover:text-bone">&larr; BACK TO PORTFOLIO</a>
         </div>
         <p className="text-steel text-[10px] tracking-[0.2em] mt-6 text-center">AUTHORIZED ADMINISTRATORS ONLY</p>
