@@ -12,8 +12,11 @@ export function getProjectTeaser(project: ProjectTeaserInput): string {
   if (summary.length <= limit) return summary;
 
   const preview = summary.slice(0, limit - 1);
-  const sentence = preview.match(/^(.{70,}?[.!?])(?:\s|$)/)?.[1];
-  if (sentence) return sentence;
+  for (const end of preview.matchAll(/[.!?](?=\s|$)/g)) {
+    const sentence = preview.slice(0, end.index + 1);
+    if (sentence.length < 70 || /\b(?:[A-Z]|Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St)\.$/.test(sentence)) continue;
+    return sentence;
+  }
   const boundary = preview.lastIndexOf(" ");
   return `${preview.slice(0, boundary > 0 ? boundary : preview.length).trimEnd()}…`;
 }
