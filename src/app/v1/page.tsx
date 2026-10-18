@@ -1,4 +1,5 @@
 import HomePageClient from "@/components/HomePageClient";
+import { getProjectTeaser } from "@/lib/projectTeaser";
 import { listPublishedPosts } from "@/lib/postEditorial";
 import { listProjects } from "@/lib/projectCatalog";
 import { getSiteSettings } from "@/lib/siteSettings";
@@ -23,7 +24,7 @@ export default async function HomePage() {
         id: project.id,
         number: project.number,
         title: project.title,
-        description: project.description,
+        description: getProjectTeaser(project),
         tags: project.tags,
         status: project.status,
         featured: project.featured,

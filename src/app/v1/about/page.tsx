@@ -2,12 +2,14 @@
 
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { useSiteSettings } from "@/lib/useSiteSettings";
+import { PORTFOLIO_NAME } from "@/lib/siteMetadata";
+import { PORTFOLIO_PROFILE } from "@/lib/portfolioProfile";
 
 const specs = [
-  { label: "ROLE", value: "SYSTEMS ENGINEER" },
-  { label: "FOCUS", value: "BACKEND DEVOPS" },
-  { label: "LOCATION", value: "REMOTE" },
-  { label: "EXPERIENCE", value: "2+ YEARS" },
+  { label: "ROLE", value: "TECHNOLOGY RISK CONSULTANT" },
+  { label: "FOCUS", value: "ENTERPRISE TECHNOLOGY, ERP & SUPPORTING SYSTEMS" },
+  { label: "LOCATION", value: PORTFOLIO_PROFILE.location },
+  { label: "EXPERIENCE", value: `${PORTFOLIO_PROFILE.experienceYears}+ YEARS` },
   { label: "STATUS", value: "AVAILABLE", accent: true },
 ];
 
@@ -46,8 +48,8 @@ export default function AboutPage() {
         </ScrollReveal>
 
         <ScrollReveal delay={0.05} variant="headline">
-          <h1 className="font-display text-6xl md:text-8xl lg:text-9xl tracking-tighter">
-            SYSTEM INFO
+          <h1 className="font-display text-[clamp(3rem,9vw,8rem)] leading-[1.05] tracking-tighter text-balance">
+            ABOUT {PORTFOLIO_NAME.toUpperCase()}
           </h1>
         </ScrollReveal>
       </section>
@@ -67,14 +69,14 @@ export default function AboutPage() {
               {specs.map((spec) => (
                 <div
                   key={spec.label}
-                  className="flex items-center gap-4"
+                  className="flex items-start gap-3 sm:gap-4"
                 >
-                  <span className="text-[10px] tracking-[0.2em] text-steel w-28 shrink-0">
+                  <span className="text-[10px] tracking-[0.2em] text-steel w-20 sm:w-28 shrink-0">
                     {spec.label}
                   </span>
                   <span className="text-steel">:</span>
                   <span
-                    className={`text-xs tracking-[0.1em] ${
+                    className={`min-w-0 text-xs leading-relaxed tracking-[0.1em] ${
                       spec.accent ? "text-ember" : "text-bone"
                     }`}
                   >
@@ -95,19 +97,22 @@ export default function AboutPage() {
         <ScrollReveal delay={0.1}>
           <div className="border-l-2 border-ember pl-6 md:pl-10 max-w-3xl">
             <p className="text-sm md:text-base leading-relaxed text-bone mb-6">
-              I&apos;m a systems engineer who cares about craft. I believe code is a
-              creative medium &mdash; not just a means to an end. Every
-              interface I build is an exercise in thought, performance and design.
+              I&apos;m a developer who works across applications and infrastructure. The work I enjoy
+              most is building and deploying systems that other people actually use.
+              That can mean an application, the infrastructure behind it, or getting
+              the two working together.
             </p>
             <p className="text-sm md:text-base leading-relaxed text-ash mb-6">
-              I specialize in both sides of frontend and backend engineering with a deep understanding of
-              the full stack. My work sits at the intersection of technical
-              excellence and visual design &mdash; building things that are as
-              beautiful under the hood as they are on screen.
+              Having people rely on something I built is what makes technology
+              rewarding for me. It adds pressure, but I enjoy that responsibility:
+              keeping things running, working through problems, and improving a
+              system as people use it.
             </p>
             <p className="text-sm md:text-base leading-relaxed text-ash">
-              When I&apos;m not shipping and building, I&apos;m exploring new technologies, finding new passions in music, or writing about the things I
-              learn along the way.
+              I currently work as a Technology Risk Consultant, supporting work
+              across enterprise technologies, ERP platforms, and the systems around
+              them. Outside that role, I keep building applications and infrastructure,
+              and use this site to share what I&apos;m working on and learning.
             </p>
           </div>
         </ScrollReveal>

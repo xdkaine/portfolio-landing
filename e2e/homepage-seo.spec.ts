@@ -84,7 +84,9 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
         }
       });
       await page.goto("/v1", { waitUntil: "networkidle" });
-      await expect(page).toHaveTitle("Thomas Phao — Systems Engineer & Developer");
+      await expect(page).toHaveTitle(reducedMotion === "reduce"
+        ? "Thomas Phao — Systems Engineer & Developer"
+        : /\| Thomas Phao — Systems Engineer & Developer/);
       await expect(page.getByRole("link", { name: "CONTACT ME", exact: true })).toBeVisible();
       expect(errors).toEqual([]);
       expect(contentRequests).toEqual([]);
@@ -98,3 +100,48 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
     }
   });
 }
+
+test("homepage title stays synchronized with the visible aliases and stops on other routes", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/v1");
+  await expect(page).toHaveTitle(/\| Thomas Phao — Systems Engineer & Developer/);
+  const samples: string[] = [];
+  for (const milliseconds of [350, 800, 2000, 2400, 700]) {
+    await page.clock.runFor(milliseconds);
+    const sample = await page.evaluate(() => {
+      const hero = document.querySelector("main h1 .absolute.inset-0");
+      const nav = document.querySelector("nav a .absolute.inset-0");
+      const typed = (element: Element | null) => element?.firstChild?.textContent ?? "";
+      return { hero: typed(hero), nav: typed(nav), title: document.title };
+    });
+    expect(sample.hero).toBe(sample.nav);
+    if (sample.hero) expect(sample.title.startsWith(`${sample.hero} | `)).toBeTruthy();
+    samples.push(sample.title);
+  }
+  expect(new Set(samples).size).toBeGreaterThan(1);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("Thomas Phao — Systems Engineer & Developer");
+  await page.getByRole("link", { name: "CONTACT ME", exact: true }).click();
+  await expect(page).toHaveTitle("Contact | Thomas Phao");
+  await page.clock.runFor(6000);
+  await expect(page).toHaveTitle("Contact | Thomas Phao");
+  await page.getByRole("link", { name: "INDEX", exact: true }).click();
+  await expect(page).toHaveTitle(/\| Thomas Phao — Systems Engineer & Developer/);
+});
+
+test("homepage and About share profile facts and summaries remain compact on mobile", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/v1");
+  await expect(page.getByText(/I'm Thomas Phao, a systems engineer and developer/)).toBeVisible();
+  const summaries = await page.locator("[data-project-teaser]").allTextContents();
+  for (const summary of summaries) expect(summary.trim().length).toBeLessThanOrEqual(220);
+  const experience = page.getByText("YEARS EXPERIENCE", { exact: true }).locator("../..");
+  await expect(experience).toContainText("2");
+  await expect(page.locator("main")).not.toContainText("48.8566");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  await page.goto("/v1/about");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("ABOUT THOMAS PHAO");
+  await expect(page.getByText("2+ YEARS", { exact: true })).toBeVisible();
+  await expect(page.getByText("LOS ANGELES, CA", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
