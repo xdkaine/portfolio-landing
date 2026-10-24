@@ -1,7 +1,9 @@
 # Local CI/CD
 
-GitHub supplies code and job logs/status. Builds, regression tests and deployments run on the VM in the shared single-build queue. Packages and npm/browser caches stay on NFS; active image layers and these runners' workspaces use the rebuildable ext4 scratch file backed by NFS. The 50 GiB VM disk is unchanged. No image, Release, Actions artifact or build cache is uploaded to GitHub.
+Verified 23 October 2026. GitHub provides source, scheduling and job logs/status. Builds, regression tests and deployment run on the dedicated VM runner through the shared single-build queue. Immutable packages remain on NFS; temporary image/context and verified-import staging use guarded `/var/lib/k3s-ci-staging`. Other caches/workspaces have separately managed mounts.
 
-Main deploys phao.dev. There is no dev deployment. Database backup, bounded migration job and public revision checks remain required.
+`main` deploys `https://phao.dev` in `portfolio`. The `dev` branch's separate pipeline deploys `https://portfolio-dev.devops.home.phao.dev` in `dev-portfolio`. Development is private and uses separate data and credentials. Other manual branches validate only.
 
-Root-owned deployment helpers and the NFS scratch mount are administrator-managed. Failed deployments require review; application rollback does not reverse database migrations. A missing NFS mount prevents new builds while existing applications retain their current storage.
+The shared root-owned consumer validates current branch head, checksums, image identity and revision, then calls the installed production or private-dev helper. GitHub Releases/GHCR are not this delivery path; the old `portfolio-pull.timer` is disabled.
+
+Database backups, bounded migration Jobs, retained image rollback and health/revision checks remain required. App rollback does not undo migrations. Root-owned helpers and required mounts are administrator-managed; repository pushes cannot replace them. Failed deployments require review. See [the deployment guide](README.md).
