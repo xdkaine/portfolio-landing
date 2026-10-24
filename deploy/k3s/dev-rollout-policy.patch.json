@@ -1,0 +1,38 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "name": "app",
+    "namespace": "dev-portfolio"
+  },
+  "spec": {
+    "strategy": {
+      "type": "RollingUpdate",
+      "rollingUpdate": {
+        "maxUnavailable": 0,
+        "maxSurge": 1
+      }
+    },
+    "minReadySeconds": 15,
+    "template": {
+      "spec": {
+        "containers": [
+          {
+            "name": "app",
+            "lifecycle": {
+              "preStop": {
+                "exec": {
+                  "command": [
+                    "/bin/sh",
+                    "-c",
+                    "sleep 10"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
