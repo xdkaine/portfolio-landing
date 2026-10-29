@@ -3,9 +3,11 @@ const VISITOR_KEY = "phao.analytics.visitor.v1";
 const SESSION_KEY = "phao.analytics.session.v1";
 export const ANALYTICS_PREFERENCE_KEY = "phao.analytics.preference";
 let memoryOptOut: boolean | undefined;
+let preferenceWriteFailed = false;
 let memoryVisitor: { token: string; expires: number } | null = null;
 let memorySession: { token: string; lastSeen: number } | null = null;
 export function analyticsOptedOut() {
+  if (preferenceWriteFailed) return memoryOptOut ?? false;
   try {
     return localStorage.getItem(ANALYTICS_PREFERENCE_KEY) === "off";
   } catch {
@@ -90,7 +92,9 @@ export function setAnalyticsOptOut(value: boolean) {
   memoryOptOut = value;
   try {
     localStorage.setItem(ANALYTICS_PREFERENCE_KEY, value ? "off" : "on");
+    preferenceWriteFailed = false;
   } catch {
+    preferenceWriteFailed = true;
     /* Keep the choice in memory if storage is blocked. */
   }
   if (value) resetClientVisitor();
