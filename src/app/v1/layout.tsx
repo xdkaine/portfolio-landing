@@ -1,3 +1,4 @@
+import { PublicChrome } from "@/components/PublicChrome";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LinkClickTracker } from "@/components/LinkClickTracker";
@@ -29,21 +30,23 @@ export default async function V1Layout({
         SKIP TO MAIN CONTENT
       </a>
       <LinkClickTracker />
-      <BackgroundContextMenu />
-      <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
+      <PublicChrome>
+        <BackgroundContextMenu />
+        <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
+      </PublicChrome>
       <main id="main-content" className="flex-1 scroll-mt-20">
-        <PublicTransitionSurface>
-          {children}
-        </PublicTransitionSurface>
+        <PublicTransitionSurface>{children}</PublicTransitionSurface>
       </main>
-      <Footer
-        brandName={primaryBrandName}
-        brandAliases={brandAliases}
-        socials={footerSocials}
-        legalEffectiveDate={settings.legalEffectiveDate}
-        chucklesGifUrl={settings.footerChucklesGifUrl}
-      />
-      <div className="grain-overlay" aria-hidden="true" />
+      <PublicChrome>
+        <Footer
+          brandName={primaryBrandName}
+          brandAliases={brandAliases}
+          socials={footerSocials}
+          legalEffectiveDate={settings.legalEffectiveDate}
+          chucklesGifUrl={settings.footerChucklesGifUrl}
+        />
+        <div className="grain-overlay" aria-hidden="true" />
+      </PublicChrome>
     </>
   );
 }

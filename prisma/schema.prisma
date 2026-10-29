@@ -42,6 +42,8 @@ model Project {
   sortOrder   Int           @default(0) @map("sort_order")
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
+  version     Int           @default(1)
+  deletedAt   DateTime?     @map("deleted_at")
 
   @@map("projects")
 }
@@ -55,24 +57,29 @@ enum ProjectStatus {
 // ─── Blog Posts ────────────────────────────────────────
 
 model Post {
-  id          String     @id @default(cuid())
-  slug        String     @unique
-  title       String
-  excerpt     String
-  content     String?    @db.Text
-  bodyJson    Json?      @map("body_json")
-  date        String
-  readTime    String     @map("read_time")
-  tags        String[]
-  published   Boolean    @default(true)
-  status      PostStatus @default(DRAFT)
-  publishedAt DateTime?  @map("published_at")
-  coverImage  String?    @map("cover_image")
-  coverAlt    String?    @map("cover_alt")
-  featured    Boolean    @default(false)
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  id                String         @id @default(cuid())
+  slug              String         @unique
+  title             String
+  excerpt           String
+  content           String?        @db.Text
+  bodyJson          Json?          @map("body_json")
+  date              String
+  readTime          String         @map("read_time")
+  tags              String[]
+  published         Boolean        @default(true)
+  status            PostStatus     @default(DRAFT)
+  publishedAt       DateTime?      @map("published_at")
+  coverImage        String?        @map("cover_image")
+  coverAlt          String?        @map("cover_alt")
+  featured          Boolean        @default(false)
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  version           Int            @default(1)
+  deletedAt         DateTime?      @map("deleted_at")
+  draftSnapshot Json?          @map("draft_snapshot")
+  revisions         PostRevision[]
 
+  @@index([status, publishedAt(sort: Desc)])
   @@map("posts")
 }
 
@@ -85,14 +92,69 @@ enum PostStatus {
 // ─── Contact Messages ──────────────────────────────────
 
 model ContactMessage {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   name      String
   email     String
-  message   String   @db.Text
-  read      Boolean  @default(false)
+  message   String        @db.Text
+  read      Boolean       @default(false)
+  createdAt DateTime      @default(now()) @map("created_at")
+  status    MessageStatus @default(NEW)
+  note      String        @default("") @db.Text
+  version   Int           @default(1)
+  updatedAt DateTime      @default(now()) @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@index([read, createdAt])
+  @@map("contact_messages")
+}
+
+enum MessageStatus {
+  NEW
+  OPEN
+  RESOLVED
+  ARCHIVED
+}
+
+model PostRevision {
+  id        String   @id @default(cuid())
+  postId    String   @map("post_id")
+  version   Int
+  snapshot  Json
+  actor     String
+  createdAt DateTime @default(now()) @map("created_at")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, version])
+  @@map("post_revisions")
+}
+
+model CmsAuditEvent {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  summary   String
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@map("contact_messages")
+  @@index([createdAt])
+  @@map("cms_audit_events")
+}
+
+model AnalyticsDaily {
+  day         DateTime @db.Date
+  key         String
+  type        String
+  path        String
+  destination String   @default("")
+  label       String   @default("")
+  referrer    String   @default("")
+  device      String   @default("other")
+  count       Int      @default(0)
+
+  @@id([day, key])
+  @@index([day, type])
+  @@map("analytics_daily")
 }
 
 // ─── Site Settings (key-value store) ───────────────────

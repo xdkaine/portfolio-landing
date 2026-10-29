@@ -1,0 +1,21 @@
+import { NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/requestSecurity";
+import { analyticsReport } from "@/lib/analyticsStore";
+import { cmsErrorResponse, PRIVATE_API_HEADERS } from "@/lib/cmsServer";
+export async function GET(request: Request) {
+  const denied = await requireAdminApi();
+  if (denied) return denied;
+  const days = Number(new URL(request.url).searchParams.get("days") ?? 30);
+  if (![7, 30, 90].includes(days))
+    return NextResponse.json(
+      { error: "Choose 7, 30 or 90 days" },
+      { status: 400 },
+    );
+  try {
+    return NextResponse.json(await analyticsReport(days), {
+      headers: PRIVATE_API_HEADERS,
+    });
+  } catch (error) {
+    return cmsErrorResponse(error);
+  }
+}

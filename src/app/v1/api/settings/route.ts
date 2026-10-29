@@ -1,10 +1,17 @@
-import { NextResponse } from "next/server";
-import { getSiteSettings, updateSiteSettings } from "@/lib/siteSettings";
-import { pickPublicSiteSettings } from "@/lib/siteSettings-schema";
 import {
-  requireAdminApi,
-  requireAdminMutation,
-} from "@/lib/requestSecurity";
+  cmsActor,
+  cmsErrorResponse,
+  readJson,
+  PRIVATE_API_HEADERS,
+} from "@/lib/cmsServer";
+import { NextResponse } from "next/server";
+import {
+  getSiteSettings,
+  updateSiteSettings,
+  getAdminSiteSettings,
+} from "@/lib/siteSettings";
+import { pickPublicSiteSettings } from "@/lib/siteSettings-schema";
+import { requireAdminApi, requireAdminMutation } from "@/lib/requestSecurity";
 
 export async function GET(request: Request) {
   try {
@@ -16,9 +23,12 @@ export async function GET(request: Request) {
       if (denied) return denied;
     }
 
-    const settings = await getSiteSettings();
+    const settings = includeAll
+      ? await getAdminSiteSettings()
+      : await getSiteSettings();
     return NextResponse.json(
       includeAll ? settings : pickPublicSiteSettings(settings),
+      { headers: includeAll ? PRIVATE_API_HEADERS : {} },
     );
   } catch {
     return NextResponse.json(
@@ -33,8 +43,8 @@ export async function PUT(request: Request) {
     const denied = await requireAdminMutation(request);
     if (denied) return denied;
 
-    const body = await request.json();
-    const settings = await updateSiteSettings(body);
+    const body = await readJson(request);
+    const settings = await updateSiteSettings(body, await cmsActor());
 
     if (!settings) {
       return NextResponse.json(
@@ -44,10 +54,7 @@ export async function PUT(request: Request) {
     }
 
     return NextResponse.json(settings);
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to update settings" },
-      { status: 500 },
-    );
+  } catch (error) {
+    return cmsErrorResponse(error);
   }
 }

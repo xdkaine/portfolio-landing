@@ -10,28 +10,38 @@ export interface TrackLinkClickPayload {
 
 const TRACK_ENDPOINT = "/v1/api/analytics/link-click";
 
-export function trackLinkClick(payload: TrackLinkClickPayload): void {
-  if (typeof window === "undefined") return;
+export function trackingAllowed(): boolean {
+  return (
+    typeof navigator !== "undefined" &&
+    navigator.doNotTrack !== "1" &&
+    !(navigator as Navigator & { globalPrivacyControl?: boolean })
+      .globalPrivacyControl
+  );
+}
 
+export function sendAnalytics(endpoint: string, payload: unknown): void {
+  if (typeof window === "undefined" || !trackingAllowed()) return;
   const body = JSON.stringify(payload);
-
   try {
-    if (typeof navigator.sendBeacon === "function") {
-      const blob = new Blob([body], { type: "application/json" });
-      navigator.sendBeacon(TRACK_ENDPOINT, blob);
+    if (
+      typeof navigator.sendBeacon === "function" &&
+      navigator.sendBeacon(
+        endpoint,
+        new Blob([body], { type: "application/json" }),
+      )
+    )
       return;
-    }
   } catch {
-    // Fall through to fetch keepalive.
+    /* Use keepalive if a beacon cannot be queued. */
   }
-
-  fetch(TRACK_ENDPOINT, {
+  void fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body,
     keepalive: true,
-  }).catch(() => {
-    // Avoid surfacing tracking errors to UI.
-  });
+  }).catch(() => {});
 }
 
+export function trackLinkClick(payload: TrackLinkClickPayload): void {
+  sendAnalytics(TRACK_ENDPOINT, payload);
+}

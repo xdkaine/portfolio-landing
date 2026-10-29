@@ -3,7 +3,7 @@
 ## Domain Terms
 
 **Post Editorial**
-The workflow for creating, updating, listing, and publishing blog posts. It owns post input rules such as slugs, dates, read time, tags, draft visibility, and default values.
+The workflow for creating, updating, listing, and publishing blog posts. Published columns retain the reader-visible article while `draft_snapshot` holds pending edits. Version checks, content revisions, publication validation and recoverable Trash protect editorial changes.
 
 **Project Catalog**
 The collection of portfolio projects and their public/admin presentation. It owns project ordering, status display, lookup by id or number, and the shape returned to project callers.
@@ -11,8 +11,14 @@ The collection of portfolio projects and their public/admin presentation. It own
 **Project Case Study**
 Editable long-form content attached to a project, including subtitles, write-ups, highlights, demo links, and gallery items.
 
-**Link Click Metrics**
-Aggregate click counts for tracked links. It owns metric payload sanitization, metric key generation, and summary data used by the admin dashboard.
+**Traffic Analytics**
+Atomic daily aggregate counters for public page views, link clicks and accepted contact submissions, with UTC reporting periods and privacy-aware payload normalization. Historical lifetime click counters remain separate. No unique visitors or sessions are inferred.
+
+**Contact Inbox**
+Searchable, paginated contact messages with independent read status, workflow status, private notes, transactional bulk updates and conflict checks.
+
+**CMS Activity**
+Administrator-attributed application audit records for publishing, inbox, project and settings operations. Content recovery is provided by post revisions and Trash; the activity list itself is not an immutable compliance archive.
 
 **Admin Dashboard**
-The authenticated editing surface for projects, posts, messages, settings, and metrics.
+The authenticated content workspace for projects, posts, messages, settings, analytics and activity. See `docs/cms-operations.md` for data contracts, verification and recovery limits.

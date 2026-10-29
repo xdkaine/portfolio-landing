@@ -6,7 +6,8 @@ import { getSiteSettings } from "@/lib/siteSettings";
 
 export const metadata: Metadata = createPublicPageMetadata({
   title: "Privacy Policy",
-  description: "Privacy policy and data handling practices for this portfolio website and its contact form.",
+  description:
+    "Privacy policy and data handling practices for this portfolio website and its contact form.",
   path: "/v1/privacy",
   imageAlt: "Privacy policy for this portfolio website.",
 });
@@ -47,6 +48,14 @@ export default async function PrivacyPage() {
           ) : (
             <p>No privacy policy content configured yet.</p>
           )}
+          <p>
+            We measure public page views and link clicks using daily aggregate
+            counts. This measurement does not use visitor cookies or store
+            visitor IDs or IP addresses. URL queries and fragments are removed,
+            and browser Do Not Track and Global Privacy Control signals are
+            respected. Aggregate traffic is kept for up to 180 days and removed
+            on the next accepted event after expiry.
+          </p>
         </div>
       </ScrollReveal>
 
