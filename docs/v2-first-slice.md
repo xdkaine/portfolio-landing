@@ -44,6 +44,8 @@ Run `npm ci`, `npx tsc --noEmit`, `npm run lint`, `npm test`, and `npm run build
 
 The focused browser suite checks API contracts, invalid filters, missing records, rejected mutation methods, discovery without JavaScript, scenario changes, keyboard operation, reset, absence of v1 API requests, responsive overflow, and automated WCAG accessibility including contrast at 390px and 1440px. Automated checks do not establish real-device or screen-reader acceptance.
 
+The v2 unit checks live at `src/lib/v2Catalog.test.ts` so the existing Linux shell test glob discovers them. They also run directly with `npx tsx --test src/lib/v2Catalog.test.ts`.
+
 Delivery targets `dev` only through its existing CI pipeline into `dev-portfolio`. Confirm `/v1/api/health` reports the deployed dev commit, then verify `/v2`, its project library, the Uma walkthrough, and the v2 APIs through the private dev hostname. No production promotion is part of this slice.
 
 Rollback is a revert of the v2 commit on `dev` through the same pipeline; there are no v2 migrations or data writes to undo. The v1 CMS work can merge independently because this slice only adds v2-owned source, assets, focused tests, and this document.
