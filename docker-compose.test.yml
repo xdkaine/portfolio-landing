@@ -63,7 +63,7 @@ services:
         condition: service_started
 
   playwright:
-    image: mcr.microsoft.com/playwright:v1.60.0-noble
+    image: mcr.microsoft.com/playwright:v1.63.0-noble
     profiles: ["e2e"]
     working_dir: /work
     volumes:
@@ -71,7 +71,7 @@ services:
     environment:
       - CI=true
       - PLAYWRIGHT_TEST_BASE_URL=http://nginx
-    command: ["npx", "playwright", "test", "--update-snapshots"]
+    command: ["npx", "playwright", "test"]
     depends_on:
       nginx:
         condition: service_started
