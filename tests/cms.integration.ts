@@ -1,3 +1,12 @@
+import { randomUUID } from "node:crypto";
+import {
+  captureVisitorEvent,
+  getVisitor,
+  listVisitors,
+  pruneVisitorAnalytics,
+  visitorReport,
+} from "../src/lib/visitorStore";
+import { DETAIL_DAILY_LIMIT } from "../src/lib/visitorIdentity";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { prisma } from "../src/lib/prisma";
@@ -337,6 +346,177 @@ test("CMS database workflows preserve publication, concurrency and recovery cont
         0,
       );
       await prisma.analyticsDaily.deleteMany({ where: { path } });
+    },
+  );
+  await t.test(
+    "visitor capture deduplicates events, keeps similar profiles separate and enforces retention/capacity",
+    async () => {
+      const priorProxy = process.env.ANALYTICS_TRUST_PROXY;
+      process.env.ANALYTICS_TRUST_PROXY = "true";
+      const path = `/v1/blog/visitor-${marker}`;
+      const headers = new Headers({
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0) Chrome/130.0",
+        "x-real-ip": "198.51.100.7",
+        "x-forwarded-for": "192.0.2.99",
+        "cf-ipcountry": "US",
+      });
+      const first = {
+        visitorToken: randomUUID(),
+        sessionToken: randomUUID(),
+        eventId: randomUUID(),
+        signals: {
+          language: "en-US",
+          timezone: "America/Los_Angeles",
+          screen: "1920x1080",
+          pixelRatio: 1,
+          touchPoints: 0,
+          hardwareConcurrency: 8,
+        },
+        loadMs: 1234,
+        campaignName: "QA-campaign",
+        ip: "203.0.113.99",
+      };
+      const event = {
+        type: "pageview" as const,
+        path,
+        destination: "",
+        label: "",
+        referrer: "Direct",
+        device: "desktop",
+      };
+      let cappedDay: Date | undefined;
+      let budgetBeforeCap = 0;
+      try {
+        const captures = await Promise.all([
+          captureVisitorEvent(event, first, headers),
+          captureVisitorEvent(event, first, headers),
+        ]);
+        assert.equal(captures.filter((item) => item.stored).length, 1);
+        assert.equal(captures.filter((item) => item.duplicate).length, 1);
+        assert.equal(
+          (await analyticsReport(7)).pages.find((row) => row.label === path)
+            ?.count,
+          1,
+        );
+        const second = {
+          ...first,
+          visitorToken: randomUUID(),
+          sessionToken: randomUUID(),
+          eventId: randomUUID(),
+        };
+        await captureVisitorEvent(event, second, headers);
+        const rows = await listVisitors(
+          new URLSearchParams({ q: "198.51.100.7" }),
+        );
+        assert.equal(rows.total, 2);
+        const detail = await getVisitor(rows.items[0].id);
+        assert.equal(detail?.lastIp, "198.51.100.7");
+        assert.equal(detail?.similar, 1);
+        assert.equal(detail?.sessions[0].events[0].loadMs, 1234);
+        assert.equal(detail?.sessions[0].events[0].ip, "198.51.100.7");
+        await captureVisitorEvent(
+          { ...event, type: "engagement" },
+          {
+            ...first,
+            eventId: randomUUID(),
+            activeMs: 20_000,
+            scrollDepth: 90,
+            loadMs: 0,
+          },
+          headers,
+        );
+        const audience = await visitorReport(7);
+        assert.ok(audience.engagedSessions >= 1);
+        assert.ok(
+          audience.campaigns.some((row) => row.label.includes("QA-campaign")),
+        );
+        assert.equal(audience.retentionDays, 30);
+        assert.equal(
+          audience.performancePages.find((row) => row.path === path)
+            ?.milliseconds,
+          1234,
+        );
+        const count = await prisma.analyticsVisitEvent.count({
+          where: { path },
+        });
+        const privateHeaders = new Headers(headers);
+        privateHeaders.set("sec-gpc", "1");
+        await captureVisitorEvent(
+          event,
+          { ...first, eventId: randomUUID() },
+          privateHeaders,
+        );
+        await captureVisitorEvent(event, false, headers);
+        assert.equal(
+          (await analyticsReport(7)).pages.find((row) => row.label === path)
+            ?.count,
+          2,
+        );
+        assert.equal(
+          await prisma.analyticsVisitEvent.count({ where: { path } }),
+          count,
+        );
+        const oldId = "f".repeat(64);
+        const oldDate = new Date(Date.now() - 31 * 86_400_000);
+        await prisma.analyticsVisitor.create({
+          data: {
+            id: oldId,
+            firstSeen: oldDate,
+            lastSeen: oldDate,
+            lastIp: "192.0.2.1",
+            ipSource: "trusted-proxy",
+            browser: "Other",
+            os: "Other",
+            device: "other",
+            fingerprint: oldId,
+            userAgent: "QA expired",
+            signals: {},
+          },
+        });
+        await pruneVisitorAnalytics();
+        assert.equal(await getVisitor(oldId), null);
+        const day = new Date(new Date().toISOString().slice(0, 10));
+        const budget = await prisma.analyticsCaptureDay.findUniqueOrThrow({
+          where: { day },
+        });
+        budgetBeforeCap = budget.events;
+        cappedDay = day;
+        await prisma.analyticsCaptureDay.update({
+          where: { day },
+          data: { events: DETAIL_DAILY_LIMIT },
+        });
+        const limited = await captureVisitorEvent(
+          event,
+          { ...first, eventId: randomUUID() },
+          headers,
+        );
+        assert.equal(limited.stored, false);
+        assert.equal(
+          await prisma.analyticsVisitEvent.count({ where: { path } }),
+          count,
+        );
+        assert.equal(
+          (await analyticsReport(7)).pages.find((row) => row.label === path)
+            ?.count,
+          3,
+        );
+      } finally {
+        if (cappedDay)
+          await prisma.analyticsCaptureDay.update({
+            where: { day: cappedDay },
+            data: { events: budgetBeforeCap },
+          });
+        const sessions = await prisma.analyticsSession.findMany({
+          where: { entryPath: path },
+          select: { visitorId: true },
+        });
+        await prisma.analyticsVisitor.deleteMany({
+          where: { id: { in: sessions.map((row) => row.visitorId) } },
+        });
+        await prisma.analyticsDaily.deleteMany({ where: { path } });
+        if (priorProxy === undefined) delete process.env.ANALYTICS_TRUST_PROXY;
+        else process.env.ANALYTICS_TRUST_PROXY = priorProxy;
+      }
     },
   );
 });

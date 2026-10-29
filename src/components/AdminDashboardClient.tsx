@@ -1,9 +1,12 @@
 "use client";
+import { AdminVisitors } from "./AdminVisitors";
+
 import { useCmsConfirm } from "./CmsConfirm";
 import { AdminInbox } from "./AdminInbox";
 import { AdminActivity } from "./AdminActivity";
 import {
   BarChart3,
+  Users,
   FolderKanban,
   FileText,
   Inbox,
@@ -60,6 +63,7 @@ import { transformProjectMarkdownUrl } from "@/lib/projectCaseStudy";
 
 type Tab =
   | "metrics"
+  | "visitors"
   | "projects"
   | "posts"
   | "messages"
@@ -68,6 +72,7 @@ type Tab =
 
 const TAB_KEYS: Tab[] = [
   "metrics",
+  "visitors",
   "projects",
   "posts",
   "messages",
@@ -76,6 +81,12 @@ const TAB_KEYS: Tab[] = [
 ];
 
 const SECTION_INFO = {
+  visitors: {
+    label: "Visitors",
+    description:
+      "Inspect browser profiles, network context and visit journeys.",
+    icon: Users,
+  },
   metrics: {
     label: "Analytics",
     description: "Understand your audience and keep your content moving.",
@@ -427,6 +438,7 @@ export default function AdminDashboardClient() {
 
   const tabs: { key: Tab; count?: number }[] = [
     { key: "metrics" },
+    { key: "visitors" },
     {
       key: "projects",
       count: projects.filter((project) => !project.deletedAt).length,
@@ -547,6 +559,8 @@ export default function AdminDashboardClient() {
                   unread={unreadMessagesCount}
                 />
               )}
+
+              {tab === "visitors" && <AdminVisitors />}
 
               {/* Projects */}
               {tab === "projects" && (

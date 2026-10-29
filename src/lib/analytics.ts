@@ -1,4 +1,4 @@
-export type AnalyticsType = "pageview" | "click" | "contact";
+export type AnalyticsType = "pageview" | "click" | "contact" | "engagement";
 export interface AnalyticsEvent {
   type: AnalyticsType;
   path: string;
@@ -43,7 +43,12 @@ export function publicAnalyticsPath(value: unknown): string | null {
 export function normalizeAnalyticsEvent(input: unknown): AnalyticsEvent | null {
   if (!input || typeof input !== "object") return null;
   const body = input as Record<string, unknown>;
-  if (body.type !== "pageview" && body.type !== "click") return null;
+  if (
+    body.type !== "pageview" &&
+    body.type !== "click" &&
+    body.type !== "engagement"
+  )
+    return null;
   const path = publicAnalyticsPath(body.path ?? body.sourcePath);
   if (!path) return null;
   let destination = "";

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { normalizeAnalyticsEvent } from "@/lib/analytics";
-import { recordAnalytics } from "@/lib/analyticsStore";
+import { captureVisitorEvent } from "@/lib/visitorStore";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { rejectCrossSiteMutation } from "@/lib/requestSecurity";
 import { cmsErrorResponse, readJson } from "@/lib/cmsServer";
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     return new NextResponse(null, { status: 204 });
   const limit = checkRateLimit(
     `analytics:${getRequestIp(request)}`,
-    300,
+    1800,
     60 * 60 * 1000,
   );
   if (!limit.allowed)
@@ -29,10 +29,11 @@ export async function POST(request: Request) {
       },
     );
   try {
-    const event = normalizeAnalyticsEvent(await readJson(request, 8192));
+    const body = await readJson(request, 8192);
+    const event = normalizeAnalyticsEvent(body);
     if (!event)
       return NextResponse.json({ error: "Invalid event" }, { status: 400 });
-    await recordAnalytics(event);
+    await captureVisitorEvent(event, body, request.headers);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     return cmsErrorResponse(error);

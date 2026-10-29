@@ -1,3 +1,4 @@
+import { visitorReport } from "@/lib/visitorStore";
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/requestSecurity";
 import { analyticsReport } from "@/lib/analyticsStore";
@@ -12,9 +13,16 @@ export async function GET(request: Request) {
       { status: 400 },
     );
   try {
-    return NextResponse.json(await analyticsReport(days), {
-      headers: PRIVATE_API_HEADERS,
-    });
+    const [traffic, audience] = await Promise.all([
+      analyticsReport(days),
+      visitorReport(days),
+    ]);
+    return NextResponse.json(
+      { ...traffic, audience },
+      {
+        headers: PRIVATE_API_HEADERS,
+      },
+    );
   } catch (error) {
     return cmsErrorResponse(error);
   }

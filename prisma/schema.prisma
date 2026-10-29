@@ -57,27 +57,27 @@ enum ProjectStatus {
 // ─── Blog Posts ────────────────────────────────────────
 
 model Post {
-  id                String         @id @default(cuid())
-  slug              String         @unique
-  title             String
-  excerpt           String
-  content           String?        @db.Text
-  bodyJson          Json?          @map("body_json")
-  date              String
-  readTime          String         @map("read_time")
-  tags              String[]
-  published         Boolean        @default(true)
-  status            PostStatus     @default(DRAFT)
-  publishedAt       DateTime?      @map("published_at")
-  coverImage        String?        @map("cover_image")
-  coverAlt          String?        @map("cover_alt")
-  featured          Boolean        @default(false)
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
-  version           Int            @default(1)
-  deletedAt         DateTime?      @map("deleted_at")
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  title         String
+  excerpt       String
+  content       String?        @db.Text
+  bodyJson      Json?          @map("body_json")
+  date          String
+  readTime      String         @map("read_time")
+  tags          String[]
+  published     Boolean        @default(true)
+  status        PostStatus     @default(DRAFT)
+  publishedAt   DateTime?      @map("published_at")
+  coverImage    String?        @map("cover_image")
+  coverAlt      String?        @map("cover_alt")
+  featured      Boolean        @default(false)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  version       Int            @default(1)
+  deletedAt     DateTime?      @map("deleted_at")
   draftSnapshot Json?          @map("draft_snapshot")
-  revisions         PostRevision[]
+  revisions     PostRevision[]
 
   @@index([status, publishedAt(sort: Desc)])
   @@map("posts")
@@ -155,6 +155,77 @@ model AnalyticsDaily {
   @@id([day, key])
   @@index([day, type])
   @@map("analytics_daily")
+}
+
+model AnalyticsVisitor {
+  id          String             @id
+  firstSeen   DateTime           @default(now()) @map("first_seen")
+  lastSeen    DateTime           @default(now()) @map("last_seen")
+  lastIp      String?            @map("last_ip") @db.VarChar(45)
+  ipSource    String             @map("ip_source")
+  country     String             @default("")
+  browser     String
+  os          String
+  device      String
+  fingerprint String
+  userAgent   String             @map("user_agent") @db.VarChar(512)
+  signals     Json
+  sessions    AnalyticsSession[]
+
+  @@index([lastSeen])
+  @@index([fingerprint])
+  @@index([lastIp])
+  @@map("analytics_visitors")
+}
+
+model AnalyticsSession {
+  id             String                @id
+  visitorId      String                @map("visitor_id")
+  startedAt      DateTime              @default(now()) @map("started_at")
+  lastSeen       DateTime              @default(now()) @map("last_seen")
+  entryPath      String                @map("entry_path")
+  exitPath       String                @map("exit_path")
+  referrer       String
+  campaignSource String                @default("") @map("campaign_source")
+  campaignMedium String                @default("") @map("campaign_medium")
+  campaignName   String                @default("") @map("campaign_name")
+  pageviews      Int                   @default(0)
+  clicks         Int                   @default(0)
+  contacts       Int                   @default(0)
+  activeMs       Int                   @default(0) @map("active_ms")
+  visitor        AnalyticsVisitor      @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  events         AnalyticsVisitEvent[]
+
+  @@index([lastSeen])
+  @@index([visitorId, startedAt])
+  @@map("analytics_sessions")
+}
+
+model AnalyticsVisitEvent {
+  id          String           @id
+  sessionId   String           @map("session_id")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  type        String
+  path        String
+  destination String           @default("")
+  label       String           @default("")
+  ip          String?          @db.VarChar(45)
+  ipSource    String           @map("ip_source")
+  activeMs    Int              @default(0) @map("active_ms")
+  scrollDepth Int              @default(0) @map("scroll_depth")
+  loadMs      Int              @default(0) @map("load_ms")
+  session     AnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([sessionId, createdAt])
+  @@map("analytics_visit_events")
+}
+
+model AnalyticsCaptureDay {
+  day    DateTime @id @db.Date
+  events Int      @default(0)
+
+  @@map("analytics_capture_days")
 }
 
 // ─── Site Settings (key-value store) ───────────────────

@@ -1,4 +1,6 @@
 "use client";
+import { clientVisitorContext } from "@/lib/visitorClient";
+import { trackingAllowed } from "@/lib/trackLinkClick";
 
 import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -84,6 +86,7 @@ export default function ContactPage() {
         body: JSON.stringify({
           ...formData,
           consent,
+          analytics: trackingAllowed() ? clientVisitorContext() : false,
           turnstileToken,
           company: honeypot,
         }),
@@ -290,11 +293,19 @@ export default function ContactPage() {
                   <span className="text-[10px] tracking-widest text-ash leading-relaxed">
                     I consent to this site storing my submitted details to
                     respond to my inquiry. Read{" "}
-                    <PublicLink href="/v1/privacy" intent="utility" className="text-ember hover:underline">
+                    <PublicLink
+                      href="/v1/privacy"
+                      intent="utility"
+                      className="text-ember hover:underline"
+                    >
                       Privacy Policy
                     </PublicLink>{" "}
                     and{" "}
-                    <PublicLink href="/v1/terms" intent="utility" className="text-ember hover:underline">
+                    <PublicLink
+                      href="/v1/terms"
+                      intent="utility"
+                      className="text-ember hover:underline"
+                    >
                       Terms
                     </PublicLink>
                     .
@@ -384,9 +395,9 @@ export default function ContactPage() {
                   MESSAGE SENT.
                 </p>
                 <p className="text-ash text-xs leading-relaxed mb-8">
-                  Your message has been logged. I&apos;ll get back to you
-                  within 24 hours. In the meantime, feel free to explore
-                  the rest of the site.
+                  Your message has been logged. I&apos;ll get back to you within
+                  24 hours. In the meantime, feel free to explore the rest of
+                  the site.
                 </p>
                 <button
                   onClick={() => {

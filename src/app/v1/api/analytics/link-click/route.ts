@@ -1,10 +1,12 @@
+import { captureVisitorEvent } from "@/lib/visitorStore";
+import { normalizeAnalyticsEvent } from "@/lib/analytics";
 import {
   cmsErrorResponse,
   readJson,
   PRIVATE_API_HEADERS,
 } from "@/lib/cmsServer";
 import { NextResponse } from "next/server";
-import { getLinkClickMetrics, recordLinkClick } from "@/lib/linkClickMetrics";
+import { getLinkClickMetrics } from "@/lib/linkClickMetrics";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import {
   rejectCrossSiteMutation,
@@ -36,11 +38,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const recorded = await recordLinkClick(await readJson(request, 8192));
-    if (!recorded) {
+    const body = await readJson(request, 8192);
+    const event = normalizeAnalyticsEvent({
+      ...(body as Record<string, unknown>),
+      type: "click",
+    });
+    if (!event) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
+    await captureVisitorEvent(event, body, request.headers);
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
     return cmsErrorResponse(error);

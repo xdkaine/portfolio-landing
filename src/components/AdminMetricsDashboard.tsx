@@ -1,4 +1,8 @@
 "use client";
+import {
+  AdminAudienceAnalytics,
+  type AudienceReport,
+} from "./AdminAudienceAnalytics";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight,
@@ -49,7 +53,9 @@ export function AdminMetricsDashboard({
   unread: number;
 }) {
   const [days, setDays] = useState(30);
-  const [report, setReport] = useState<AnalyticsReport | null>(null);
+  const [report, setReport] = useState<
+    (AnalyticsReport & { audience: AudienceReport }) | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const generation = useRef(0);
@@ -67,7 +73,9 @@ export function AdminMetricsDashboard({
             ? "Session expired. Sign in again."
             : "Analytics unavailable. Refresh to retry.",
         );
-      const payload = (await response.json()) as AnalyticsReport;
+      const payload = (await response.json()) as AnalyticsReport & {
+        audience: AudienceReport;
+      };
       if (id === generation.current) setReport(payload);
     } catch (error) {
       if (id === generation.current)
@@ -249,6 +257,9 @@ export function AdminMetricsDashboard({
           </div>
         </details>
       </div>
+      {report?.audience && (
+        <AdminAudienceAnalytics audience={report.audience} />
+      )}
       <div className="cms-two-columns">
         <Ranked
           title="Top pages"
@@ -319,11 +330,11 @@ export function AdminMetricsDashboard({
         />
       </details>
       <p className="cms-footnote">
-        Traffic is aggregated without visitor cookies, stored IP addresses or
-        visitor IDs. Queries and URL fragments are removed. DNT/GPC and common
-        bots are excluded from browser activity. Counts are directional and may
-        include automated traffic; unique visitors are not measured. Daily data
-        is retained for 180 days and pruned on the next accepted event.
+        Detailed visitor activity, IP context and browser-similarity
+        fingerprints are retained for 30 days. Browser IDs and sessions estimate
+        activity and do not identify a person. DNT/GPC and browser opt-outs are
+        respected. Aggregate daily counters are retained for 180 days;
+        historical click totals remain separate.
       </p>
     </div>
   );

@@ -1,3 +1,4 @@
+import { AnalyticsPreferences } from "@/components/AnalyticsPreferences";
 import type { Metadata } from "next";
 import { PublicLink } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
@@ -49,13 +50,25 @@ export default async function PrivacyPage() {
             <p>No privacy policy content configured yet.</p>
           )}
           <p>
-            We measure public page views and link clicks using daily aggregate
-            counts. This measurement does not use visitor cookies or store
-            visitor IDs or IP addresses. URL queries and fragments are removed,
-            and browser Do Not Track and Global Privacy Control signals are
-            respected. Aggregate traffic is kept for up to 180 days and removed
-            on the next accepted event after expiry.
+            We measure public page views, link clicks, contact conversions and
+            visible-page engagement. First-party browser identifiers last up to
+            30 days; tab sessions expire after 30 minutes without observed
+            activity. We retain detailed visit records, including IP addresses
+            supplied by our configured proxy, reported browser and device
+            information, page paths, campaign tags and navigation timing, for 30
+            days. We store a keyed browser fingerprint made from browser/device
+            settings to compare similar configurations. This does not establish
+            a person&apos;s identity.
           </p>
+          <p>
+            Do Not Track and Global Privacy Control are respected. Queries and
+            fragments are removed except explicit source, medium and campaign
+            tags. No canvas/audio/font scans, cross-site identifiers or external
+            IP lookup services are used. Aggregate daily counts are retained for
+            up to 180 days; detailed records are excluded after 30 days and
+            pruned on traffic or administrator reads.
+          </p>
+          <AnalyticsPreferences />
         </div>
       </ScrollReveal>
 

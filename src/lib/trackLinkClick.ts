@@ -1,4 +1,9 @@
 "use client";
+import {
+  analyticsOptedOut,
+  clientVisitorContext,
+  visitorCampaign,
+} from "./visitorClient";
 
 export interface TrackLinkClickPayload {
   href: string;
@@ -13,6 +18,7 @@ const TRACK_ENDPOINT = "/v1/api/analytics/link-click";
 export function trackingAllowed(): boolean {
   return (
     typeof navigator !== "undefined" &&
+    !analyticsOptedOut() &&
     navigator.doNotTrack !== "1" &&
     !(navigator as Navigator & { globalPrivacyControl?: boolean })
       .globalPrivacyControl
@@ -21,7 +27,16 @@ export function trackingAllowed(): boolean {
 
 export function sendAnalytics(endpoint: string, payload: unknown): void {
   if (typeof window === "undefined" || !trackingAllowed()) return;
-  const body = JSON.stringify(payload);
+  let body: string;
+  try {
+    body = JSON.stringify({
+      ...clientVisitorContext(),
+      ...visitorCampaign(),
+      ...(payload && typeof payload === "object" ? payload : {}),
+    });
+  } catch {
+    body = JSON.stringify(payload);
+  }
   try {
     if (
       typeof navigator.sendBeacon === "function" &&

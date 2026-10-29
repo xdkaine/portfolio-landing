@@ -97,16 +97,20 @@ export async function POST(request: Request) {
       data: { name, email, message },
     });
 
-    await import("@/lib/analyticsStore")
-      .then(({ recordAnalytics }) =>
-        recordAnalytics({
-          type: "contact",
-          path: "/v1/contact",
-          destination: "",
-          label: "",
-          referrer: "",
-          device: "other",
-        }),
+    await import("@/lib/visitorStore")
+      .then(({ captureVisitorEvent }) =>
+        captureVisitorEvent(
+          {
+            type: "contact",
+            path: "/v1/contact",
+            destination: "",
+            label: "",
+            referrer: "",
+            device: "other",
+          },
+          body.analytics,
+          request.headers,
+        ),
       )
       .catch(() => {});
     return NextResponse.json(
