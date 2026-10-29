@@ -23,6 +23,12 @@ try:
  run('npm','test')
  run('python3','-m','unittest','discover','-s','deploy/k3s/tests','-v')
  run('npm','audit','--audit-level=high')
+ run(*compose,'up','-d','--wait','db')
+ run(*compose,'exec','-T','db','createdb','-U','xtomm','cms_test')
+ cms_url='postgresql://xtomm:testpassword@127.0.0.1:18090/cms_test'
+ cms_env={**os.environ,'DATABASE_URL':cms_url,'CMS_TEST_DATABASE_URL':cms_url}
+ run('npx','prisma','migrate','deploy',env=cms_env)
+ run('npm','run','test:cms',env=cms_env)
  run(*compose,'up','--build','-d','--wait')
  run('npx','playwright','install','chromium')
  run('npm','run','test:e2e')

@@ -1,18 +1,12 @@
 "use client";
-
+import { useCmsConfirm } from "./CmsConfirm";
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FileText, Plus, Search } from "lucide-react";
 import type { Post } from "@/lib/adminDashboardData";
-
-type FilterStatus = "ALL" | Post["status"];
-
-const STATUS_STYLES: Record<Post["status"], string> = {
-  DRAFT: "text-amber-400 border-amber-400/30",
-  PUBLISHED: "text-emerald-400 border-emerald-400/30",
-  ARCHIVED: "text-steel border-iron",
-};
-
+type Filter = "ALL" | "DRAFT" | "PUBLISHED" | "ARCHIVED" | "TRASH";
 export function AdminPostLibrary({
   posts,
   onRefresh,
@@ -20,150 +14,269 @@ export function AdminPostLibrary({
   posts: Post[];
   onRefresh: () => Promise<void>;
 }) {
+  const { confirm, confirmation } = useCmsConfirm();
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<FilterStatus>("ALL");
+  const [status, setStatus] = useState<Filter>("ALL");
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
-  const filteredPosts = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    return posts.filter((post) => {
-      if (status !== "ALL" && post.status !== status) return false;
-      return !search ||
-        post.title.toLowerCase().includes(search) ||
-        post.slug.toLowerCase().includes(search) ||
-        post.tags.some((tag) => tag.toLowerCase().includes(search));
-    });
-  }, [posts, query, status]);
-
-  const createDraft = async () => {
+  const [sort, setSort] = useState("updated");
+  const [page, setPage] = useState(1);
+  const filtered = useMemo(
+    () =>
+      posts
+        .filter((post) => {
+          if (status === "TRASH" ? !post.deletedAt : !!post.deletedAt)
+            return false;
+          if (!["ALL", "TRASH"].includes(status) && post.status !== status)
+            return false;
+          const search = query.trim().toLowerCase();
+          return (
+            !search ||
+            [post.title, post.slug, ...post.tags].some((value) =>
+              value.toLowerCase().includes(search),
+            )
+          );
+        })
+        .sort((a, b) =>
+          sort === "title"
+            ? a.title.localeCompare(b.title)
+            : new Date(b.updatedAt ?? b.date).getTime() -
+              new Date(a.updatedAt ?? a.date).getTime(),
+        ),
+    [posts, query, status, sort],
+  );
+  const pages = Math.max(1, Math.ceil(filtered.length / 12));
+  const currentPage = Math.min(page, pages);
+  const create = async () => {
+    if (busy) return;
     setBusy("new");
     setNotice("");
-    const response = await fetch("/v1/api/admin/posts", { method: "POST" });
-    if (!response.ok) {
-      setNotice("Failed to create a new draft.");
+    try {
+      const response = await fetch("/v1/api/admin/posts", { method: "POST" });
+      const payload = await response.json();
+      if (!response.ok)
+        throw new Error(payload.error ?? "Draft creation failed.");
+      router.push(`/v1/admin/posts/${payload.id}`);
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Network error. Try again.",
+      );
       setBusy(null);
-      return;
     }
-    const post = await response.json() as Post;
-    router.push(`/v1/admin/posts/${post.id}`);
   };
-
-  const transition = async (post: Post, action: "publish" | "archive") => {
+  const move = async (post: Post, action: "trash" | "restore") => {
+    if (busy) return;
+    if (
+      action === "trash" &&
+      !(await confirm({
+        title: "Move post to Trash?",
+        description: `“${post.title}” will leave the public site and can be restored as a draft.`,
+        confirmLabel: "Move to Trash",
+      }))
+    )
+      return;
     setBusy(post.id);
     setNotice("");
-    const response = await fetch(`/v1/api/admin/posts/${post.id}/${action}`, { method: "POST" });
-    const result = await response.json().catch(() => ({})) as { error?: string };
-    if (!response.ok) {
-      setNotice(result.error ?? `Failed to ${action} post.`);
-    } else {
+    try {
+      const response = await fetch(
+        `/v1/api/admin/posts/${post.id}${action === "restore" ? "/restore" : ""}`,
+        {
+          method: action === "restore" ? "POST" : "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ version: post.version }),
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? "Update failed.");
+      setNotice(
+        action === "trash"
+          ? "Post moved to Trash. Restore it from the Trash filter."
+          : "Post restored as a draft.",
+      );
       await onRefresh();
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Network error. Try again.",
+      );
+    } finally {
+      setBusy(null);
     }
-    setBusy(null);
   };
-
-  const deletePost = async (post: Post) => {
-    if (!window.confirm(`Delete "${post.title}"?`)) return;
-    setBusy(post.id);
-    const response = await fetch(`/v1/api/admin/posts/${post.id}`, { method: "DELETE" });
-    if (response.ok) {
-      await onRefresh();
-    } else {
-      setNotice("Failed to delete post.");
-    }
-    setBusy(null);
-  };
-
   return (
     <div>
-      <div className="border border-iron bg-surface/30 p-4 md:p-5 mb-6">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-          <div>
-            <p className="text-[10px] tracking-[0.3em] text-steel mb-2">TRANSMISSIONS // STUDIO</p>
-            <h2 className="font-display text-3xl md:text-4xl">PUBLICATION QUEUE</h2>
-          </div>
-          <button
-            type="button"
-            disabled={busy === "new"}
-            onClick={() => void createDraft()}
-            className="text-[10px] tracking-[0.2em] text-ember border border-ember px-4 py-3 hover:bg-ember hover:text-void transition-colors disabled:opacity-50"
-          >
-            {busy === "new" ? "CREATING..." : "+ NEW TRANSMISSION"}
-          </button>
+      {confirmation}
+      <div className="cms-toolbar cms-row-between">
+        <div>
+          <strong>
+            {posts.filter((post) => !post.deletedAt).length} posts
+          </strong>
+          <p className="cms-muted">
+            Drafts autosave. Published changes go live when you publish.
+          </p>
         </div>
-        <div className="grid md:grid-cols-[1fr_auto] gap-3 mt-6">
+        <button
+          className="cms-button cms-primary"
+          disabled={!!busy}
+          onClick={() => void create()}
+        >
+          <Plus size={16} />
+          {busy === "new" ? "Creating…" : "New post"}
+        </button>
+      </div>
+      <div className="cms-toolbar">
+        <label className="cms-search">
+          <Search size={17} aria-hidden="true" />
           <input
             aria-label="Search posts"
+            placeholder="Search title, slug or tag"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="SEARCH TITLE, SLUG, OR TAG"
-            className="bg-void border border-iron px-3 py-2 text-xs text-bone tracking-wider"
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
           />
-          <div className="flex flex-wrap gap-2">
-            {(["ALL", "DRAFT", "PUBLISHED", "ARCHIVED"] as const).map((filter) => (
-              <button
-                key={filter}
-                type="button"
-                onClick={() => setStatus(filter)}
-                className={`text-[10px] tracking-[0.18em] border px-3 py-2 transition-colors ${
-                  status === filter
-                    ? "text-ember border-ember bg-ember/5"
-                    : "text-ash border-iron hover:text-bone"
-                }`}
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
-        </div>
+        </label>
+        <select
+          aria-label="Post status"
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value as Filter);
+            setPage(1);
+          }}
+        >
+          {(["ALL", "DRAFT", "PUBLISHED", "ARCHIVED", "TRASH"] as Filter[]).map(
+            (value) => (
+              <option key={value} value={value}>
+                {value === "ALL"
+                  ? "All active posts"
+                  : value.charAt(0) + value.slice(1).toLowerCase()}
+              </option>
+            ),
+          )}
+        </select>
+        <select
+          aria-label="Sort posts"
+          value={sort}
+          onChange={(event) => setSort(event.target.value)}
+        >
+          <option value="updated">Recently updated</option>
+          <option value="title">Title A–Z</option>
+        </select>
       </div>
-
-      {notice ? <p className="text-xs text-amber-400 mb-4" aria-live="polite">{notice}</p> : null}
-
-      <div className="space-y-3">
-        {filteredPosts.map((post) => (
-          <article
-            key={post.id}
-            className="border border-iron bg-surface/20 p-4 flex flex-col md:flex-row md:items-center gap-4"
-          >
-            <div className="w-full md:w-24 h-20 border border-iron bg-void shrink-0 overflow-hidden">
-              {post.coverImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={post.coverImage} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="h-full grid place-items-center text-[9px] tracking-wider text-iron">NO COVER</div>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className={`text-[9px] tracking-[0.18em] border px-2 py-0.5 ${STATUS_STYLES[post.status]}`}>
-                  {post.status}
-                </span>
-                {post.featured ? <span className="text-[9px] tracking-widest text-ember">FEATURED</span> : null}
-                {post.needsContent ? <span className="text-[9px] tracking-widest text-amber-400">NEEDS BODY</span> : null}
-              </div>
-              <h3 className="text-sm text-bone truncate">{post.title || "Untitled transmission"}</h3>
-              <p className="text-[10px] tracking-wider text-steel mt-2 truncate">
-                {post.date} / {post.readTime} / {post.slug}
+      {notice && (
+        <p className="cms-notice" role="status">
+          {notice}
+        </p>
+      )}
+      <div className="cms-panel">
+        <div className="cms-panel-heading cms-row-between">
+          <h2>{status === "TRASH" ? "Trash" : "Post library"}</h2>
+          <span className="cms-muted">{filtered.length} results</span>
+        </div>
+        <div className="cms-posts-list">
+          {filtered
+            .slice((currentPage - 1) * 12, currentPage * 12)
+            .map((post) => (
+              <article key={post.id} className="cms-post-row">
+                <div className="cms-post-thumbnail">
+                  {post.coverImage ? (
+                    <Image
+                      src={post.coverImage}
+                      alt=""
+                      width={64}
+                      height={64}
+                      unoptimized
+                    />
+                  ) : (
+                    <FileText size={24} aria-hidden="true" />
+                  )}
+                </div>
+                <div className="cms-post-info">
+                  <div className="cms-toolbar">
+                    <span className="cms-status">
+                      {post.deletedAt ? "TRASH" : post.status}
+                    </span>
+                    {post.hasUnpublishedChanges && !post.deletedAt && (
+                      <span className="cms-status">Pending edits</span>
+                    )}
+                    {post.featured && (
+                      <span className="cms-muted">Featured</span>
+                    )}
+                  </div>
+                  <h3>{post.title || "Untitled post"}</h3>
+                  <p>
+                    {post.slug} · {post.readTime} · Updated{" "}
+                    {new Date(post.updatedAt ?? post.date).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="cms-toolbar cms-wrap">
+                  {post.deletedAt ? (
+                    <button
+                      className="cms-button"
+                      disabled={!!busy}
+                      onClick={() => void move(post, "restore")}
+                    >
+                      Restore draft
+                    </button>
+                  ) : (
+                    <>
+                      <Link
+                        className="cms-button"
+                        href={`/v1/admin/posts/${post.id}`}
+                      >
+                        Edit post
+                      </Link>
+                      <Link
+                        className="cms-button"
+                        href={`/v1/admin/posts/${post.id}/preview`}
+                        target="_blank"
+                      >
+                        Preview
+                      </Link>
+                      <button
+                        className="cms-button"
+                        disabled={!!busy}
+                        onClick={() => void move(post, "trash")}
+                      >
+                        Move to Trash
+                      </button>
+                    </>
+                  )}
+                </div>
+              </article>
+            ))}
+          {!filtered.length && (
+            <div className="cms-empty">
+              <FileText size={28} aria-hidden="true" />
+              <h3>
+                {status === "TRASH" ? "Trash is empty" : "No posts found"}
+              </h3>
+              <p>
+                {query
+                  ? "Try another title, slug or tag."
+                  : "Create a draft to start writing."}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <Link href={`/v1/admin/posts/${post.id}`} className="post-action">EDIT</Link>
-              <Link href={`/v1/admin/posts/${post.id}/preview`} target="_blank" className="post-action">PREVIEW</Link>
-              {post.status === "PUBLISHED" ? (
-                <button className="post-action" disabled={busy === post.id} onClick={() => void transition(post, "archive")}>ARCHIVE</button>
-              ) : (
-                <button className="post-action text-ember" disabled={busy === post.id} onClick={() => void transition(post, "publish")}>PUBLISH</button>
-              )}
-              <button className="post-action hover:text-red-400" disabled={busy === post.id} onClick={() => void deletePost(post)}>DELETE</button>
-            </div>
-          </article>
-        ))}
-        {filteredPosts.length === 0 ? (
-          <p className="border border-iron py-14 text-center text-[10px] tracking-[0.25em] text-steel">
-            NO TRANSMISSIONS MATCH THE FILTER
-          </p>
-        ) : null}
+          )}
+        </div>
+        <div className="cms-pagination">
+          <button
+            disabled={currentPage <= 1}
+            onClick={() => setPage(currentPage - 1)}
+          >
+            Previous
+          </button>
+          <span className="cms-muted">
+            Page {currentPage} of {pages}
+          </span>
+          <button
+            disabled={currentPage >= pages}
+            onClick={() => setPage(currentPage + 1)}
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   );

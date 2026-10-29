@@ -1,3 +1,4 @@
+import { AnalyticsPreferences } from "@/components/AnalyticsPreferences";
 import type { Metadata } from "next";
 import { PublicLink } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
@@ -6,7 +7,8 @@ import { getSiteSettings } from "@/lib/siteSettings";
 
 export const metadata: Metadata = createPublicPageMetadata({
   title: "Privacy Policy",
-  description: "Privacy policy and data handling practices for this portfolio website and its contact form.",
+  description:
+    "Privacy policy and data handling practices for this portfolio website and its contact form.",
   path: "/v1/privacy",
   imageAlt: "Privacy policy for this portfolio website.",
 });
@@ -47,6 +49,26 @@ export default async function PrivacyPage() {
           ) : (
             <p>No privacy policy content configured yet.</p>
           )}
+          <p>
+            We measure public page views, link clicks, contact conversions and
+            visible-page engagement. First-party browser identifiers last up to
+            30 days; tab sessions expire after 30 minutes without observed
+            activity. We retain detailed visit records, including IP addresses
+            supplied by our configured proxy, reported browser and device
+            information, page paths, campaign tags and navigation timing, for 30
+            days. We store a keyed browser fingerprint made from browser/device
+            settings to compare similar configurations. This does not establish
+            a person&apos;s identity.
+          </p>
+          <p>
+            Do Not Track and Global Privacy Control are respected. Queries and
+            fragments are removed except explicit source, medium and campaign
+            tags. No canvas/audio/font scans, cross-site identifiers or external
+            IP lookup services are used. Aggregate daily counts are retained for
+            up to 180 days; detailed records are excluded after 30 days and
+            pruned on traffic or administrator reads.
+          </p>
+          <AnalyticsPreferences />
         </div>
       </ScrollReveal>
 

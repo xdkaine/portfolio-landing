@@ -1,4 +1,20 @@
 "use client";
+import { AdminVisitors } from "./AdminVisitors";
+
+import { useCmsConfirm } from "./CmsConfirm";
+import { AdminInbox } from "./AdminInbox";
+import { AdminActivity } from "./AdminActivity";
+import {
+  BarChart3,
+  Users,
+  FolderKanban,
+  FileText,
+  Inbox,
+  Settings2,
+  History,
+  ExternalLink,
+  RefreshCw,
+} from "lucide-react";
 
 import {
   type ReactNode,
@@ -29,7 +45,6 @@ import {
   fetchAdminDashboardData,
   saveProjectRecord,
   saveSiteSettings,
-  type ContactMsg,
   type EditableProject,
   type LinkClickMetric,
   type Post,
@@ -46,17 +61,70 @@ import {
 } from "@/lib/siteSettings-schema";
 import { transformProjectMarkdownUrl } from "@/lib/projectCaseStudy";
 
-type Tab = "metrics" | "projects" | "posts" | "messages" | "settings";
+type Tab =
+  | "metrics"
+  | "visitors"
+  | "projects"
+  | "posts"
+  | "messages"
+  | "settings"
+  | "activity";
 
-const TAB_KEYS: Tab[] = ["metrics", "projects", "posts", "messages", "settings"];
+const TAB_KEYS: Tab[] = [
+  "metrics",
+  "visitors",
+  "projects",
+  "posts",
+  "messages",
+  "activity",
+  "settings",
+];
 
-const messageDateFormatter = new Intl.DateTimeFormat(undefined);
+const SECTION_INFO = {
+  visitors: {
+    label: "Visitors",
+    description:
+      "Inspect browser profiles, network context and visit journeys.",
+    icon: Users,
+  },
+  metrics: {
+    label: "Analytics",
+    description: "Understand your audience and keep your content moving.",
+    icon: BarChart3,
+  },
+  projects: {
+    label: "Projects",
+    description: "Manage your project catalog and case studies.",
+    icon: FolderKanban,
+  },
+  posts: {
+    label: "Posts",
+    description: "Write, review and publish with confidence.",
+    icon: FileText,
+  },
+  messages: {
+    label: "Inbox",
+    description: "Turn incoming messages into organized conversations.",
+    icon: Inbox,
+  },
+  activity: {
+    label: "Activity",
+    description: "A record of changes across your workspace.",
+    icon: History,
+  },
+  settings: {
+    label: "Settings",
+    description: "Manage site identity, contact details and legal content.",
+    icon: Settings2,
+  },
+};
 
 function isTab(value: string | null): value is Tab {
   return value !== null && TAB_KEYS.includes(value as Tab);
 }
 
 export default function AdminDashboardClient() {
+  const { confirm: confirmAction, confirmation } = useCmsConfirm();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -67,23 +135,43 @@ export default function AdminDashboardClient() {
   }, [searchParams]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [messages, setMessages] = useState<ContactMsg[]>([]);
   const [linkClicks, setLinkClicks] = useState<LinkClickMetric[]>([]);
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [activeMessagesCount, setActiveMessagesCount] = useState(0);
+  const [savingProject, setSavingProject] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsNotice, setSettingsNotice] = useState("");
   const [orderingProjects, setOrderingProjects] = useState(false);
   const [projectOrderNotice, setProjectOrderNotice] = useState("");
   const [projectSaveNotice, setProjectSaveNotice] = useState("");
+  const settingsDirty = useRef(false);
+  const inboxDirty = useRef(false);
+  const onInboxDirty = useCallback((dirty: boolean) => {
+    inboxDirty.current = dirty;
+  }, []);
+  const [showProjectTrash, setShowProjectTrash] = useState(false);
+  const [projectQuery, setProjectQuery] = useState("");
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [showNewProject, setShowNewProject] = useState(false);
 
   // Shared unmount guard for async callbacks (fetching + save actions).
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (settingsDirty.current) event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
   }, []);
 
   // Load all dashboard datasets in parallel so tab counts and lists stay in sync.
@@ -92,7 +180,7 @@ export default function AdminDashboardClient() {
       return;
     }
 
-    setLoading(true);
+    setLoadError("");
     try {
       const data = await fetchAdminDashboardData();
 
@@ -102,11 +190,17 @@ export default function AdminDashboardClient() {
 
       setProjects(data.projects);
       setPosts(data.posts);
-      setMessages(data.messages);
-      setSettings(data.settings);
+      setUnreadMessagesCount(data.unreadMessages);
+      setActiveMessagesCount(data.activeMessages);
+      if (!settingsDirty.current) setSettings(data.settings);
       setLinkClicks(data.linkClicks);
+      setLoaded(true);
     } catch (e) {
-      console.error("Failed to fetch:", e);
+      setLoadError(
+        e instanceof Error
+          ? e.message
+          : "Workspace could not be loaded. Refresh to retry.",
+      );
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
@@ -125,7 +219,19 @@ export default function AdminDashboardClient() {
   }, [fetchData]);
 
   const updateTab = useCallback(
-    (nextTab: Tab) => {
+    async (nextTab: Tab) => {
+      if (nextTab === tab) return;
+      if (
+        tab === "messages" &&
+        inboxDirty.current &&
+        !(await confirmAction({
+          title: "Leave without saving the note?",
+          description:
+            "Save your internal note to preserve these changes, or discard it before leaving the inbox.",
+          confirmLabel: "Discard note",
+        }))
+      )
+        return;
       const params = new URLSearchParams(searchParams.toString());
       if (nextTab === "metrics") {
         params.delete("tab");
@@ -138,11 +244,12 @@ export default function AdminDashboardClient() {
         scroll: false,
       });
     },
-    [pathname, router, searchParams],
+    [pathname, router, searchParams, tab, confirmAction],
   );
 
   const updateSetting = useCallback(
     (name: keyof SiteSettings, value: string) => {
+      settingsDirty.current = true;
       setSettings((prev) => ({ ...prev, [name]: value }));
     },
     [],
@@ -155,23 +262,50 @@ export default function AdminDashboardClient() {
 
   // Keep form components simple by centralizing create/update/delete here.
   const saveProject = async (project: EditableProject) => {
+    if (savingProject) return;
+    setSavingProject(true);
     setProjectSaveNotice("");
-    const result = await saveProjectRecord(project);
-    if (!result.ok) {
-      setProjectSaveNotice(result.error || "Failed to save project.");
-      return;
+    try {
+      const result = await saveProjectRecord(project);
+      if (!result.ok) {
+        setProjectSaveNotice(result.error || "Failed to save project.");
+        return;
+      }
+      setEditingProject(null);
+      setShowNewProject(false);
+      setProjectSaveNotice("Project saved.");
+      await fetchData();
+    } catch {
+      setProjectSaveNotice(
+        "Network error while saving project. Your edits remain in the form.",
+      );
+    } finally {
+      setSavingProject(false);
     }
-
-    setEditingProject(null);
-    setShowNewProject(false);
-    setProjectSaveNotice("Project saved.");
-    await fetchData();
   };
 
   const deleteProject = async (id: string) => {
-    if (!confirm("Delete this project?")) return;
-    if (await deleteProjectRecord(id)) {
+    if (
+      !(await confirmAction({
+        title: "Move project to Trash?",
+        description:
+          "Its case study and media references are preserved for restoration.",
+        confirmLabel: "Move to Trash",
+      }))
+    )
+      return;
+    const project = projects.find((item) => item.id === id);
+    if (!project) return;
+    try {
+      if (!(await deleteProjectRecord(id, project.version)))
+        throw new Error(
+          "Project changed or could not be moved. Refresh and retry.",
+        );
       await fetchData();
+    } catch (error) {
+      setProjectSaveNotice(
+        error instanceof Error ? error.message : "Network error. Try again.",
+      );
     }
   };
 
@@ -190,6 +324,7 @@ export default function AdminDashboardClient() {
       if (result.settings) {
         setSettings(result.settings);
       }
+      settingsDirty.current = false;
       setSettingsNotice("Settings saved.");
     } catch {
       setSettingsNotice("Network error while saving settings.");
@@ -199,7 +334,10 @@ export default function AdminDashboardClient() {
   };
 
   const orderedProjects = useMemo(
-    () => [...projects].sort(compareProjectsByDisplayOrder),
+    () =>
+      projects
+        .filter((project) => !project.deletedAt)
+        .sort(compareProjectsByDisplayOrder),
     [projects],
   );
 
@@ -221,49 +359,31 @@ export default function AdminDashboardClient() {
       setOrderingProjects(true);
       setProjectOrderNotice("");
 
-      const currentSortOrders = new Map(
-        projects.map((project) => [project.id, project.sortOrder]),
-      );
-
       try {
-        const updates = nextProjects
-          .map((project, index) => ({
-            id: project.id,
-            sortOrder: index,
-          }))
-          .filter(
-            (project) => currentSortOrders.get(project.id) !== project.sortOrder,
-          );
-
-        if (updates.length === 0) {
-          setProjectOrderNotice(successNotice);
-          return;
+        const response = await fetch("/v1/api/admin/projects/order", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            records: nextProjects.map(({ id, version }) => ({ id, version })),
+          }),
+        });
+        if (!response.ok) {
+          const payload = await response.json();
+          throw new Error(payload.error ?? "Project order could not be saved.");
         }
-
-        const responses = await Promise.all(
-          updates.map(({ id, sortOrder }) =>
-            fetch(`/v1/api/projects/${id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ sortOrder }),
-            }),
-          ),
-        );
-
-        if (responses.some((response) => !response.ok)) {
-          setProjectOrderNotice("Failed to update project order.");
-          return;
-        }
-
         setProjectOrderNotice(successNotice);
         await fetchData();
-      } catch {
-        setProjectOrderNotice("Failed to update project order.");
+      } catch (error) {
+        setProjectOrderNotice(
+          error instanceof Error
+            ? error.message
+            : "Failed to update project order.",
+        );
       } finally {
         setOrderingProjects(false);
       }
     },
-    [fetchData, projects],
+    [fetchData],
   );
 
   const moveProject = useCallback(
@@ -316,413 +436,508 @@ export default function AdminDashboardClient() {
     [orderedProjects, persistProjectOrder],
   );
 
-  const unreadMessagesCount = useMemo(
-    () => messages.filter((message) => !message.read).length,
-    [messages],
-  );
-
-  const tabs = useMemo<{ key: Tab; label: string; count: number }[]>(
-    () => [
-      {
-        key: "metrics",
-        label: "METRICS",
-        count: projects.length + posts.length + messages.length + linkClicks.length,
-      },
-      { key: "projects", label: "PROJECTS", count: projects.length },
-      { key: "posts", label: "POSTS", count: posts.length },
-      { key: "messages", label: "MESSAGES", count: unreadMessagesCount },
-      { key: "settings", label: "SETTINGS", count: 1 },
-    ],
-    [
-      linkClicks.length,
-      messages.length,
-      posts.length,
-      projects.length,
-      unreadMessagesCount,
-    ],
-  );
-
+  const tabs: { key: Tab; count?: number }[] = [
+    { key: "metrics" },
+    { key: "visitors" },
+    {
+      key: "projects",
+      count: projects.filter((project) => !project.deletedAt).length,
+    },
+    { key: "posts", count: posts.filter((post) => !post.deletedAt).length },
+    { key: "messages", count: unreadMessagesCount },
+    { key: "activity" },
+    { key: "settings" },
+  ];
+  const info = SECTION_INFO[tab];
   return (
-    <section className="pt-32 pb-24 px-6 md:px-12 lg:px-24 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-4">
-            <span>{settings.siteName}</span>
-            <span>/</span>
-            <span className="text-ember">ADMIN</span>
-          </div>
-          <h1 className="font-display text-5xl md:text-7xl">DASHBOARD</h1>
-        </div>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="text-[10px] tracking-[0.2em] text-ash hover:text-ember border border-iron hover:border-ember px-4 py-2 transition-colors"
-        >
-          LOGOUT
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 border-b-2 border-iron mb-8" role="tablist" aria-label="Dashboard sections">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            role="tab"
-            id={`admin-tab-${t.key}`}
-            aria-selected={tab === t.key}
-            aria-controls={`admin-panel-${t.key}`}
-            onClick={() => updateTab(t.key)}
-            className={`text-[10px] tracking-[0.2em] px-4 py-3 border-b-2 -mb-0.5 transition-colors ${
-              tab === t.key
-                ? "border-ember text-ember"
-                : "border-transparent text-ash hover:text-bone"
-            }`}
-          >
-            {t.label} ({String(t.count).padStart(2, "0")})
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="text-center py-12">
-          <span className="text-steel text-[10px] tracking-[0.3em]">LOADING…</span>
-        </div>
-      ) : (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={tab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            role="tabpanel"
-            id={`admin-panel-${tab}`}
-            aria-labelledby={`admin-tab-${tab}`}
-          >
-            {/* Metrics */}
-            {tab === "metrics" && (
-              <AdminMetricsDashboard
-                projects={projects}
-                posts={posts}
-                messages={messages}
-                linkClicks={linkClicks}
-                settings={settings}
-              />
-            )}
-
-            {/* Projects */}
-            {tab === "projects" && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <span className="text-ash text-xs tracking-widest">
-                      {orderedProjects.length} projects
-                    </span>
-                    <p className="text-[10px] tracking-[0.18em] text-iron mt-2">
-                      Manual order is live. Lower display order appears first on the
-                      public site.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void applyProjectOrderPreset("number")}
-                      disabled={orderingProjects || orderedProjects.length < 2}
-                      className="text-[10px] tracking-[0.18em] text-ash border border-iron px-3 py-2 hover:text-bone hover:border-ash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      ORDER BY #
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void applyProjectOrderPreset("newest")}
-                      disabled={orderingProjects || orderedProjects.length < 2}
-                      className="text-[10px] tracking-[0.18em] text-ash border border-iron px-3 py-2 hover:text-bone hover:border-ash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      NEWEST FIRST
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProjectSaveNotice("");
-                        setShowNewProject(true);
-                        setEditingProject(null);
-                      }}
-                      className="text-[10px] tracking-[0.2em] text-ember border border-ember px-4 py-2 hover:bg-ember hover:text-void transition-colors"
-                    >
-                      + NEW PROJECT
-                    </button>
-                  </div>
-                </div>
-                {projectOrderNotice ? (
-                  <p className="text-[10px] tracking-[0.16em] text-ash mb-4" aria-live="polite">
-                    {projectOrderNotice}
-                  </p>
-                ) : null}
-                {projectSaveNotice ? (
-                  <p
-                    className="text-[10px] tracking-[0.16em] text-ash mb-4"
-                    role="status"
-                    aria-live="polite"
-                  >
-                    {projectSaveNotice}
-                  </p>
-                ) : null}
-
-                {(showNewProject || editingProject) && (
-                  <ProjectForm
-                    key={editingProject?.id ?? "new-project"}
-                    project={editingProject}
-                    onSave={saveProject}
-                    defaultSortOrder={nextProjectSortOrder}
-                    onCancel={() => {
-                      setEditingProject(null);
-                      setShowNewProject(false);
-                    }}
-                  />
-                )}
-
-                <div className="space-y-1">
-                  {orderedProjects.map((p, index) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center justify-between py-3 border-b border-iron group hover:bg-surface/50 px-2 -mx-2"
-                    >
-                      <div className="flex items-center gap-4 min-w-0">
-                        <span className="text-iron text-[10px] w-14">
-                          ORD {String(index + 1).padStart(2, "0")}
-                        </span>
-                        <span className="text-iron text-[10px] w-6">{p.number}</span>
-                        <span className="text-bone text-sm truncate">{p.title}</span>
-                        <span
-                          className={`text-[9px] tracking-widest px-1.5 py-0.5 border ${
-                            p.status === "LIVE"
-                              ? "text-emerald-400 border-emerald-400/30"
-                              : p.status === "IN PROGRESS"
-                                ? "text-amber-400 border-amber-400/30"
-                                : "text-steel border-iron"
-                          }`}
-                        >
-                          {p.status}
-                        </span>
-                        {p.featured && (
-                          <span className="text-[9px] text-ember tracking-widest">FEATURED</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void moveProject(p.id, -1)}
-                          disabled={orderingProjects || index === 0}
-                          className="text-[10px] text-ash hover:text-bone px-2 py-1 border border-iron disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          UP
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void moveProject(p.id, 1)}
-                          disabled={
-                            orderingProjects || index === orderedProjects.length - 1
-                          }
-                          className="text-[10px] text-ash hover:text-bone px-2 py-1 border border-iron disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          DOWN
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProjectSaveNotice("");
-                            setEditingProject(p);
-                            setShowNewProject(false);
-                          }}
-                          className="text-[10px] text-ash hover:text-bone px-2 py-1"
-                        >
-                          EDIT
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteProject(p.id)}
-                          className="text-[10px] text-ash hover:text-red-400 px-2 py-1"
-                        >
-                          DELETE
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Posts */}
-            {tab === "posts" && (
-              <AdminPostLibrary posts={posts} onRefresh={fetchData} />
-            )}
-
-            {/* Messages */}
-            {tab === "messages" && (
-              <div className="space-y-4">
-                {messages.length === 0 ? (
-                  <p className="text-iron text-sm tracking-widest py-12 text-center">
-                    NO MESSAGES YET
-                  </p>
-                ) : (
-                  messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={`border p-4 ${m.read ? "border-iron" : "border-ember/30"}`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          {!m.read && <span className="w-2 h-2 bg-ember" />}
-                          <span className="text-bone text-sm">{m.name}</span>
-                          <span className="text-ash text-[10px]">&lt;{m.email}&gt;</span>
-                        </div>
-                        <span className="text-iron text-[10px] tracking-widest">
-                          {messageDateFormatter.format(new Date(m.createdAt))}
-                        </span>
-                      </div>
-                      <p className="text-ash text-xs leading-relaxed">{m.message}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Settings */}
-            {tab === "settings" && (
-              <motion.div
-                className="border-2 border-iron p-6"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
+    <section className="cms-shell">
+      {confirmation}
+      <aside className="cms-sidebar">
+        <a href="/v1" className="cms-brand">
+          {settings.siteName}
+          <span>CONTENT WORKSPACE</span>
+        </a>
+        <p className="cms-eyebrow">MANAGE</p>
+        <nav aria-label="CMS sections">
+          {tabs.map((item) => {
+            const Icon = SECTION_INFO[item.key].icon;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                aria-current={tab === item.key ? "page" : undefined}
+                onClick={() => updateTab(item.key)}
               >
-                <div className="grid md:grid-cols-2 gap-4">
-                  <AdminTextInput
-                    label="SITE NAME"
-                    value={settings.siteName}
-                    onChange={(v) => updateSetting("siteName", v)}
-                    placeholder="Kaine"
-                  />
-                  <AdminTextInput
-                    label="SITE ALIASES (comma separated)"
-                    value={settings.siteAliases}
-                    onChange={(v) => updateSetting("siteAliases", v)}
-                    placeholder="Kaine, Tommy"
-                  />
-                  <AdminTextInput
-                    label="CONTACT EMAIL"
-                    value={settings.contactEmail}
-                    onChange={(v) => updateSetting("contactEmail", v)}
-                    placeholder="hello@example.com"
-                    type="email"
-                    autoComplete="email"
-                    inputMode="email"
-                    spellCheck={false}
-                  />
-                  <div className="md:col-span-2">
-                    <AdminTextarea
-                      label="SITE DESCRIPTION"
-                      value={settings.siteDescription}
-                      onChange={(v) => updateSetting("siteDescription", v)}
-                      placeholder="Search/meta description text…"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <AdminTextInput
-                      label="HERO SUBTITLE"
-                      value={settings.heroSubtitle}
-                      onChange={(v) => updateSetting("heroSubtitle", v)}
-                      placeholder="DEVELOPER - DESIGNER - BUILDER"
-                    />
-                  </div>
-                  <AdminTextInput
-                    label="GITHUB URL"
-                    value={settings.socialGithub}
-                    onChange={(v) => updateSetting("socialGithub", v)}
-                    placeholder="https://github.com/…"
-                    type="url"
-                    autoComplete="url"
-                    inputMode="url"
-                  />
-                  <AdminTextInput
-                    label="TWITTER/X URL"
-                    value={settings.socialTwitter}
-                    onChange={(v) => updateSetting("socialTwitter", v)}
-                    placeholder="https://x.com/…"
-                    type="url"
-                    autoComplete="url"
-                    inputMode="url"
-                  />
-                  <AdminTextInput
-                    label="LINKEDIN URL"
-                    value={settings.socialLinkedin}
-                    onChange={(v) => updateSetting("socialLinkedin", v)}
-                    placeholder="https://linkedin.com/in/…"
-                    type="url"
-                    autoComplete="url"
-                    inputMode="url"
-                  />
-                  <AdminTextInput
-                    label="RESPONSE TIME HOURS"
-                    value={settings.responseTimeHours}
-                    onChange={(v) => updateSetting("responseTimeHours", v)}
-                    placeholder="24"
-                    inputMode="numeric"
-                  />
-                  <AdminTextInput
-                    label="FOOTER CHUCKLES GIF URL"
-                    value={settings.footerChucklesGifUrl}
-                    onChange={(v) => updateSetting("footerChucklesGifUrl", v)}
-                    placeholder="https://…"
-                    type="url"
-                    autoComplete="url"
-                    inputMode="url"
-                  />
-                  <AdminTextInput
-                    label="LEGAL EFFECTIVE DATE"
-                    value={settings.legalEffectiveDate}
-                    onChange={(v) => updateSetting("legalEffectiveDate", v)}
-                    placeholder="2026-03-12"
-                  />
-                  <div className="md:col-span-2">
-                    <AdminTextarea
-                      label="PRIVACY POLICY"
-                      value={settings.privacyPolicy}
-                      onChange={(v) => updateSetting("privacyPolicy", v)}
-                      placeholder="Privacy policy content…"
-                      rows={8}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <AdminTextarea
-                      label="TERMS OF SERVICE"
-                      value={settings.termsOfService}
-                      onChange={(v) => updateSetting("termsOfService", v)}
-                      placeholder="Terms of service content…"
-                      rows={8}
-                    />
-                  </div>
-                </div>
+                <Icon size={18} aria-hidden="true" />
+                <span>{SECTION_INFO[item.key].label}</span>
+                {item.count !== undefined && <small>{item.count}</small>}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="cms-sidebar-footer">
+          <span className="cms-status">
+            {activeMessagesCount} active conversations
+          </span>
+          <a href="/v1" target="_blank" rel="noreferrer">
+            View website
+            <ExternalLink size={15} />
+          </a>
+          <button type="button" onClick={() => void handleLogout()}>
+            Sign out
+          </button>
+        </div>
+      </aside>
+      <div className="cms-main">
+        <header className="cms-header">
+          <div>
+            <p className="cms-eyebrow">
+              WORKSPACE / {info.label.toUpperCase()}
+            </p>
+            <h1>{info.label}</h1>
+            <p>{info.description}</p>
+          </div>
+          <button
+            type="button"
+            className="cms-button"
+            onClick={() =>
+              void (async () => {
+                if (
+                  !settingsDirty.current ||
+                  (await confirmAction({
+                    title: "Discard unsaved settings?",
+                    description:
+                      "Refreshing reloads the last saved site settings.",
+                    confirmLabel: "Discard and refresh",
+                  }))
+                ) {
+                  settingsDirty.current = false;
+                  await fetchData();
+                }
+              })()
+            }
+          >
+            <RefreshCw size={15} />
+            Refresh workspace
+          </button>
+          <button
+            className="cms-button cms-mobile-signout"
+            onClick={() => void handleLogout()}
+          >
+            Sign out
+          </button>
+        </header>
+        {loadError && (
+          <div className="cms-notice" role="alert">
+            {loadError} <a href="/v1/login">Sign in</a>
+          </div>
+        )}
+        {loading || !loaded ? (
+          <div className="text-center py-12">
+            <span className="text-steel text-[10px] tracking-[0.3em]">
+              {loadError
+                ? "Use Refresh workspace to retry."
+                : "Loading workspace…"}
+            </span>
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              id={`admin-panel-${tab}`}
+            >
+              {/* Metrics */}
+              {tab === "metrics" && (
+                <AdminMetricsDashboard
+                  projects={projects}
+                  posts={posts}
+                  linkClicks={linkClicks}
+                  unread={unreadMessagesCount}
+                />
+              )}
 
-                <div className="flex items-center gap-3 mt-6">
-                  <button
-                    onClick={saveSettings}
-                    disabled={savingSettings}
-                    className="text-[10px] tracking-[0.2em] bg-ember text-void px-6 py-2 hover:bg-ember/80 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {savingSettings ? "SAVING…" : "SAVE SETTINGS"}
-                  </button>
-                  {settingsNotice && (
-                    <span className="text-[10px] tracking-[0.15em] text-ash" aria-live="polite">
-                      {settingsNotice}
-                    </span>
+              {tab === "visitors" && <AdminVisitors />}
+
+              {/* Projects */}
+              {tab === "projects" && (
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <span className="text-ash text-xs tracking-widest">
+                        {orderedProjects.length} projects
+                      </span>
+                      <p className="text-[10px] tracking-[0.18em] text-iron mt-2">
+                        Manual order is live. Lower display order appears first
+                        on the public site.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void applyProjectOrderPreset("number")}
+                        disabled={
+                          orderingProjects || orderedProjects.length < 2
+                        }
+                        className="text-[10px] tracking-[0.18em] text-ash border border-iron px-3 py-2 hover:text-bone hover:border-ash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ORDER BY #
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void applyProjectOrderPreset("newest")}
+                        disabled={
+                          orderingProjects || orderedProjects.length < 2
+                        }
+                        className="text-[10px] tracking-[0.18em] text-ash border border-iron px-3 py-2 hover:text-bone hover:border-ash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        NEWEST FIRST
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProjectSaveNotice("");
+                          setShowNewProject(true);
+                          setEditingProject(null);
+                        }}
+                        className="text-[10px] tracking-[0.2em] text-ember border border-ember px-4 py-2 hover:bg-ember hover:text-void transition-colors"
+                      >
+                        + NEW PROJECT
+                      </button>
+                    </div>
+                  </div>
+                  {projectOrderNotice ? (
+                    <p
+                      className="text-[10px] tracking-[0.16em] text-ash mb-4"
+                      aria-live="polite"
+                    >
+                      {projectOrderNotice}
+                    </p>
+                  ) : null}
+                  {projectSaveNotice ? (
+                    <p
+                      className="text-[10px] tracking-[0.16em] text-ash mb-4"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      {projectSaveNotice}
+                    </p>
+                  ) : null}
+
+                  {(showNewProject || editingProject) && (
+                    <ProjectForm
+                      key={editingProject?.id ?? "new-project"}
+                      project={editingProject}
+                      onSave={saveProject}
+                      saving={savingProject}
+                      defaultSortOrder={nextProjectSortOrder}
+                      onCancel={() => {
+                        setEditingProject(null);
+                        setShowNewProject(false);
+                      }}
+                    />
                   )}
+
+                  <div className="cms-toolbar">
+                    <input
+                      aria-label="Search projects"
+                      placeholder="Search projects"
+                      value={projectQuery}
+                      onChange={(event) => setProjectQuery(event.target.value)}
+                    />
+                    <button
+                      className="cms-button"
+                      onClick={() => setShowProjectTrash(!showProjectTrash)}
+                    >
+                      {showProjectTrash
+                        ? "Back to active projects"
+                        : "View project Trash"}
+                    </button>
+                  </div>
+                  <div className="space-y-1">
+                    {(showProjectTrash
+                      ? projects.filter((project) => project.deletedAt)
+                      : orderedProjects
+                    )
+                      .filter(
+                        (project) =>
+                          !projectQuery ||
+                          [project.title, project.number, ...project.tags]
+                            .join(" ")
+                            .toLowerCase()
+                            .includes(projectQuery.toLowerCase()),
+                      )
+                      .map((p, index) => (
+                        <div
+                          key={p.id}
+                          className="cms-project-row flex flex-wrap gap-3 items-center justify-between py-3 border-b border-iron group hover:bg-surface/50 px-2 -mx-2"
+                        >
+                          <div className="flex items-center gap-4 min-w-0">
+                            <span className="text-iron text-[10px] w-14">
+                              ORD {String(index + 1).padStart(2, "0")}
+                            </span>
+                            <span className="text-iron text-[10px] w-6">
+                              {p.number}
+                            </span>
+                            <span className="text-bone text-sm truncate">
+                              {p.title}
+                            </span>
+                            <span
+                              className={`text-[9px] tracking-widest px-1.5 py-0.5 border ${
+                                p.status === "LIVE"
+                                  ? "text-emerald-400 border-emerald-400/30"
+                                  : p.status === "IN PROGRESS"
+                                    ? "text-amber-400 border-amber-400/30"
+                                    : "text-steel border-iron"
+                              }`}
+                            >
+                              {p.status}
+                            </span>
+                            {p.featured && (
+                              <span className="text-[9px] text-ember tracking-widest">
+                                FEATURED
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {showProjectTrash ? (
+                              <button
+                                className="cms-button"
+                                onClick={() =>
+                                  void (async () => {
+                                    try {
+                                      const response = await fetch(
+                                        `/v1/api/admin/projects/${p.id}/restore`,
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            version: p.version,
+                                          }),
+                                        },
+                                      );
+                                      if (!response.ok)
+                                        throw new Error(
+                                          "Project could not be restored. Refresh and retry.",
+                                        );
+                                      await fetchData();
+                                    } catch (error) {
+                                      setProjectSaveNotice(
+                                        error instanceof Error
+                                          ? error.message
+                                          : "Restore failed.",
+                                      );
+                                    }
+                                  })()
+                                }
+                              >
+                                Restore project
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => void moveProject(p.id, -1)}
+                                  disabled={orderingProjects || index === 0}
+                                  className="text-[10px] text-ash hover:text-bone px-2 py-1 border border-iron disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  UP
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void moveProject(p.id, 1)}
+                                  disabled={
+                                    orderingProjects ||
+                                    index === orderedProjects.length - 1
+                                  }
+                                  className="text-[10px] text-ash hover:text-bone px-2 py-1 border border-iron disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  DOWN
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setProjectSaveNotice("");
+                                    setEditingProject(p);
+                                    setShowNewProject(false);
+                                  }}
+                                  className="text-[10px] text-ash hover:text-bone px-2 py-1"
+                                >
+                                  EDIT
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteProject(p.id)}
+                                  className="text-[10px] text-ash hover:text-red-400 px-2 py-1"
+                                >
+                                  TRASH
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
                 </div>
-              </motion.div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      )}
+              )}
+
+              {/* Posts */}
+              {tab === "posts" && (
+                <AdminPostLibrary posts={posts} onRefresh={fetchData} />
+              )}
+
+              {tab === "messages" && (
+                <AdminInbox
+                  onChanged={fetchData}
+                  onDirtyChange={onInboxDirty}
+                />
+              )}
+              {tab === "activity" && <AdminActivity />}
+
+              {/* Settings */}
+              {tab === "settings" && (
+                <motion.div
+                  inert={savingSettings}
+                  className="border-2 border-iron p-6"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <AdminTextInput
+                      label="SITE NAME"
+                      value={settings.siteName}
+                      onChange={(v) => updateSetting("siteName", v)}
+                      placeholder="Kaine"
+                    />
+                    <AdminTextInput
+                      label="SITE ALIASES (comma separated)"
+                      value={settings.siteAliases}
+                      onChange={(v) => updateSetting("siteAliases", v)}
+                      placeholder="Kaine, Tommy"
+                    />
+                    <AdminTextInput
+                      label="CONTACT EMAIL"
+                      value={settings.contactEmail}
+                      onChange={(v) => updateSetting("contactEmail", v)}
+                      placeholder="hello@example.com"
+                      type="email"
+                      autoComplete="email"
+                      inputMode="email"
+                      spellCheck={false}
+                    />
+                    <div className="md:col-span-2">
+                      <AdminTextarea
+                        label="SITE DESCRIPTION"
+                        value={settings.siteDescription}
+                        onChange={(v) => updateSetting("siteDescription", v)}
+                        placeholder="Search/meta description text…"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <AdminTextInput
+                        label="HERO SUBTITLE"
+                        value={settings.heroSubtitle}
+                        onChange={(v) => updateSetting("heroSubtitle", v)}
+                        placeholder="DEVELOPER - DESIGNER - BUILDER"
+                      />
+                    </div>
+                    <AdminTextInput
+                      label="GITHUB URL"
+                      value={settings.socialGithub}
+                      onChange={(v) => updateSetting("socialGithub", v)}
+                      placeholder="https://github.com/…"
+                      type="url"
+                      autoComplete="url"
+                      inputMode="url"
+                    />
+                    <AdminTextInput
+                      label="TWITTER/X URL"
+                      value={settings.socialTwitter}
+                      onChange={(v) => updateSetting("socialTwitter", v)}
+                      placeholder="https://x.com/…"
+                      type="url"
+                      autoComplete="url"
+                      inputMode="url"
+                    />
+                    <AdminTextInput
+                      label="LINKEDIN URL"
+                      value={settings.socialLinkedin}
+                      onChange={(v) => updateSetting("socialLinkedin", v)}
+                      placeholder="https://linkedin.com/in/…"
+                      type="url"
+                      autoComplete="url"
+                      inputMode="url"
+                    />
+                    <AdminTextInput
+                      label="RESPONSE TIME HOURS"
+                      value={settings.responseTimeHours}
+                      onChange={(v) => updateSetting("responseTimeHours", v)}
+                      placeholder="24"
+                      inputMode="numeric"
+                    />
+                    <AdminTextInput
+                      label="FOOTER CHUCKLES GIF URL"
+                      value={settings.footerChucklesGifUrl}
+                      onChange={(v) => updateSetting("footerChucklesGifUrl", v)}
+                      placeholder="https://…"
+                      type="url"
+                      autoComplete="url"
+                      inputMode="url"
+                    />
+                    <AdminTextInput
+                      label="LEGAL EFFECTIVE DATE"
+                      value={settings.legalEffectiveDate}
+                      onChange={(v) => updateSetting("legalEffectiveDate", v)}
+                      placeholder="2026-03-12"
+                    />
+                    <div className="md:col-span-2">
+                      <AdminTextarea
+                        label="PRIVACY POLICY"
+                        value={settings.privacyPolicy}
+                        onChange={(v) => updateSetting("privacyPolicy", v)}
+                        placeholder="Privacy policy content…"
+                        rows={8}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <AdminTextarea
+                        label="TERMS OF SERVICE"
+                        value={settings.termsOfService}
+                        onChange={(v) => updateSetting("termsOfService", v)}
+                        placeholder="Terms of service content…"
+                        rows={8}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 mt-6">
+                    <button
+                      onClick={saveSettings}
+                      disabled={savingSettings}
+                      className="text-[10px] tracking-[0.2em] bg-ember text-void px-6 py-2 hover:bg-ember/80 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {savingSettings ? "SAVING…" : "SAVE SETTINGS"}
+                    </button>
+                    {settingsNotice && (
+                      <span
+                        className="text-[10px] tracking-[0.15em] text-ash"
+                        aria-live="polite"
+                      >
+                        {settingsNotice}
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </div>
     </section>
   );
 }
@@ -764,11 +979,13 @@ function ProjectForm({
   project,
   defaultSortOrder,
   onSave,
+  saving,
   onCancel,
 }: {
   project: Project | null;
   defaultSortOrder: number;
-  onSave: (p: EditableProject) => void;
+  onSave: (p: EditableProject) => Promise<void>;
+  saving: boolean;
   onCancel: () => void;
 }) {
   const [form, setForm] = useState({
@@ -828,7 +1045,12 @@ function ProjectForm({
 
   const moveVisualNoteToIndex = (currentIndex: number, targetIndex: number) => {
     setVisualNotes((prev) => {
-      if (targetIndex < 0 || targetIndex >= prev.length || currentIndex === targetIndex) return prev;
+      if (
+        targetIndex < 0 ||
+        targetIndex >= prev.length ||
+        currentIndex === targetIndex
+      )
+        return prev;
       const nextNotes = [...prev];
       const [movedNote] = nextNotes.splice(currentIndex, 1);
       nextNotes.splice(targetIndex, 0, movedNote);
@@ -882,7 +1104,9 @@ function ProjectForm({
   const bulkUploadImages = async (files: FileList) => {
     if (files.length === 0) return;
     if (files.length > 20) {
-      setVisualNoteUploadNotice("You can upload a maximum of 20 images at a time.");
+      setVisualNoteUploadNotice(
+        "You can upload a maximum of 20 images at a time.",
+      );
       return;
     }
 
@@ -926,7 +1150,9 @@ function ProjectForm({
       }));
 
       setVisualNotes((prev) => [...prev, ...newNotes]);
-      setVisualNoteUploadNotice(`${urls.length} image${urls.length > 1 ? "s" : ""} uploaded. Add titles and captions below.`);
+      setVisualNoteUploadNotice(
+        `${urls.length} image${urls.length > 1 ? "s" : ""} uploaded. Add titles and captions below.`,
+      );
     } catch {
       setVisualNoteUploadNotice("Network error during bulk upload.");
     } finally {
@@ -951,11 +1177,14 @@ function ProjectForm({
       form.title.trim();
 
     onSave({
-      ...(form.id ? { id: form.id } : {}),
+      ...(form.id ? { id: form.id, version: project?.version } : {}),
       number: form.number,
       title: form.title,
       description: mainDescription,
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      tags: form.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
       year: form.year,
       url: form.url || undefined,
       github: form.github || undefined,
@@ -990,17 +1219,43 @@ function ProjectForm({
 
   return (
     <motion.div
+      inert={saving}
       className="border-2 border-iron p-6 mb-6"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
     >
       <div className="grid md:grid-cols-2 gap-4">
-        <AdminTextInput label="NUMBER" value={form.number} onChange={(v) => setForm({ ...form, number: v })} placeholder="07" inputMode="numeric" />
-        <AdminTextInput label="TITLE" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="PROJECT NAME" />
-        <AdminTextInput label="TAGS (comma separated)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} placeholder="REACT, TYPESCRIPT" />
-        <AdminTextInput label="YEAR" value={form.year} onChange={(v) => setForm({ ...form, year: v })} placeholder="2025" inputMode="numeric" />
+        <AdminTextInput
+          label="NUMBER"
+          value={form.number}
+          onChange={(v) => setForm({ ...form, number: v })}
+          placeholder="07"
+          inputMode="numeric"
+        />
+        <AdminTextInput
+          label="TITLE"
+          value={form.title}
+          onChange={(v) => setForm({ ...form, title: v })}
+          placeholder="PROJECT NAME"
+        />
+        <AdminTextInput
+          label="TAGS (comma separated)"
+          value={form.tags}
+          onChange={(v) => setForm({ ...form, tags: v })}
+          placeholder="REACT, TYPESCRIPT"
+        />
+        <AdminTextInput
+          label="YEAR"
+          value={form.year}
+          onChange={(v) => setForm({ ...form, year: v })}
+          placeholder="2025"
+          inputMode="numeric"
+        />
         <div>
-          <label htmlFor="project-sort-order" className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+          <label
+            htmlFor="project-sort-order"
+            className="text-[10px] tracking-[0.2em] text-steel block mb-2"
+          >
             DISPLAY ORDER
           </label>
           <input
@@ -1029,10 +1284,31 @@ function ProjectForm({
             Lower numbers display first.
           </p>
         </div>
-        <AdminTextInput label="URL" value={form.url} onChange={(v) => setForm({ ...form, url: v })} placeholder="https://…" type="url" inputMode="url" autoComplete="url" />
-        <AdminTextInput label="GITHUB" value={form.github} onChange={(v) => setForm({ ...form, github: v })} placeholder="https://github.com/…" type="url" inputMode="url" autoComplete="url" />
+        <AdminTextInput
+          label="URL"
+          value={form.url}
+          onChange={(v) => setForm({ ...form, url: v })}
+          placeholder="https://…"
+          type="url"
+          inputMode="url"
+          autoComplete="url"
+        />
+        <AdminTextInput
+          label="GITHUB"
+          value={form.github}
+          onChange={(v) => setForm({ ...form, github: v })}
+          placeholder="https://github.com/…"
+          type="url"
+          inputMode="url"
+          autoComplete="url"
+        />
         <div>
-          <label htmlFor="project-status" className="text-[10px] tracking-[0.2em] text-steel block mb-2">STATUS</label>
+          <label
+            htmlFor="project-status"
+            className="text-[10px] tracking-[0.2em] text-steel block mb-2"
+          >
+            STATUS
+          </label>
           <select
             id="project-status"
             name="project-status"
@@ -1053,7 +1329,9 @@ function ProjectForm({
             onChange={(e) => setForm({ ...form, featured: e.target.checked })}
             className="accent-ember"
           />
-          <span className="text-[10px] tracking-[0.2em] text-ash">FEATURED</span>
+          <span className="text-[10px] tracking-[0.2em] text-ash">
+            FEATURED
+          </span>
         </label>
 
         <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
@@ -1089,7 +1367,10 @@ function ProjectForm({
         </div>
         <div className="md:col-span-2 grid lg:grid-cols-2 gap-4">
           <div className="flex flex-col h-[500px]">
-            <label htmlFor="writeup-markdown-editor" className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+            <label
+              htmlFor="writeup-markdown-editor"
+              className="text-[10px] tracking-[0.2em] text-steel block mb-2"
+            >
               WRITE-UP MARKDOWN
             </label>
             <textarea
@@ -1232,7 +1513,9 @@ function ProjectForm({
               </label>
               <button
                 type="button"
-                onClick={() => setVisualNotes((prev) => [...prev, emptyVisualNote()])}
+                onClick={() =>
+                  setVisualNotes((prev) => [...prev, emptyVisualNote()])
+                }
                 className="text-[10px] tracking-[0.2em] text-ember border border-ember px-3 py-1 hover:bg-ember hover:text-void transition-colors"
               >
                 + ADD NOTE
@@ -1242,17 +1525,27 @@ function ProjectForm({
 
           {visualNotes.length === 0 ? (
             <p className="text-[10px] tracking-[0.15em] text-iron border border-iron px-3 py-3">
-              No visual notes yet. Add at least one image note to populate the Visual Notes section.
+              No visual notes yet. Add at least one image note to populate the
+              Visual Notes section.
             </p>
           ) : (
             <div className="space-y-4">
               {visualNotes.map((note, index) => (
-                <div key={`visual-note-${index}`} className="border border-iron bg-void transition-colors">
-                  <div className={`flex flex-col md:flex-row md:items-center justify-between p-4 gap-4 ${note._expanded ? "border-b border-iron bg-surface/20" : "hover:bg-surface/10"}`}>
+                <div
+                  key={`visual-note-${index}`}
+                  className="border border-iron bg-void transition-colors"
+                >
+                  <div
+                    className={`flex flex-col md:flex-row md:items-center justify-between p-4 gap-4 ${note._expanded ? "border-b border-iron bg-surface/20" : "hover:bg-surface/10"}`}
+                  >
                     <div className="flex items-center gap-4">
                       {note.image ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={note.image} alt="" className="w-12 h-12 object-cover border border-iron bg-void" />
+                        <img
+                          src={note.image}
+                          alt=""
+                          className="w-12 h-12 object-cover border border-iron bg-void"
+                        />
                       ) : (
                         <div className="w-12 h-12 flex items-center justify-center border border-iron bg-void text-iron">
                           <ImageIcon size={18} />
@@ -1267,10 +1560,15 @@ function ProjectForm({
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center flex-wrap gap-3">
-                      <div className="flex items-center gap-1 bg-void border border-iron px-2 py-1.5" title="Move to position">
-                        <span className="text-[10px] tracking-[0.2em] text-steel">POS:</span>
+                      <div
+                        className="flex items-center gap-1 bg-void border border-iron px-2 py-1.5"
+                        title="Move to position"
+                      >
+                        <span className="text-[10px] tracking-[0.2em] text-steel">
+                          POS:
+                        </span>
                         <input
                           type="number"
                           min={1}
@@ -1278,14 +1576,18 @@ function ProjectForm({
                           value={index + 1}
                           onChange={(e) => {
                             const val = parseInt(e.target.value, 10);
-                            if (!isNaN(val) && val > 0 && val <= visualNotes.length) {
+                            if (
+                              !isNaN(val) &&
+                              val > 0 &&
+                              val <= visualNotes.length
+                            ) {
                               moveVisualNoteToIndex(index, val - 1);
                             }
                           }}
                           className="w-8 bg-transparent text-bone text-[10px] tracking-[0.1em] text-center focus:outline-none focus:text-ember transition-colors"
                         />
                       </div>
-                      
+
                       <div className="flex items-center gap-1.5 px-2">
                         <button
                           type="button"
@@ -1316,7 +1618,9 @@ function ProjectForm({
                         </button>
                         <button
                           type="button"
-                          onClick={() => moveVisualNoteToIndex(index, visualNotes.length - 1)}
+                          onClick={() =>
+                            moveVisualNoteToIndex(index, visualNotes.length - 1)
+                          }
                           disabled={index === visualNotes.length - 1}
                           title="Move to Bottom"
                           className="text-ash hover:text-bone disabled:opacity-30 transition-colors p-1"
@@ -1329,10 +1633,19 @@ function ProjectForm({
 
                       <button
                         type="button"
-                        onClick={() => setVisualNotes(prev => prev.map((item, i) => i === index ? { ...item, _expanded: !item._expanded } : item))}
+                        onClick={() =>
+                          setVisualNotes((prev) =>
+                            prev.map((item, i) =>
+                              i === index
+                                ? { ...item, _expanded: !item._expanded }
+                                : item,
+                            ),
+                          )
+                        }
                         className="text-[10px] tracking-[0.15em] text-ember hover:text-ember/80 flex items-center gap-1.5 transition-colors px-2 py-1.5 border border-transparent hover:border-ember/30"
                       >
-                        <Pencil size={12} /> {note._expanded ? "COLLAPSE" : "EDIT"}
+                        <Pencil size={12} />{" "}
+                        {note._expanded ? "COLLAPSE" : "EDIT"}
                       </button>
                       <button
                         type="button"
@@ -1354,25 +1667,34 @@ function ProjectForm({
                       <AdminTextInput
                         label="NOTE TITLE"
                         value={note.title}
-                        onChange={(value) => updateVisualNote(index, "title", value)}
+                        onChange={(value) =>
+                          updateVisualNote(index, "title", value)
+                        }
                         placeholder="SYSTEM FLOW"
                       />
                       <AdminTextInput
                         label="ALT TEXT"
                         value={note.alt}
-                        onChange={(value) => updateVisualNote(index, "alt", value)}
+                        onChange={(value) =>
+                          updateVisualNote(index, "alt", value)
+                        }
                         placeholder="Short accessible image description…"
                       />
                       <div className="md:col-span-2">
                         <AdminTextInput
                           label="IMAGE PATH OR URL"
                           value={note.image}
-                          onChange={(value) => updateVisualNote(index, "image", value)}
+                          onChange={(value) =>
+                            updateVisualNote(index, "image", value)
+                          }
                           placeholder="/v1/assets/projects/uar-system.png"
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <label htmlFor={`visual-note-upload-${index}`} className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+                        <label
+                          htmlFor={`visual-note-upload-${index}`}
+                          className="text-[10px] tracking-[0.2em] text-steel block mb-2"
+                        >
                           UPLOAD IMAGE
                         </label>
                         <div className="flex items-center gap-3">
@@ -1401,7 +1723,9 @@ function ProjectForm({
                         <AdminTextarea
                           label="CAPTION"
                           value={note.caption}
-                          onChange={(value) => updateVisualNote(index, "caption", value)}
+                          onChange={(value) =>
+                            updateVisualNote(index, "caption", value)
+                          }
                           placeholder="Explain what this visual shows…"
                         />
                       </div>
@@ -1413,7 +1737,7 @@ function ProjectForm({
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={note.image}
-                            alt={note.alt || note.title || 'Preview'}
+                            alt={note.alt || note.title || "Preview"}
                             className="w-auto max-h-64 border border-iron object-contain bg-surface/20"
                           />
                         </div>
@@ -1464,10 +1788,18 @@ function ProjectForm({
         />
       </div>
       <div className="flex gap-3 mt-8 sticky bottom-0 bg-void/90 backdrop-blur-md p-4 border-t border-iron z-10 -mx-6 -mb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-        <button type="button" onClick={handleSave} className="text-[10px] tracking-[0.2em] bg-ember text-void px-8 py-3 hover:bg-ember/80 transition-colors">
+        <button
+          type="button"
+          onClick={handleSave}
+          className="text-[10px] tracking-[0.2em] bg-ember text-void px-8 py-3 hover:bg-ember/80 transition-colors"
+        >
           SAVE PROJECT
         </button>
-        <button type="button" onClick={onCancel} className="text-[10px] tracking-[0.2em] text-ash hover:text-bone px-8 py-3 border border-iron hover:bg-surface/30 transition-colors">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-[10px] tracking-[0.2em] text-ash hover:text-bone px-8 py-3 border border-iron hover:bg-surface/30 transition-colors"
+        >
           CANCEL
         </button>
       </div>
@@ -1486,7 +1818,15 @@ type AdminFieldProps = {
 
 type AdminTextInputProps = AdminFieldProps & {
   type?: "text" | "email" | "url" | "number";
-  inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
+  inputMode?:
+    | "none"
+    | "text"
+    | "tel"
+    | "url"
+    | "email"
+    | "numeric"
+    | "decimal"
+    | "search";
   spellCheck?: boolean;
 };
 
@@ -1517,7 +1857,10 @@ function AdminField({
 }) {
   return (
     <div>
-      <label htmlFor={fieldId} className="text-[10px] tracking-[0.2em] text-steel block mb-2">
+      <label
+        htmlFor={fieldId}
+        className="text-[10px] tracking-[0.2em] text-steel block mb-2"
+      >
         {label}
       </label>
       {children}

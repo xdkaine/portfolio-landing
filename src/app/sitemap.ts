@@ -1,3 +1,4 @@
+import { listPublishedPosts } from "@/lib/postEditorial";
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 
@@ -22,22 +23,55 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${siteUrl}/v1`, lastModified: now, changeFrequency: "weekly", priority: 1 },
-    { url: `${siteUrl}/v1/about`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${siteUrl}/v1/projects`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${siteUrl}/v1/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${siteUrl}/v1/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${siteUrl}/v1/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${siteUrl}/v1/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    {
+      url: `${siteUrl}/v1`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 1,
+    },
+    {
+      url: `${siteUrl}/v1/about`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${siteUrl}/v1/projects`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/v1/blog`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${siteUrl}/v1/contact`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${siteUrl}/v1/privacy`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${siteUrl}/v1/terms`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
   ];
 
   try {
     const [posts, projects] = await Promise.all([
-      prisma.post.findMany({
-        where: { published: true, status: "PUBLISHED" },
-        select: { slug: true, updatedAt: true },
-      }),
+      listPublishedPosts(),
       prisma.project.findMany({
+        where: { deletedAt: null },
         select: { number: true, updatedAt: true },
       }),
     ]);

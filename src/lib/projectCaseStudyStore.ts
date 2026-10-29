@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import "server-only";
 
 import {
@@ -47,18 +48,17 @@ export async function getProjectCaseStudy(projectNumber: string) {
 export async function saveProjectCaseStudy(
   projectNumber: string,
   input: unknown,
+  client: Pick<Prisma.TransactionClient, "siteSetting"> = prisma,
 ): Promise<ProjectCaseStudyContent | null> {
   const normalized = normalizeProjectCaseStudyInput(input);
   const key = projectCaseStudySettingKey(projectNumber);
 
   if (!normalized) {
-    await prisma.siteSetting.delete({ where: { key } }).catch(() => {
-      // The caller asked to clear content; missing content is already cleared.
-    });
+    await client.siteSetting.deleteMany({ where: { key } });
     return null;
   }
 
-  await prisma.siteSetting.upsert({
+  await client.siteSetting.upsert({
     where: { key },
     update: { value: serializeProjectCaseStudy(normalized) },
     create: { key, value: serializeProjectCaseStudy(normalized) },
@@ -70,31 +70,33 @@ export async function saveProjectCaseStudy(
 export async function moveProjectCaseStudy(
   oldProjectNumber: string,
   newProjectNumber: string,
+  client: Pick<Prisma.TransactionClient, "siteSetting"> = prisma,
 ): Promise<void> {
   const oldKey = projectCaseStudySettingKey(oldProjectNumber);
   const newKey = projectCaseStudySettingKey(newProjectNumber);
   if (oldKey === newKey) return;
 
-  const previousCaseStudy = await prisma.siteSetting.findUnique({
+  const previousCaseStudy = await client.siteSetting.findUnique({
     where: { key: oldKey },
     select: { value: true },
   });
 
   if (previousCaseStudy?.value) {
-    await prisma.siteSetting.upsert({
+    await client.siteSetting.upsert({
       where: { key: newKey },
       update: { value: previousCaseStudy.value },
       create: { key: newKey, value: previousCaseStudy.value },
     });
   }
 
-  await prisma.siteSetting.delete({ where: { key: oldKey } }).catch(() => {
-    // Missing old content is already moved from the caller's perspective.
-  });
+  await client.siteSetting.deleteMany({ where: { key: oldKey } });
 }
 
-export async function deleteProjectCaseStudy(projectNumber: string): Promise<void> {
-  await prisma.siteSetting
+export async function deleteProjectCaseStudy(
+  projectNumber: string,
+  client: Pick<Prisma.TransactionClient, "siteSetting"> = prisma,
+): Promise<void> {
+  await client.siteSetting
     .delete({ where: { key: projectCaseStudySettingKey(projectNumber) } })
     .catch(() => {
       // Missing content is already deleted from the caller's perspective.

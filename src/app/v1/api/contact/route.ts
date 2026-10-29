@@ -1,3 +1,8 @@
+import {
+  readJson,
+  PRIVATE_API_HEADERS,
+  cmsErrorResponse,
+} from "@/lib/cmsServer";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isTurnstileRequired, verifyTurnstile } from "@/lib/turnstile";
@@ -27,7 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = (await request.json()) as Record<string, unknown>;
+    const body = (await readJson(request, 24000)) as Record<string, unknown>;
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const email = typeof body.email === "string" ? body.email.trim() : "";
     const message = typeof body.message === "string" ? body.message.trim() : "";
@@ -44,7 +49,7 @@ export async function POST(request: Request) {
     if (!name || !email || !message) {
       return NextResponse.json(
         { error: "name, email, and message are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -58,7 +63,7 @@ export async function POST(request: Request) {
     if (!EMAIL_REGEX.test(email)) {
       return NextResponse.json(
         { error: "Invalid email format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,7 +78,7 @@ export async function POST(request: Request) {
       if (!turnstileToken) {
         return NextResponse.json(
           { error: "Verification required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       const verification = await verifyTurnstile(turnstileToken);
@@ -83,7 +88,7 @@ export async function POST(request: Request) {
             error: "Verification failed",
             verificationCode: verification.errorCodes[0] ?? "unknown-error",
           },
-          { status: 403 }
+          { status: 403 },
         );
       }
     }
@@ -92,15 +97,28 @@ export async function POST(request: Request) {
       data: { name, email, message },
     });
 
+    await import("@/lib/visitorStore")
+      .then(({ captureVisitorEvent }) =>
+        captureVisitorEvent(
+          {
+            type: "contact",
+            path: "/v1/contact",
+            destination: "",
+            label: "",
+            referrer: "",
+            device: "other",
+          },
+          body.analytics,
+          request.headers,
+        ),
+      )
+      .catch(() => {});
     return NextResponse.json(
       { success: true, id: contactMessage.id },
-      { status: 201 }
+      { status: 201 },
     );
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to send message" },
-      { status: 500 }
-    );
+  } catch (error) {
+    return cmsErrorResponse(error);
   }
 }
 
@@ -114,11 +132,11 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(messages);
+    return NextResponse.json(messages, { headers: PRIVATE_API_HEADERS });
   } catch {
     return NextResponse.json(
       { error: "Failed to fetch messages" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
