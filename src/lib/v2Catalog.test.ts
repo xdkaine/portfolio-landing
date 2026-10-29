@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { getProject, listProjects, parseProjectQuery } from "./catalog";
-import { simulateUmaRequest } from "./walkthrough";
+import { getProject, listProjects, parseProjectQuery } from "./v2/catalog";
+import { simulateUmaRequest } from "./v2/walkthrough";
 
 test("v2 discovery combines text and discipline without changing the catalog", () => {
   const all = listProjects();
