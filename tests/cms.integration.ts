@@ -626,6 +626,9 @@ test("CMS database workflows preserve publication, concurrency and recovery cont
       await captureVisitorEvent(event, { ...context, eventId: randomUUID(), clientSequence: 3, campaignSource: "qa" }, headers);
       assert.equal((await analyticsReport(7, "qa")).pages.find(row => row.label === path)?.count, 2);
       assert.equal((await analyticsReport(7, "all")).pages.find(row => row.label === path)?.count, 4);
+      await prisma.analyticsVisitEvent.updateMany({ where: { session: { visitorId: id, traffic: "public" } }, data: { createdAt: new Date(Date.now() - 60 * 60_000) } });
+      assert.equal((await listVisitors(new URLSearchParams({ q: id, traffic: "public", live: "true" }))).total, 0, "Recent QA activity does not make earlier public activity appear live");
+      assert.equal((await listVisitors(new URLSearchParams({ q: id, traffic: "qa", live: "true" }))).total, 1);
     } finally {
       if (id) await prisma.analyticsVisitor.delete({ where: { id } });
       await prisma.analyticsDaily.deleteMany({ where: { path } });

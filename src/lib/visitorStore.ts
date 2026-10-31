@@ -300,12 +300,10 @@ export async function listVisitors(params: URLSearchParams) {
     Math.max(1, Math.floor(Number(params.get("page")) || 1)),
   );
   const traffic = trafficFilter(params.get("traffic"));
+  const activityStart = new Date(Date.now() - (params.get("live") === "true" ? 5 * 60_000 : period * 86_400_000));
   const where: Prisma.AnalyticsVisitorWhereInput = {
-    sessions: { some: { ...sessionTrafficWhere(traffic), events: { some: { createdAt: { gte: new Date(Date.now() - period * 86_400_000) } } } } },
-    lastSeen: { gte: new Date(Date.now() - period * 86_400_000) },
-    ...(params.get("live") === "true"
-      ? { lastSeen: { gte: new Date(Date.now() - 5 * 60_000) } }
-      : {}),
+    sessions: { some: { ...sessionTrafficWhere(traffic), events: { some: { createdAt: { gte: activityStart } } } } },
+    lastSeen: { gte: activityStart },
     ...(query
       ? {
           OR: [
