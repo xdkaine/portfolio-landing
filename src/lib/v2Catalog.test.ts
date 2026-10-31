@@ -49,12 +49,23 @@ test("illustrated member ACL change stops before the infrastructure layer", () =
   );
 });
 
-test("illustrated console and administrator flows reach their own destinations", () => {
+test("console explanation reaches a ticket and proxy after the VM scope check", () => {
   const consoleFlow = simulateUmaRequest("member", "console");
   assert.equal(consoleFlow.allowed, true);
-  assert.ok(consoleFlow.steps.some((s) => s.id === "console"));
+  assert.equal(consoleFlow.stoppedAt, null);
+  assert.deepEqual(consoleFlow.steps.map((s) => s.id), [
+    "identity", "policy", "ticket", "console",
+  ]);
+  for (const step of consoleFlow.steps) {
+    assert.ok("source" in step && step.source);
+    assert.match(step.source.href, /^https:\/\/github\.com\/xdkaine\/uma-proxmox-wrapper-public\/blob\/[a-f0-9]{40}\//);
+  }
+});
+
+test("administrator policy comparison stops at scope without inventing a write or audit flow", () => {
   const accessFlow = simulateUmaRequest("administrator", "access");
   assert.equal(accessFlow.allowed, true);
-  assert.ok(accessFlow.steps.some((s) => s.id === "audit"));
-  assert.ok(!accessFlow.steps.some((s) => s.id === "console"));
+  assert.equal(accessFlow.stoppedAt, null);
+  assert.deepEqual(accessFlow.steps.map((s) => s.id), ["identity", "policy"]);
+  assert.match(accessFlow.steps[1].description, /does not model a policy endpoint or database write/);
 });

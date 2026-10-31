@@ -2,6 +2,18 @@
 
 This document governs `/v2` only. The v1 site and CMS keep their own design.
 
+## Work and writing, 31 October 2026
+
+Keep the user-selected direct, spare, real-screen direction. The second live review found repeated summaries, unreadable full-screen thumbnails, a padded case-study template, and an oversized conceptual walkthrough. Correct content and composition instead of changing the palette again.
+
+Projects are enduring bodies of work; articles are dated writing. They share a searchable library, grouped by kind rather than placed in a fabricated chronology. Homepage writing is a quiet title/date list beside selected project notes. Only evidence-backed relationships appear on project/article pages; the SDC lab article relates to SDC Cloud, not to institutional ownership or deployment proof for Uma/UAR. Standalone writing stays independent.
+
+Published content comes through a read-only adapter around the existing editorial reader. No copied demo posts, authoring UI, draft exposure, new schema, or v1 CMS changes. V2 owns article presentation and public API DTOs. Empty published content and an unavailable source are distinct states.
+
+Use truthful CSS viewport framing to make the actual screenshot's controls legible, with an ordinary full-image link. Pair UAR's request screen with account matching and Uma's cluster view with administration. Case headings describe concrete behavior with pinned source references. Thin experiments get short notes. The console explanation is four source-backed stages, selected content first and no fixed empty panel.
+
+Typography, palette, spacing, edges, and motion tokens below remain unchanged. Articles use a 70ch reading measure, native heading anchors, accessible contents navigation, and the same restrained type family. Project and article navigation stays under v2; existing published media storage is reused.
+
 ## Context
 
 - Artifact: personal engineering portfolio with a project index and an interactive explanation.
@@ -64,10 +76,13 @@ No component catalog is needed for this composition. If extending it, use native
 
 ## Review and audit
 
+2026-10-31: A fresh live review found repeated summaries, thin projects stretched into cases, screenshots too small to read, and excessive space in the conceptual trace. The revised production preview passed the visual recheck after restoring complete interface headings and UAR's full request/submit region at original resolution. Source review checked the actual account-linking, email-state, console permission/ticket/proxy, and nested-lab boundaries. Published writing now shares a grouped library with projects and has native v2 reading pages; only supported relationships receive cross-links. No new visual theme or fabricated post content was added.
+
 2026-10-30: Three independent reviewers assessed visual direction, authenticity/content, and interaction/accessibility. All identified decorative framing ahead of actual evidence. An independent rendered review of the rebuild accepted the person-and-interface opening, distinct UAR spread, compact index, restrained type, and actual evidence. It caught a hidden mobile introduction and tight walkthrough status spacing; both were corrected and rechecked. Lazy screenshots are decoded after scrolling before capture.
 
 The bare structure is now personal introduction plus real project, a differently proportioned second project, and a factual index. It no longer depends on a slogan or decorative illustrations. Automated axe/overflow checks passed at 320, 390, and 1440 pixels on homepage, index, Uma, and UAR; the no-JavaScript and complete interaction checks passed on a local production build. Owner visual acceptance and real-device/screen-reader review remain separate.
 
 ## Changelog
 
+- 2026-10-31: Revised evidence framing and project-specific chapters, shortened the console explanation, and integrated existing published writing through a read-only adapter.
 - 2026-10-30: Replaced the generic studio direction with a user-selected personal engineering portfolio direction, scoped to v2.

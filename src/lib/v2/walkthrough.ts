@@ -6,87 +6,94 @@ export type WalkthroughStep = {
   layer: string;
   description: string;
   decision: string;
+  source?: { label: string; href: string };
 };
+
+const SOURCE =
+  "https://github.com/xdkaine/uma-proxmox-wrapper-public/blob/9444cc5c8e465a3917309fa43a2260ae561abc21";
+const VNC_ROUTE = `${SOURCE}/app/api/proxmox/vm/%5Bvmid%5D/vnc/route.ts`;
 
 export const UMA_WALKTHROUGH = {
   kind: "illustrated-walkthrough",
   title: "Follow a VM console request",
   description:
-    "Choose a user and a task to follow the application boundary. This is an illustration based on Uma's published project description, not a live console or a reproduction of its permission engine.",
+    "An illustrated reading of Uma's published VNC route and proxy, with links to the code. No VM connection is made here. The access-policy option is a conceptual role comparison.",
   personas: ["member", "administrator"],
   operations: ["console", "access"],
 } as const;
 
 export function simulateUmaRequest(persona: Persona, operation: Operation) {
   const allowed = operation === "console" || persona === "administrator";
+
+  if (operation === "access") {
+    return {
+      allowed,
+      stoppedAt: allowed ? null : "policy",
+      steps: [
+        {
+          id: "identity",
+          title: "Signed-in session",
+          layer: "01 / SESSION",
+          description:
+            "Choose a member or administrator to compare who can reach access administration.",
+          decision: `This role comparison starts with an authenticated ${persona}.`,
+        },
+        {
+          id: "policy",
+          title: "Administrative scope",
+          layer: "02 / SCOPE",
+          description:
+            "The comparison reserves policy changes for administrators. It does not model a policy endpoint or database write.",
+          decision: allowed
+            ? "Administrator: passes the administrative boundary. End of comparison."
+            : "Member: stops at the administrative boundary. No policy change is made.",
+        },
+      ] satisfies WalkthroughStep[],
+    };
+  }
+
   const steps: WalkthroughStep[] = [
     {
       id: "identity",
-      title: "Identify the user",
-      layer: "01 / IDENTITY",
+      title: "Check the session and CSRF token",
+      layer: "01 / SESSION",
       description:
-        "Uma uses LDAP authentication and application sessions. This example starts with a signed-in user; it does not demonstrate the sign-in process.",
-      decision: `The ${persona} wants to ${operation === "console" ? "open the console of an assigned VM" : "change an application access policy"}.`,
+        "The POST route reads the application session and validates its CSRF token before handling the VM request.",
+      decision: "Not signed in: 401. Invalid CSRF token: 403.",
+      source: { label: "VNC request route", href: `${VNC_ROUTE}#L10-L18` },
     },
     {
       id: "policy",
-      title: "Check role and scope",
-      layer: "02 / AUTHORIZATION",
+      title: "Check access to this VM",
+      layer: "02 / SCOPE",
       description:
-        "Uma's application access controls and assigned pools separate a user's workspace from cluster administration. Console access and access-policy administration are different tasks.",
-      decision: allowed
-        ? operation === "console"
-          ? "In this example, the VM is assigned to the user. The console request continues."
-          : "The administrator can continue to the application access tools in this example."
-        : "The member cannot change access policies in this example. The request stops before an application change or cluster operation.",
+        "The route calls checkVMAccess with action-role checking enabled. It evaluates VM and pool permissions before a console ticket can be requested; a denied check returns 403.",
+      decision:
+        persona === "administrator"
+          ? "The published helper permits administrators through its override."
+          : "This example assumes the member has an allowed VM/pool ACL or pool-management grant.",
+      source: { label: "VM access helper", href: `${SOURCE}/lib/acl.ts#L239-L315` },
+    },
+    {
+      id: "ticket",
+      title: "Request a VNC ticket",
+      layer: "03 / TICKET",
+      description:
+        "After the access check passes, the route calls createVNCTicket(node, vmid). On success it records VM_CONSOLE_OPEN and returns the ticket data.",
+      decision:
+        "Authorization comes before ticket creation. Opening the console stream is a separate request.",
+      source: { label: "Ticket and audit code", href: `${VNC_ROUTE}#L27-L56` },
+    },
+    {
+      id: "console",
+      title: "Proxy the console connection",
+      layer: "04 / PROXY",
+      description:
+        "The custom Node server handles /api/proxy/vnc WebSocket upgrades, checks the session and origin, then tunnels the connection to Proxmox over TLS.",
+      decision:
+        "The browser uses the ticket to open the console stream through this proxy.",
+      source: { label: "WebSocket proxy", href: `${SOURCE}/server.js#L94-L311` },
     },
   ];
-  if (allowed) {
-    steps.push({
-      id: "application",
-      title:
-        operation === "console"
-          ? "Open the console workflow"
-          : "Open access administration",
-      layer: "03 / APPLICATION",
-      description:
-        operation === "console"
-          ? "The user opens a VM console through Uma's web interface. The application sits between that browser workflow and the Proxmox integration."
-          : "The administrator reaches Uma's application access tools. This path is about application permissions, so it does not include the VM console stages below.",
-      decision:
-        operation === "console"
-          ? "Next: the Proxmox integration, then the browser console."
-          : "Next: the oversight layer. This illustration does not model a specific policy change or its storage.",
-    });
-    if (operation === "console") {
-      steps.push({
-        id: "proxmox",
-      title: "Use the Proxmox integration",
-        layer: "04 / INFRASTRUCTURE",
-        description:
-          "Uma integrates with the Proxmox API for VM and cluster operations. The published project also includes creation, snapshots, backups, replication, and hardware settings.",
-        decision:
-          "This request follows the console path. The other management operations are outside this example.",
-      });
-      steps.push({
-        id: "console",
-      title: "Connect the browser console",
-        layer: "05 / INTERACTION",
-        description:
-          "Uma's custom Node server supports VNC proxying so the VM console can be used in the browser. The same workspace also has real-time features built with Socket.IO.",
-        decision:
-          "The user reaches the assigned VM's console through Uma. No real VM connection is made by this walkthrough.",
-      });
-    }
-    steps.push({
-      id: "audit",
-      title: "Review the oversight layer",
-      layer: operation === "console" ? "06 / OVERSIGHT" : "04 / OVERSIGHT",
-      description:
-        "The published project includes audit logging and administrator views. Those tools support review of infrastructure activity alongside the user-facing workflows.",
-      decision:
-        "End of the illustration. This is not an audit record; exact events, permission checks, and transport details are not modeled here.",
-    });
-  }
-  return { allowed, stoppedAt: allowed ? null : "policy", steps };
+  return { allowed, stoppedAt: null, steps };
 }
