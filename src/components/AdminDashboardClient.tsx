@@ -1,5 +1,6 @@
 "use client";
 import { AdminVisitors } from "./AdminVisitors";
+import { trafficFilter } from "@/lib/analyticsTraffic";
 
 import { useCmsConfirm } from "./CmsConfirm";
 import { AdminInbox } from "./AdminInbox";
@@ -560,7 +561,7 @@ export default function AdminDashboardClient() {
                 />
               )}
 
-              {tab === "visitors" && <AdminVisitors />}
+              {tab === "visitors" && <AdminVisitors initialTraffic={trafficFilter(searchParams.get("traffic") ?? "public")} />}
 
               {/* Projects */}
               {tab === "projects" && (

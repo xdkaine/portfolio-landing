@@ -5,7 +5,7 @@ export const ANALYTICS_PREFERENCE_KEY = "phao.analytics.preference";
 let memoryOptOut: boolean | undefined;
 let preferenceWriteFailed = false;
 let memoryVisitor: { token: string; expires: number } | null = null;
-let memorySession: { token: string; lastSeen: number } | null = null;
+let memorySession: { token: string; lastSeen: number; sequence?: number } | null = null;
 export function analyticsOptedOut() {
   if (preferenceWriteFailed) return memoryOptOut ?? false;
   try {
@@ -46,6 +46,7 @@ export function clientVisitorContext() {
   if (!memorySession || memorySession.lastSeen <= now - 30 * 60_000)
     memorySession = { token: crypto.randomUUID(), lastSeen: now };
   memorySession.lastSeen = now;
+  memorySession.sequence = Math.min(2_000_000_000, Math.max(0, Number(memorySession.sequence) || 0) + 1);
   try {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(memorySession));
   } catch {
@@ -55,6 +56,8 @@ export function clientVisitorContext() {
     visitorToken: memoryVisitor.token,
     sessionToken: memorySession.token,
     eventId: crypto.randomUUID(),
+    occurredAt: now,
+    clientSequence: memorySession.sequence,
     signals: {
       language: navigator.language,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

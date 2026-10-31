@@ -14,6 +14,8 @@ export interface VisitorContext {
   visitorToken: string;
   sessionToken: string;
   eventId: string;
+  occurredAt: number;
+  clientSequence: number;
   signals: VisitorSignals;
   activeMs: number;
   scrollDepth: number;
@@ -57,6 +59,8 @@ export function normalizeVisitorContext(input: unknown): VisitorContext | null {
     visitorToken: String(body.visitorToken),
     sessionToken: String(body.sessionToken),
     eventId: String(body.eventId),
+    occurredAt: boundedNumber(body.occurredAt, 8_640_000_000_000_000),
+    clientSequence: boundedNumber(body.clientSequence, 2_000_000_000),
     signals: {
       language:
         typeof raw.language === "string" &&
@@ -84,12 +88,15 @@ export function normalizeVisitorContext(input: unknown): VisitorContext | null {
   };
 }
 export function visitorNetwork(headers: Headers, trustProxy: boolean) {
-  const candidate = trustProxy ? (headers.get("x-real-ip")?.trim() ?? "") : "";
+  const candidate = trustProxy ? (headers.get("x-real-ip")?.trim().toLowerCase() ?? "") : "";
   const normalized =
     candidate.startsWith("::ffff:") && isIP(candidate.slice(7)) === 4
       ? candidate.slice(7)
       : candidate.toLowerCase();
-  const ip = isIP(normalized) ? normalized : null;
+  // Scoped link-local addresses are not public client addresses, and WHATWG
+  // URL canonicalization deliberately rejects their zone identifiers.
+  const version = normalized.includes("%") ? 0 : isIP(normalized);
+  const ip = version === 6 ? new URL(`http://[${normalized}]`).hostname.slice(1, -1) : version === 4 ? normalized : null;
   const country = trustProxy
     ? (headers.get("cf-ipcountry")?.toUpperCase() ?? "")
     : "";
@@ -129,7 +136,7 @@ export function visitorKeys(
   userAgent: string,
   secret: string,
 ) {
-  if (secret.length < 32)
+  if (Buffer.byteLength(secret) < 32)
     throw new Error("Analytics hashing requires a configured server secret");
   const hash = (value: unknown) =>
     createHmac("sha256", secret).update(JSON.stringify(value)).digest("hex");

@@ -52,6 +52,7 @@ test("production runtime requires a canonical HTTPS site origin", () => {
   const baseEnvironment = {
     NODE_ENV: "production" as const,
     JWT_SECRET: "0123456789abcdef0123456789abcdef",
+    ANALYTICS_HASH_SECRET: "stable-analytics-test-key-0123456789abcdef",
     DATABASE_URL: "postgresql://user:password@db:5432/portfolio",
     TURNSTILE_SECRET_KEY: "turnstile-secret",
     TURNSTILE_SITE_KEY: "turnstile-site",
@@ -72,6 +73,7 @@ test("production runtime requires a canonical HTTPS site origin", () => {
       NEXT_PUBLIC_SITE_URL: "https://phao.dev",
     }),
   );
+  assert.throws(() => assertProductionRuntimeConfiguration({ ...baseEnvironment, NEXT_PUBLIC_SITE_URL: "https://phao.dev", ANALYTICS_HASH_SECRET: "" }), /ANALYTICS_HASH_SECRET/);
 });
 
 test("session tokens require the configured issuer, audience, subject, and role", async (t) => {
