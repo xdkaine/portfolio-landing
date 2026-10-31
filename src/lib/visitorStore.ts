@@ -25,6 +25,10 @@ export async function pruneVisitorAnalytics(now = new Date()) {
     prisma.analyticsSession.deleteMany({ where: { lastSeen: { lt: cutoff } } }),
     prisma.analyticsVisitor.deleteMany({ where: { lastSeen: { lt: cutoff } } }),
     prisma.analyticsCaptureDay.deleteMany({ where: { day: { lt: cutoff } } }),
+    prisma.cmsAuditEvent.updateMany({
+      where: { entity: "visitor", createdAt: { lt: cutoff }, entityId: { not: "" } },
+      data: { entityId: "" },
+    }),
   ]);
   cleanedAt = now.getTime();
 }

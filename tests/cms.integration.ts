@@ -474,8 +474,13 @@ test("CMS database workflows preserve publication, concurrency and recovery cont
             signals: {},
           },
         });
+        const expiredAudit = await prisma.cmsAuditEvent.create({ data: { actor: marker, action: "analytics.classify", entity: "visitor", entityId: oldId, summary: "Browser marked as QA/internal", createdAt: oldDate } });
         await pruneVisitorAnalytics();
         assert.equal(await getVisitor(oldId), null);
+        const retainedAudit = await prisma.cmsAuditEvent.findUniqueOrThrow({ where: { id: expiredAudit.id } });
+        assert.equal(retainedAudit.entityId, "", "Visitor identity expires from classification audit history too");
+        assert.equal(retainedAudit.actor, marker, "Administrator action attribution remains available");
+        await prisma.cmsAuditEvent.delete({ where: { id: expiredAudit.id } });
         const day = new Date(new Date().toISOString().slice(0, 10));
         const budget = await prisma.analyticsCaptureDay.findUniqueOrThrow({
           where: { day },
