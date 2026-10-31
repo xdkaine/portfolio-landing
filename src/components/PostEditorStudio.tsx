@@ -115,6 +115,76 @@ async function uploadPostImage(file: File): Promise<string> {
 }
 
 export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
+  return <PostEditorLoader key={initialPost.id} postId={initialPost.id} />;
+}
+
+function PostEditorLoader({ postId }: { postId: string }) {
+  const [savedPost, setSavedPost] = useState<Post | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    // Back/forward navigation can replay an older server-component payload.
+    // Establish the current saved version before mounting an editable session.
+    void fetch(`/v1/api/admin/posts/${encodeURIComponent(postId)}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = (await response.json()) as Post & { error?: string };
+        if (!response.ok)
+          throw new Error(
+            payload.error ?? "The saved post could not be loaded.",
+          );
+        if (payload.id !== postId || !Number.isInteger(payload.version))
+          throw new Error("The saved post could not be loaded.");
+        if (!controller.signal.aborted) setSavedPost(payload);
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted)
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "The saved post could not be loaded.",
+          );
+      });
+    return () => controller.abort();
+  }, [postId, attempt]);
+
+  if (!savedPost)
+    return (
+      <section className="cms-editor min-h-screen">
+        <Link href="/v1/admin?tab=posts" className="cms-back-link">
+          ← Back to posts
+        </Link>
+        {loadError ? (
+          <div className="cms-panel mt-6">
+            <p className="cms-notice" role="alert">
+              {loadError}
+            </p>
+            <button
+              className="cms-button"
+              onClick={() => {
+                setLoadError("");
+                setAttempt((value) => value + 1);
+              }}
+            >
+              Retry loading post
+            </button>
+          </div>
+        ) : (
+          <p className="cms-muted mt-6" role="status">
+            Loading latest saved post…
+          </p>
+        )}
+      </section>
+    );
+
+  return <PostEditorSession key={savedPost.id} initialPost={savedPost} />;
+}
+
+function PostEditorSession({ initialPost }: { initialPost: Post }) {
   const { confirm, confirmation } = useCmsConfirm();
   const router = useRouter();
   const initiallySlugLocked = Boolean(initialPost.publishedAt);
