@@ -17,7 +17,7 @@ export function AdminAudienceAnalytics({
             {audience.retentionDays}-day retention
           </p>
         </div>
-        <Link className="cms-button" href="/v1/admin?tab=visitors">
+        <Link className="cms-button" href={`/v1/admin?tab=visitors&traffic=${audience.traffic}`}>
           Inspect visitors →
         </Link>
       </div>
@@ -32,7 +32,7 @@ export function AdminAudienceAnalytics({
         <Summary label="New browser profiles" value={audience.newVisitors.toLocaleString()} note="First observed within this reporting window" />
         <Summary label="Returning browser profiles" value={audience.returningVisitors.toLocaleString()} note={`${audience.returningSessions} sessions followed an earlier retained session`} />
         <Summary label="Visitors on multiple days" value={audience.repeatDayVisitors.toLocaleString()} note="Observed on at least two UTC dates in this window" />
-        <Summary label="Return measurement" value={`${audience.retentionDays} days`} note="New and returning may overlap; a new profile can return during the period" />
+        <Summary label="Returning sessions" value={audience.returningSessions.toLocaleString()} note="New and returning profiles may overlap within the 30-day detail limit" />
       </div>
       <div className="cms-audience-stats">
         <Summary

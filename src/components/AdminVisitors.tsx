@@ -72,10 +72,10 @@ const elapsed = (ms: number) =>
   ms < 60_000
     ? `${Math.round(ms / 1000)} sec`
     : `${Math.round(ms / 60_000)} min`;
-export function AdminVisitors() {
+export function AdminVisitors({ initialTraffic = "public" }: { initialTraffic?: TrafficFilter }) {
   const [query, setQuery] = useState("");
   const [days, setDays] = useState(30);
-  const [traffic, setTraffic] = useState<TrafficFilter>("public");
+  const [traffic, setTraffic] = useState<TrafficFilter>(initialTraffic);
   const [classifying, setClassifying] = useState(false);
   const [live, setLive] = useState(false);
   const [page, setPage] = useState(1);
