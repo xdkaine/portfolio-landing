@@ -40,6 +40,30 @@ test("visitor analytics filters QA, shows repeat journeys and exports the select
     await expect(page.getByRole("button", { name: "Remove browser QA override", exact: true })).toBeEnabled();
     await page.getByRole("button", { name: "Remove browser QA override", exact: true }).click();
     await expect(page.getByRole("button", { name: "Mark browser as QA / internal", exact: true })).toBeEnabled();
+    // A delayed save must not reopen a closed profile or restore obsolete filters.
+    let releaseSave!: () => void;
+    let savedOnServer!: () => void;
+    const saveGate = new Promise<void>(resolve => { releaseSave = resolve; });
+    const serverSaved = new Promise<void>(resolve => { savedOnServer = resolve; });
+    await page.route(`**/v1/api/admin/visitors/${browserId}`, async route => {
+      if (route.request().method() !== "PATCH") return route.continue();
+      const response = await route.fetch();
+      savedOnServer(); await saveGate;
+      await route.fulfill({ response });
+    });
+    await page.getByRole("button", { name: "Mark browser as QA / internal", exact: true }).click();
+    await serverSaved;
+    const allList = (url: string) => url.includes("/v1/api/admin/visitors?") && new URL(url).searchParams.get("traffic") === "all";
+    const changedFilter = page.waitForResponse(response => allList(response.url()));
+    await page.getByLabel("Traffic classification", { exact: true }).selectOption("all");
+    await changedFilter;
+    const refreshedAfterSave = page.waitForResponse(response => allList(response.url()));
+    releaseSave(); await refreshedAfterSave;
+    await expect(page.getByRole("heading", { name: `Browser ${browserId.slice(0, 10)}`, exact: true })).toHaveCount(0);
+    await page.unroute(`**/v1/api/admin/visitors/${browserId}`);
+    await page.getByRole("button", { name: browserId.slice(0, 10), exact: true }).click();
+    await page.getByRole("button", { name: "Remove browser QA override", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Mark browser as QA / internal", exact: true })).toBeEnabled();
     await page.goto("/v1/admin");
     await page.getByLabel("Traffic classification", { exact: true }).selectOption("qa");
     await expect(page.getByText("Returning browser profiles", { exact: true })).toBeVisible();

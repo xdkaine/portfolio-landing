@@ -77,6 +77,7 @@ export function AdminVisitors({ initialTraffic = "public" }: { initialTraffic?: 
   const [days, setDays] = useState(30);
   const [traffic, setTraffic] = useState<TrafficFilter>(initialTraffic);
   const [classifying, setClassifying] = useState(false);
+  const [refreshVersion, setRefreshVersion] = useState(0);
   const [live, setLive] = useState(false);
   const [page, setPage] = useState(1);
   const [list, setList] = useState<List>({
@@ -125,7 +126,7 @@ export function AdminVisitors({ initialTraffic = "public" }: { initialTraffic?: 
       clearTimeout(timer);
       sequence.current += 1;
     };
-  }, [load]);
+  }, [load, refreshVersion]);
   useEffect(
     () => () => {
       detailSequence.current += 1;
@@ -151,7 +152,8 @@ export function AdminVisitors({ initialTraffic = "public" }: { initialTraffic?: 
         throw new Error(payload.error ?? "Visitor could not be opened.");
       if (requestId === detailSequence.current) setDetail(payload);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Network error.");
+      if (requestId === detailSequence.current)
+        setNotice(error instanceof Error ? error.message : "Network error.");
     }
   };
   return (
@@ -162,7 +164,7 @@ export function AdminVisitors({ initialTraffic = "public" }: { initialTraffic?: 
         prove identity.
       </p>
       <div className="cms-toolbar">
-        <AnalyticsTrafficFilter value={traffic} onChange={value => { setTraffic(value); setPage(1); setDetail(null); }} />
+        <AnalyticsTrafficFilter value={traffic} onChange={value => { detailSequence.current += 1; setTraffic(value); setPage(1); setDetail(null); }} />
         <label className="cms-search">
           <Search size={17} aria-hidden="true" />
           <input
@@ -253,11 +255,15 @@ export function AdminVisitors({ initialTraffic = "public" }: { initialTraffic?: 
           </div>
           <p className="cms-muted">Campaigns tagged qa, test or internal are classified per session. A browser override also covers its retained visits and future activity; it never classifies another browser sharing an IP or fingerprint.</p>
           <button className="cms-button" disabled={classifying} onClick={async () => {
+            const profileGeneration = detailSequence.current;
             setClassifying(true); setNotice("");
             try {
               const response = await fetch(`/v1/api/admin/visitors/${detail.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isQa: !detail.isQa, expectedIsQa: detail.isQa }) });
               if (!response.ok) throw new Error((await response.json()).error ?? "Classification could not be saved.");
-              await open(detail.id); await load();
+              if (profileGeneration === detailSequence.current) await open(detail.id);
+              // Let the current render refresh its own filters, rather than
+              // invoking a pre-mutation callback with obsolete parameters.
+              setRefreshVersion(value => value + 1);
             } catch (error) { setNotice(error instanceof Error ? error.message : "Classification could not be saved."); }
             finally { setClassifying(false); }
           }}>{classifying ? "Saving classification…" : detail.isQa ? "Remove browser QA override" : "Mark browser as QA / internal"}</button>
@@ -299,7 +305,7 @@ export function AdminVisitors({ initialTraffic = "public" }: { initialTraffic?: 
           </details>
           <details className="cms-agent"><summary>Retained fingerprint history · {detail.fingerprintHistory.length} configurations</summary>
             <p className="cms-muted">Latest 50 observed hashes. Browser versions and settings can change a fingerprint; pre-upgrade events have no historical hash.</p>
-            {detail.fingerprintHistory.map(row => <p key={row.fingerprint}><code>{row.fingerprint}</code> · {row.observations} observations · {when(row.firstSeen)} → {when(row.lastSeen)} <button className="cms-button" onClick={() => { setTraffic("all"); setQuery(row.fingerprint); setDays(30); setLive(false); setPage(1); setDetail(null); }}>Search this fingerprint</button></p>)}
+            {detail.fingerprintHistory.map(row => <p key={row.fingerprint}><code>{row.fingerprint}</code> · {row.observations} observations · {when(row.firstSeen)} → {when(row.lastSeen)} <button className="cms-button" onClick={() => { detailSequence.current += 1; setTraffic("all"); setQuery(row.fingerprint); setDays(30); setLive(false); setPage(1); setDetail(null); }}>Search this fingerprint</button></p>)}
           </details>
           <div className="cms-fingerprint">
             <strong>Browser fingerprint · v1</strong>
@@ -311,6 +317,7 @@ export function AdminVisitors({ initialTraffic = "public" }: { initialTraffic?: 
             <button
               className="cms-button"
               onClick={() => {
+                detailSequence.current += 1;
                 setTraffic("all");
                 setQuery(detail.fingerprint);
                 setPage(1);
