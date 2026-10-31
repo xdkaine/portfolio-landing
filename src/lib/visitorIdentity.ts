@@ -88,12 +88,14 @@ export function normalizeVisitorContext(input: unknown): VisitorContext | null {
   };
 }
 export function visitorNetwork(headers: Headers, trustProxy: boolean) {
-  const candidate = trustProxy ? (headers.get("x-real-ip")?.trim() ?? "") : "";
+  const candidate = trustProxy ? (headers.get("x-real-ip")?.trim().toLowerCase() ?? "") : "";
   const normalized =
     candidate.startsWith("::ffff:") && isIP(candidate.slice(7)) === 4
       ? candidate.slice(7)
       : candidate.toLowerCase();
-  const version = isIP(normalized);
+  // Scoped link-local addresses are not public client addresses, and WHATWG
+  // URL canonicalization deliberately rejects their zone identifiers.
+  const version = normalized.includes("%") ? 0 : isIP(normalized);
   const ip = version === 6 ? new URL(`http://[${normalized}]`).hostname.slice(1, -1) : version === 4 ? normalized : null;
   const country = trustProxy
     ? (headers.get("cf-ipcountry")?.toUpperCase() ?? "")
