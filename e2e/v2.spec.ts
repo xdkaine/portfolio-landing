@@ -37,13 +37,18 @@ test("homepage and project discovery are complete without JavaScript", async ({
   const page = await context.newPage();
   await page.goto("/v2");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Useful systems",
+    "Thomas Phao",
   );
   await page
-    .getByRole("link", { name: "Explore the work", exact: true })
+    .getByRole("link", { name: "All projects", exact: true })
     .click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Projects");
   await page.getByRole("searchbox", { name: "Search projects" }).fill("LDAP");
+  await page.getByLabel("Discipline").selectOption("Identity & security");
   await page.getByRole("button", { name: "Find projects" }).click();
+  await expect(page).toHaveURL(/q=LDAP/);
+  await expect(page.getByRole("searchbox", { name: "Search projects" })).toHaveValue("LDAP");
+  await expect(page.getByLabel("Discipline")).toHaveValue("Identity & security");
   await expect(
     page.getByRole("heading", { name: "UAR", exact: true }),
   ).toBeVisible();
@@ -52,8 +57,16 @@ test("homepage and project discovery are complete without JavaScript", async ({
   ).toHaveCount(0);
   await page.goto("/v2/work/uma");
   await expect(
-    page.getByRole("heading", { name: "How the pieces fit together" }),
+    page.getByRole("heading", { name: "Implementation", exact: true }),
   ).toBeVisible();
+  const walkthrough = page.getByRole("region", { name: "Follow a VM console request" });
+  await expect(walkthrough.getByLabel("Persona")).toBeDisabled();
+  await expect(walkthrough.getByLabel("Operation")).toBeDisabled();
+  await expect(walkthrough.getByRole("button", { name: "Reset walkthrough" })).toBeDisabled();
+  await expect(walkthrough.getByRole("list", { name: "Default console request" }).getByRole("listitem")).toHaveCount(6);
+  await expect(walkthrough.getByRole("heading", { name: "Connect the browser console", exact: true })).toBeVisible();
+  await expect(walkthrough.getByRole("heading", { name: "Review the oversight layer", exact: true })).toBeVisible();
+  await expect(walkthrough.getByRole("button", { name: "Next step" })).toHaveCount(0);
   await context.close();
 });
 
@@ -68,32 +81,75 @@ test("Uma walkthrough changes scenarios, explains authorization and supports res
       v1Requests.push(request.url());
   });
   await page.goto("/v2/work/uma");
-  await page.getByLabel("Operation").selectOption("access");
-  await expect(page.getByRole("status")).toContainText(
+  const walkthrough = page.getByRole("region", { name: "Follow a VM console request" });
+  const stages = walkthrough.getByRole("list", { name: "Request stages" });
+  const next = walkthrough.getByRole("button", { name: "Next step", exact: true });
+  const previous = walkthrough.getByRole("button", { name: "Previous step", exact: true });
+  await expect(walkthrough.getByLabel("Operation")).toBeEnabled();
+  await expect(stages.getByRole("listitem")).toHaveCount(6);
+  await expect(previous).toBeDisabled();
+  for (const title of [
+    "Check role and scope",
+    "Open the console workflow",
+    "Use the Proxmox integration",
+    "Connect the browser console",
+    "Review the oversight layer",
+  ]) {
+    await next.click();
+    await expect(walkthrough.getByRole("heading", { name: title, exact: true })).toBeVisible();
+    await expect(stages.locator('[aria-current="step"]')).toContainText(title);
+  }
+  await expect(next).toBeDisabled();
+  await expect(walkthrough).toContainText("This is not an audit record");
+  await previous.click();
+  await expect(walkthrough.getByRole("heading", { name: "Connect the browser console", exact: true })).toBeVisible();
+
+  await walkthrough.getByLabel("Operation").selectOption("access");
+  await expect(walkthrough.getByRole("status")).toContainText(
     "stops at authorization",
   );
-  await page.getByLabel("Persona").selectOption("administrator");
-  await expect(page.getByRole("status")).toContainText("continues");
-  await page.getByRole("button", { name: /Next step/ }).click();
+  await expect(stages.getByRole("listitem")).toHaveCount(2);
+  await next.click();
+  await expect(next).toBeDisabled();
+  await expect(walkthrough).toContainText("The member cannot change access policies");
+  await walkthrough.getByLabel("Persona").selectOption("administrator");
+  await expect(walkthrough.getByRole("status")).toContainText("continues");
+  await expect(stages.getByRole("listitem")).toHaveCount(4);
+  await stages.getByRole("button", { name: /Open access administration/ }).click();
   await expect(
-    page.getByRole("heading", { name: "Check the policy", exact: true }),
+    walkthrough.getByRole("heading", { name: "Open access administration", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Reset walkthrough" }).click();
-  await expect(page.getByLabel("Persona")).toHaveValue("member");
-  await expect(page.getByLabel("Operation")).toHaveValue("console");
-  await page.getByRole("button", { name: "Next step", exact: true }).focus();
+  await next.click();
+  await expect(next).toBeDisabled();
+  await walkthrough.getByRole("button", { name: "Reset walkthrough" }).click();
+  await expect(walkthrough.getByLabel("Persona")).toHaveValue("member");
+  await expect(walkthrough.getByLabel("Operation")).toHaveValue("console");
+  await expect(previous).toBeDisabled();
+  await next.focus();
   await page.keyboard.press("Enter");
   await expect(
-    page.getByRole("heading", { name: "Check the policy", exact: true }),
+    walkthrough.getByRole("heading", { name: "Check role and scope", exact: true }),
   ).toBeVisible();
   expect(errors).toEqual([]);
   expect(v1Requests).toEqual([]);
 });
 
-for (const width of [390, 1440]) {
+test("UAR has its own project detail and sharing image", async ({ page, request }) => {
+  const response = await request.get("/v2/api/projects/uar");
+  const { data } = await response.json();
+  await page.goto("/v2/work/uar");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(data.title);
+  await expect(page.getByText(data.summary, { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Implementation", exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Follow a VM console request" })).toHaveCount(0);
+  await expect(page.getByRole("img", { name: data.evidence[0].alt, exact: true })).toBeVisible();
+  await expect(page.locator('meta[property="og:image"]').first()).toHaveAttribute("content", /\/v2\/uar-dashboard\.png$/);
+});
+
+for (const width of [320, 390, 1440]) {
   test(`v2 layouts are accessible and fit at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    for (const route of ["/v2", "/v2/work", "/v2/work/uma"]) {
+    for (const route of ["/v2", "/v2/work", "/v2/work/uma", "/v2/work/uar"]) {
       await page.goto(route);
       expect(
         await page.evaluate(
