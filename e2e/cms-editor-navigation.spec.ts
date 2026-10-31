@@ -119,12 +119,11 @@ test("editor reloads the saved draft after preview Back navigation and retries f
       }),
     );
     await page.reload();
-    // Next.js also renders a route-announcer alert; select the editor error.
     await expect(
-      page.getByRole("alert").filter({
-        hasText: "Saved post is temporarily unavailable",
-      }),
-    ).toContainText("Saved post is temporarily unavailable");
+      page
+        .getByRole("alert")
+        .filter({ hasText: "Saved post is temporarily unavailable" }),
+    ).toHaveText("Saved post is temporarily unavailable");
     await expect(
       page.getByRole("textbox", { name: "TITLE", exact: true }),
     ).toHaveCount(0);
