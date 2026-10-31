@@ -90,4 +90,24 @@ test("browser identifiers rotate on expiry and opt-out clears local identifiers"
     clientVisitorContext().visitorToken,
     beforeOptOut.visitorToken,
   );
+  const write = local.setItem;
+  local.setItem = () => {
+    throw new DOMException("Storage quota reached", "QuotaExceededError");
+  };
+  t.after(() => {
+    local.setItem = write;
+  });
+  setAnalyticsOptOut(true);
+  assert.equal(
+    analyticsOptedOut(),
+    true,
+    "Opt-out survives readable storage that rejects preference writes",
+  );
+  local.setItem = write;
+  setAnalyticsOptOut(false);
+  // A successfully persisted choice still follows changes from other tabs.
+  local.setItem("phao.analytics.preference", "off");
+  assert.equal(analyticsOptedOut(), true);
+  local.setItem("phao.analytics.preference", "on");
+  assert.equal(analyticsOptedOut(), false);
 });
