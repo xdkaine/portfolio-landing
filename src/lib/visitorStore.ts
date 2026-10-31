@@ -128,7 +128,7 @@ export async function captureVisitorEvent(
       const occurredAt = context.occurredAt && Math.abs(context.occurredAt - now.getTime()) <= 5 * 60_000
         ? new Date(Math.min(now.getTime(), context.occurredAt)) : now;
       const pageview = event.type === "pageview";
-      const earlierPage = pageview && (!session?.pageviews || (context.clientSequence > 0 && (session.entrySequence === 0 || context.clientSequence < session.entrySequence)));
+      const earlierPage = pageview && (!session?.pageviews || (context.clientSequence > 0 && session.entrySequence > 0 && context.clientSequence < session.entrySequence));
       const laterPage = pageview && (!session?.pageviews || context.clientSequence === 0 && session.exitSequence === 0 || context.clientSequence > (session?.exitSequence ?? 0));
       await tx.analyticsSession.upsert({
         where: { id: keys.sessionId },

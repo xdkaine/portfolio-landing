@@ -544,6 +544,12 @@ test("CMS database workflows preserve publication, concurrency and recovery cont
       assert.equal(detail?.sessions[0].exitPath, path);
       assert.deepEqual(detail?.sessions[0].events.map(row => row.clientSequence), [1, 2]);
       assert.ok(detail && detail.firstSeen <= detail.lastSeen);
+      // Existing sessions have a known first page but no pre-upgrade sequence.
+      await prisma.analyticsSession.update({ where: { id: row.id }, data: { entrySequence: 0 } });
+      await captureVisitorEvent({ ...event, path: `${path}-latest` }, { ...context, eventId: randomUUID(), clientSequence: 4, occurredAt: Date.now() }, headers);
+      detail = await getVisitor(id);
+      assert.equal(detail?.sessions[0].entryPath, "/v1/contact", "An upgraded client preserves a legacy session's original entry");
+      assert.equal(detail?.sessions[0].exitPath, `${path}-latest`);
       const fingerprint = detail!.fingerprint;
       const matchingPath = `${path}-match`;
       await captureVisitorEvent({ ...event, path: matchingPath }, { ...context, visitorToken: randomUUID(), sessionToken: randomUUID(), eventId: randomUUID() }, headers);
