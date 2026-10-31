@@ -211,17 +211,16 @@ export async function visitorReport(days: number, traffic: TrafficFilter = "all"
   // Only event activity received inside the selected window contributes to
   // engagement, conversions and page rankings. Lifetime session counters do not.
   const filter = trafficSql(traffic);
-  type WindowSession = {
-    id: string; visitor_id: string; first_seen: Date; started_at: Date;
-    campaign_name: string; campaign_source: string; campaign_medium: string;
-    country: string; browser: string; os: string;
-    pageviews: bigint; contacts: bigint; active_ms: bigint; scroll_depth: number;
-    load_total: bigint; load_samples: bigint; entry_path: string | null; exit_path: string | null;
-    returning: boolean;
+  type Rank = { label: string; count: number }[];
+  type WindowSummary = {
+    visitors: number; sessions: number; newVisitors: number; returningVisitors: number;
+    returningSessions: number; deepReadSessions: number; engagedSessions: number;
+    contactSessions: number; activeMsTotal: number; loadMsTotal: number; loadSamples: number;
+    countries: Rank; browsers: Rank; systems: Rank; landingPages: Rank; exitPages: Rank; campaigns: Rank;
   };
-  const [rows, captured, performance, liveRows, repeatDays] = await Promise.all([
-    prisma.$queryRaw<WindowSession[]>(Prisma.sql`
-      SELECT s.id, s.visitor_id, v.first_seen, s.started_at,
+  const [summaryRows, captured, performance, liveRows, repeatDays] = await Promise.all([
+    prisma.$queryRaw<{ report: WindowSummary }[]>(Prisma.sql`
+      WITH window_sessions AS (SELECT s.id, s.visitor_id, v.first_seen, s.started_at,
         s.campaign_name, s.campaign_source, s.campaign_medium, v.country, v.browser, v.os,
         COUNT(*) FILTER (WHERE e.type = 'pageview') AS pageviews,
         COUNT(*) FILTER (WHERE e.type = 'contact') AS contacts,
@@ -231,11 +230,31 @@ export async function visitorReport(days: number, traffic: TrafficFilter = "all"
         (ARRAY_AGG(e.path ORDER BY e.client_sequence DESC, e.occurred_at DESC, e.created_at DESC, e.id DESC) FILTER (WHERE e.type = 'pageview'))[1] AS exit_path,
         EXISTS (SELECT 1 FROM analytics_sessions prior WHERE prior.visitor_id = s.visitor_id
           AND prior.started_at < s.started_at AND prior.last_seen >= ${new Date(now.getTime() - VISITOR_RETENTION_DAYS * 86_400_000)}
-          AND (${traffic} = 'all' OR CASE WHEN v.is_qa THEN 'qa' ELSE prior.traffic END = ${traffic})) AS returning
+          AND (${traffic} = 'all' OR CASE WHEN v.is_qa THEN 'qa' ELSE prior.traffic END = ${traffic})) AS is_returning
       FROM analytics_visit_events e JOIN analytics_sessions s ON s.id = e.session_id
       JOIN analytics_visitors v ON v.id = s.visitor_id
       WHERE e.created_at >= ${start} AND e.created_at <= ${end} ${filter}
       GROUP BY s.id, v.id
+      )
+      SELECT json_build_object(
+        'visitors', (SELECT COUNT(DISTINCT visitor_id) FROM window_sessions),
+        'sessions', (SELECT COUNT(*) FROM window_sessions),
+        'newVisitors', (SELECT COUNT(DISTINCT visitor_id) FROM window_sessions WHERE first_seen >= ${start}),
+        'returningVisitors', (SELECT COUNT(DISTINCT visitor_id) FROM window_sessions WHERE is_returning),
+        'returningSessions', (SELECT COUNT(*) FROM window_sessions WHERE is_returning),
+        'deepReadSessions', (SELECT COUNT(*) FROM window_sessions WHERE scroll_depth >= 90),
+        'engagedSessions', (SELECT COUNT(*) FROM window_sessions WHERE active_ms >= 10000 OR pageviews > 1 OR contacts > 0),
+        'contactSessions', (SELECT COUNT(*) FROM window_sessions WHERE contacts > 0),
+        'activeMsTotal', (SELECT COALESCE(SUM(active_ms),0) FROM window_sessions),
+        'loadMsTotal', (SELECT COALESCE(SUM(load_total),0) FROM window_sessions),
+        'loadSamples', (SELECT COALESCE(SUM(load_samples),0) FROM window_sessions),
+        'countries', (SELECT COALESCE(json_agg(r ORDER BY count DESC,label),'[]'::json) FROM (SELECT COALESCE(NULLIF(country,''),'Unknown') AS label,COUNT(DISTINCT visitor_id) AS count FROM window_sessions GROUP BY country ORDER BY count DESC,label LIMIT 10) r),
+        'browsers', (SELECT COALESCE(json_agg(r ORDER BY count DESC,label),'[]'::json) FROM (SELECT browser AS label,COUNT(DISTINCT visitor_id) AS count FROM window_sessions GROUP BY browser ORDER BY count DESC,label LIMIT 10) r),
+        'systems', (SELECT COALESCE(json_agg(r ORDER BY count DESC,label),'[]'::json) FROM (SELECT os AS label,COUNT(DISTINCT visitor_id) AS count FROM window_sessions GROUP BY os ORDER BY count DESC,label LIMIT 10) r),
+        'landingPages', (SELECT COALESCE(json_agg(r ORDER BY count DESC,label),'[]'::json) FROM (SELECT entry_path AS label,COUNT(*) AS count FROM window_sessions WHERE entry_path IS NOT NULL GROUP BY entry_path ORDER BY count DESC,label LIMIT 10) r),
+        'exitPages', (SELECT COALESCE(json_agg(r ORDER BY count DESC,label),'[]'::json) FROM (SELECT exit_path AS label,COUNT(*) AS count FROM window_sessions WHERE exit_path IS NOT NULL GROUP BY exit_path ORDER BY count DESC,label LIMIT 10) r),
+        'campaigns', (SELECT COALESCE(json_agg(r ORDER BY count DESC,label),'[]'::json) FROM (SELECT concat_ws(' / ',NULLIF(campaign_name,''),NULLIF(campaign_source,''),NULLIF(campaign_medium,'')) AS label,COUNT(*) AS count FROM window_sessions WHERE campaign_name<>'' OR campaign_source<>'' OR campaign_medium<>'' GROUP BY campaign_name,campaign_source,campaign_medium ORDER BY count DESC,label LIMIT 10) r)
+      ) AS report
     `),
     prisma.analyticsCaptureDay.aggregate({ where: { day: { gte: new Date(start.toISOString().slice(0, 10)) } }, _max: { events: true } }),
     prisma.$queryRaw<{ path: string; milliseconds: number; samples: bigint }[]>(Prisma.sql`
@@ -253,30 +272,14 @@ export async function visitorReport(days: number, traffic: TrafficFilter = "all"
       ) repeated
     `),
   ]);
-  const profiles = [...new Map(rows.map(row => [row.visitor_id, row])).values()];
-  const rank = (values: string[]) => {
-    const counts = new Map<string, number>();
-    for (const value of values) if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
-    return [...counts].map(([label, count]) => ({ label, count })).sort((a,b) => b.count - a.count || a.label.localeCompare(b.label)).slice(0, 10);
-  };
-  const engaged = rows.filter(row => Number(row.active_ms) >= 10000 || Number(row.pageviews) > 1 || Number(row.contacts) > 0).length;
-  const sum = (key: "active_ms" | "load_total" | "load_samples") => rows.reduce((total,row) => total + Number(row[key]), 0);
+  const { activeMsTotal, loadMsTotal, ...summary } = summaryRows[0].report;
   return {
+    ...summary,
     traffic, retentionDays: VISITOR_RETENTION_DAYS, from: start.toISOString(), to: end.toISOString(),
-    visitors: profiles.length, sessions: rows.length, live: liveRows,
-    newVisitors: profiles.filter(row => row.first_seen >= start).length,
-    returningVisitors: new Set(rows.filter(row => row.returning).map(row => row.visitor_id)).size,
-    returningSessions: rows.filter(row => row.returning).length,
-    repeatDayVisitors: Number(repeatDays[0]?.count ?? 0),
-    deepReadSessions: rows.filter(row => row.scroll_depth >= 90).length,
-    engagedSessions: engaged, engagementRate: rows.length ? Math.round(engaged / rows.length * 100) : 0,
-    averageActiveMs: rows.length ? Math.round(sum("active_ms") / rows.length) : 0,
-    averageLoadMs: sum("load_samples") ? Math.round(sum("load_total") / sum("load_samples")) : 0,
-    loadSamples: sum("load_samples"), contactSessions: rows.filter(row => Number(row.contacts) > 0).length,
-    countries: rank(profiles.map(row => row.country || "Unknown")),
-    browsers: rank(profiles.map(row => row.browser)), systems: rank(profiles.map(row => row.os)),
-    landingPages: rank(rows.map(row => row.entry_path ?? "")), exitPages: rank(rows.map(row => row.exit_path ?? "")),
-    campaigns: rank(rows.map(row => [row.campaign_name, row.campaign_source, row.campaign_medium].filter(Boolean).join(" / "))),
+    live: liveRows, repeatDayVisitors: Number(repeatDays[0]?.count ?? 0),
+    engagementRate: summary.sessions ? Math.round(summary.engagedSessions / summary.sessions * 100) : 0,
+    averageActiveMs: summary.sessions ? Math.round(activeMsTotal / summary.sessions) : 0,
+    averageLoadMs: summary.loadSamples ? Math.round(loadMsTotal / summary.loadSamples) : 0,
     performancePages: performance.map(row => ({ path: row.path, milliseconds: Math.round(row.milliseconds), samples: Number(row.samples) })),
     dailyDetailLimit: DETAIL_DAILY_LIMIT, samplingLimitReached: (captured._max.events ?? 0) >= DETAIL_DAILY_LIMIT,
   };
