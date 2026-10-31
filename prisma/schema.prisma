@@ -142,6 +142,7 @@ model CmsAuditEvent {
 }
 
 model AnalyticsDaily {
+  traffic     String   @default("unclassified")
   day         DateTime @db.Date
   key         String
   type        String
@@ -158,6 +159,7 @@ model AnalyticsDaily {
 }
 
 model AnalyticsVisitor {
+  isQa        Boolean @default(false) @map("is_qa")
   id          String             @id
   firstSeen   DateTime           @default(now()) @map("first_seen")
   lastSeen    DateTime           @default(now()) @map("last_seen")
@@ -179,6 +181,9 @@ model AnalyticsVisitor {
 }
 
 model AnalyticsSession {
+  traffic        String @default("public")
+  entrySequence  Int @default(0) @map("entry_sequence")
+  exitSequence   Int @default(0) @map("exit_sequence")
   id             String                @id
   visitorId      String                @map("visitor_id")
   startedAt      DateTime              @default(now()) @map("started_at")
@@ -202,6 +207,10 @@ model AnalyticsSession {
 }
 
 model AnalyticsVisitEvent {
+  occurredAt DateTime @default(now()) @map("occurred_at")
+  clientSequence Int @default(0) @map("client_sequence")
+  fingerprint String @default("")
+  aggregateKey String @default("") @map("aggregate_key")
   id          String           @id
   sessionId   String           @map("session_id")
   createdAt   DateTime         @default(now()) @map("created_at")
@@ -218,6 +227,8 @@ model AnalyticsVisitEvent {
 
   @@index([createdAt])
   @@index([sessionId, createdAt])
+  @@index([ip, createdAt])
+  @@index([fingerprint, createdAt])
   @@map("analytics_visit_events")
 }
 

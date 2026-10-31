@@ -48,6 +48,8 @@ export function assertProductionRuntimeConfiguration(
   }
 
   assertJwtSecretConfiguration(environment);
+  if (!environment.ANALYTICS_HASH_SECRET || new TextEncoder().encode(environment.ANALYTICS_HASH_SECRET).byteLength < 32)
+    throw new Error("ANALYTICS_HASH_SECRET must contain at least 32 bytes and remain stable across authentication key rotations.");
   requireValue(environment, "DATABASE_URL");
   requireValue(environment, "TURNSTILE_SECRET_KEY");
   requireValue(environment, "TURNSTILE_SITE_KEY");

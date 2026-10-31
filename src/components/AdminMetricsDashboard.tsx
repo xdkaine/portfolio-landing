@@ -1,4 +1,6 @@
 "use client";
+import { AnalyticsTrafficFilter } from "./AnalyticsTrafficFilter";
+import type { TrafficFilter } from "@/lib/analyticsTraffic";
 import {
   AdminAudienceAnalytics,
   type AudienceReport,
@@ -21,10 +23,11 @@ function change(current: number, previous: number) {
       ? "New activity"
       : "No change";
 }
-function exportReport(report: AnalyticsReport) {
+function exportReport(report: AnalyticsReport & { traffic: TrafficFilter }) {
   const rows = [
-    ["UTC date", "Page views", "Link clicks", "Contact submissions"],
+    ["Traffic", "UTC date", "Page views", "Link clicks", "Contact submissions"],
     ...report.trend.map((point) => [
+      report.traffic,
       point.day,
       point.pageviews,
       point.clicks,
@@ -37,7 +40,7 @@ function exportReport(report: AnalyticsReport) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `phao-analytics-${report.start.slice(0, 10)}.csv`;
+  link.download = `phao-analytics-${report.traffic}-${report.start.slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -53,8 +56,9 @@ export function AdminMetricsDashboard({
   unread: number;
 }) {
   const [days, setDays] = useState(30);
+  const [traffic, setTraffic] = useState<TrafficFilter>("public");
   const [report, setReport] = useState<
-    (AnalyticsReport & { audience: AudienceReport }) | null
+    (AnalyticsReport & { audience: AudienceReport; traffic: TrafficFilter; unclassifiedEvents: number }) | null
   >(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -64,7 +68,7 @@ export function AdminMetricsDashboard({
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`/v1/api/admin/analytics?days=${days}`, {
+      const response = await fetch(`/v1/api/admin/analytics?days=${days}&traffic=${traffic}`, {
         cache: "no-store",
       });
       if (!response.ok)
@@ -74,7 +78,7 @@ export function AdminMetricsDashboard({
             : "Analytics unavailable. Refresh to retry.",
         );
       const payload = (await response.json()) as AnalyticsReport & {
-        audience: AudienceReport;
+        audience: AudienceReport; traffic: TrafficFilter; unclassifiedEvents: number;
       };
       if (id === generation.current) setReport(payload);
     } catch (error) {
@@ -85,7 +89,7 @@ export function AdminMetricsDashboard({
     } finally {
       if (id === generation.current) setLoading(false);
     }
-  }, [days]);
+  }, [days, traffic]);
   useEffect(() => {
     const timer = setTimeout(() => void load(), 0);
     return () => {
@@ -120,6 +124,7 @@ export function AdminMetricsDashboard({
           ))}
         </div>
         <div className="cms-toolbar">
+          <AnalyticsTrafficFilter value={traffic} onChange={setTraffic} />
           <button
             className="cms-button"
             disabled={loading}
@@ -148,6 +153,7 @@ export function AdminMetricsDashboard({
           ? `${report.start.slice(0, 10)} – ${new Date(new Date(report.end).getTime() - 1).toISOString().slice(0, 10)} · UTC · refreshed ${new Date(report.generatedAt).toLocaleTimeString()}`
           : "Loading traffic report…"}
       </p>
+      {!!report?.unclassifiedEvents && <p className="cms-notice" role="status">{report.unclassifiedEvents.toLocaleString()} aggregate events in these comparison periods have no traffic classification. They appear only in All traffic; filtered totals exclude them. This includes older counters and events without a browser context. Retained visitor detail has separate 30-day coverage.</p>}
       <div className="cms-stat-grid" aria-busy={loading}>
         {[
           {

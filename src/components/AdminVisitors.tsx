@@ -1,10 +1,14 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnalyticsTrafficFilter } from "./AnalyticsTrafficFilter";
+import type { TrafficFilter } from "@/lib/analyticsTraffic";
 import { Search, Users, RefreshCw, ArrowLeft } from "lucide-react";
 import type { VisitorSignals } from "@/lib/visitorIdentity";
 type VisitEvent = {
   id: string;
   createdAt: string;
+  occurredAt: string;
+  clientSequence: number;
   type: string;
   path: string;
   destination: string;
@@ -22,6 +26,7 @@ type VisitSession = {
   entryPath: string;
   exitPath: string;
   referrer: string;
+  traffic: string;
   campaignName: string;
   campaignSource: string;
   campaignMedium: string;
@@ -34,6 +39,7 @@ type VisitSession = {
 };
 type Visitor = {
   id: string;
+  isQa: boolean;
   firstSeen: string;
   lastSeen: string;
   lastIp: string | null;
@@ -51,6 +57,8 @@ type Detail = Omit<Visitor, "sessions"> & {
   signals: VisitorSignals;
   userAgent: string;
   similar: number;
+  ipHistory: { ip: string; ipSource: string; firstSeen: string; lastSeen: string; observations: number }[];
+  fingerprintHistory: { fingerprint: string; firstSeen: string; lastSeen: string; observations: number }[];
 };
 type List = {
   items: Visitor[];
@@ -67,6 +75,8 @@ const elapsed = (ms: number) =>
 export function AdminVisitors() {
   const [query, setQuery] = useState("");
   const [days, setDays] = useState(30);
+  const [traffic, setTraffic] = useState<TrafficFilter>("public");
+  const [classifying, setClassifying] = useState(false);
   const [live, setLive] = useState(false);
   const [page, setPage] = useState(1);
   const [list, setList] = useState<List>({
@@ -87,7 +97,7 @@ export function AdminVisitors() {
     setNotice("");
     try {
       const response = await fetch(
-        `/v1/api/admin/visitors?${new URLSearchParams({ q: query, days: String(days), live: String(live), page: String(page) })}`,
+        `/v1/api/admin/visitors?${new URLSearchParams({ q: query, traffic, days: String(days), live: String(live), page: String(page) })}`,
         { cache: "no-store" },
       );
       if (!response.ok)
@@ -108,7 +118,7 @@ export function AdminVisitors() {
     } finally {
       if (id === sequence.current) setLoading(false);
     }
-  }, [query, days, live, page]);
+  }, [query, days, live, page, traffic]);
   useEffect(() => {
     const timer = setTimeout(() => void load(), 250);
     return () => {
@@ -152,6 +162,7 @@ export function AdminVisitors() {
         prove identity.
       </p>
       <div className="cms-toolbar">
+        <AnalyticsTrafficFilter value={traffic} onChange={value => { setTraffic(value); setPage(1); setDetail(null); }} />
         <label className="cms-search">
           <Search size={17} aria-hidden="true" />
           <input
@@ -238,8 +249,18 @@ export function AdminVisitors() {
                 {when(detail.lastSeen)}
               </p>
             </div>
-            <span className="cms-status">Anonymous browser ID</span>
+            <span className="cms-status">{detail.isQa ? "QA / internal browser" : "Anonymous browser ID"}</span>
           </div>
+          <p className="cms-muted">Campaigns tagged qa, test or internal are classified per session. A browser override also covers its retained visits and future activity; it never classifies another browser sharing an IP or fingerprint.</p>
+          <button className="cms-button" disabled={classifying} onClick={async () => {
+            setClassifying(true); setNotice("");
+            try {
+              const response = await fetch(`/v1/api/admin/visitors/${detail.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isQa: !detail.isQa, expectedIsQa: detail.isQa }) });
+              if (!response.ok) throw new Error((await response.json()).error ?? "Classification could not be saved.");
+              await open(detail.id); await load();
+            } catch (error) { setNotice(error instanceof Error ? error.message : "Classification could not be saved."); }
+            finally { setClassifying(false); }
+          }}>{classifying ? "Saving classification…" : detail.isQa ? "Remove browser QA override" : "Mark browser as QA / internal"}</button>
           <dl className="cms-visitor-facts">
             <Fact label="Latest IP" value={detail.lastIp || "Unavailable"} />
             <Fact
@@ -272,16 +293,25 @@ export function AdminVisitors() {
               value={`${detail.signals.hardwareConcurrency || "Unknown"} logical processors · ${detail.signals.touchPoints} touch points`}
             />
           </dl>
+          <details className="cms-agent"><summary>Retained IP history · {detail.ipHistory.length} addresses</summary>
+            <p className="cms-muted">Latest 50 addresses, including prior IPs searchable during 30-day retention.</p>
+            {detail.ipHistory.map(row => <p key={`${row.ip}:${row.ipSource}`}><code>{row.ip}</code> · {row.ipSource} · {row.observations} observations · {when(row.firstSeen)} → {when(row.lastSeen)}</p>)}
+          </details>
+          <details className="cms-agent"><summary>Retained fingerprint history · {detail.fingerprintHistory.length} configurations</summary>
+            <p className="cms-muted">Latest 50 observed hashes. Browser versions and settings can change a fingerprint; pre-upgrade events have no historical hash.</p>
+            {detail.fingerprintHistory.map(row => <p key={row.fingerprint}><code>{row.fingerprint}</code> · {row.observations} observations · {when(row.firstSeen)} → {when(row.lastSeen)} <button className="cms-button" onClick={() => { setTraffic("all"); setQuery(row.fingerprint); setDays(30); setLive(false); setPage(1); setDetail(null); }}>Search this fingerprint</button></p>)}
+          </details>
           <div className="cms-fingerprint">
             <strong>Browser fingerprint · v1</strong>
             <code>{detail.fingerprint}</code>
             <p>
-              {detail.similar} other retained browser profile(s) share this
-              fingerprint. Profiles remain separate.
+              {detail.similar} other retained browser profile(s) match a retained
+              fingerprint observation. Profiles remain separate.
             </p>
             <button
               className="cms-button"
               onClick={() => {
+                setTraffic("all");
                 setQuery(detail.fingerprint);
                 setPage(1);
                 setLive(false);
@@ -289,7 +319,7 @@ export function AdminVisitors() {
                 setDetail(null);
               }}
             >
-              Inspect similar fingerprints
+              Inspect current fingerprint
             </button>
           </div>
           <details className="cms-agent">
@@ -299,7 +329,7 @@ export function AdminVisitors() {
           <div className="cms-panel-heading">
             <h2>Visit history</h2>
             <p>
-              Latest 20 retained sessions · latest 60 journey events per
+              All traffic for this browser · latest 20 retained sessions · latest 60 journey events per
               session. Background engagement is included in session totals.
             </p>
           </div>
@@ -307,6 +337,7 @@ export function AdminVisitors() {
             <section key={session.id} className="cms-visit-session">
               <div className="cms-row-between">
                 <h3>Session {session.id.slice(0, 8)}</h3>
+                <span className="cms-status">{detail.isQa || session.traffic === "qa" ? "QA / internal" : "Public traffic"}</span>
                 <time>{when(session.startedAt)}</time>
               </div>
               <p className="cms-muted">
@@ -317,7 +348,7 @@ export function AdminVisitors() {
               <p className="cms-muted">
                 Source: {session.referrer}{" "}
                 {session.campaignName || session.campaignSource
-                  ? `· Campaign: ${session.campaignName || session.campaignSource} / ${session.campaignMedium || "unspecified medium"}`
+                  ? `· Campaign: ${session.campaignName || "unnamed"} / ${session.campaignSource || "unspecified source"} / ${session.campaignMedium || "unspecified medium"}`
                   : ""}
               </p>
               <ol className="cms-journey">
@@ -331,7 +362,7 @@ export function AdminVisitors() {
                             ? "Contact submitted"
                             : event.type}
                       </span>
-                      <time>{when(event.createdAt)}</time>
+                      <time title={`Received ${when(event.createdAt)} · client sequence ${event.clientSequence || "legacy"}`}>{when(event.occurredAt || event.createdAt)}</time>
                     </div>
                     <strong>{event.path}</strong>
                     {event.destination && <p>→ {event.destination}</p>}

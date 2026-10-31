@@ -59,6 +59,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://xtomm:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the deployment environment}@db:5432/portfolio?schema=public"
       JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET in the deployment environment}"
+      ANALYTICS_HASH_SECRET: "${ANALYTICS_HASH_SECRET:?Set the stable analytics key in the deployment environment}"
       NEXT_PUBLIC_SITE_URL: "${NEXT_PUBLIC_SITE_URL:-https://phao.dev}"
       GOOGLE_SITE_VERIFICATION: "${GOOGLE_SITE_VERIFICATION:-}"
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: "${NEXT_PUBLIC_TURNSTILE_SITE_KEY:?Set NEXT_PUBLIC_TURNSTILE_SITE_KEY in the deployment environment}"

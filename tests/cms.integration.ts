@@ -5,6 +5,7 @@ import {
   listVisitors,
   pruneVisitorAnalytics,
   visitorReport,
+  setVisitorQa,
 } from "../src/lib/visitorStore";
 import { DETAIL_DAILY_LIMIT } from "../src/lib/visitorIdentity";
 import test from "node:test";
@@ -519,4 +520,106 @@ test("CMS database workflows preserve publication, concurrency and recovery cont
       }
     },
   );
+  await t.test("visitor ordering, IP/fingerprint history and analytics key continuity", async () => {
+    const path = `/v1/blog/ordering-${marker}`;
+    const context = { visitorToken: randomUUID(), sessionToken: randomUUID(), eventId: randomUUID(), clientSequence: 2, occurredAt: Date.now() - 1000, signals: { language: "en-US" } };
+    const event = { type: "pageview" as const, path, destination: "", label: "", referrer: "Direct", device: "desktop" };
+    const headers = new Headers({ "user-agent": "Regression Chrome/130.0 Windows", "x-real-ip": "198.51.100.77" });
+    const priorProxy = process.env.ANALYTICS_TRUST_PROXY;
+    const priorKey = process.env.ANALYTICS_HASH_SECRET;
+    const priorJwt = process.env.JWT_SECRET;
+    process.env.ANALYTICS_TRUST_PROXY = "true";
+    process.env.ANALYTICS_HASH_SECRET = "stable-analytics-test-key-0123456789abcdef";
+    let id: string | undefined;
+    let matchingId: string | undefined;
+    try {
+      await captureVisitorEvent(event, context, headers);
+      const row = await prisma.analyticsSession.findFirstOrThrow({ where: { entryPath: path } }); id = row.visitorId;
+      // A prior pageview arriving late changes entry, never rolls back exit.
+      await captureVisitorEvent({ ...event, path: "/v1/contact" }, { ...context, eventId: randomUUID(), clientSequence: 1, occurredAt: Date.now() - 2000 }, headers);
+      // A delayed old-page engagement cannot replace the destination.
+      await captureVisitorEvent({ ...event, path: "/v1/contact", type: "engagement" }, { ...context, eventId: randomUUID(), clientSequence: 3, activeMs: 1000, occurredAt: Date.now() - 1500 }, headers);
+      let detail = await getVisitor(id);
+      assert.equal(detail?.sessions[0].entryPath, "/v1/contact");
+      assert.equal(detail?.sessions[0].exitPath, path);
+      assert.deepEqual(detail?.sessions[0].events.map(row => row.clientSequence), [1, 2]);
+      assert.ok(detail && detail.firstSeen <= detail.lastSeen);
+      const fingerprint = detail!.fingerprint;
+      const matchingPath = `${path}-match`;
+      await captureVisitorEvent({ ...event, path: matchingPath }, { ...context, visitorToken: randomUUID(), sessionToken: randomUUID(), eventId: randomUUID() }, headers);
+      matchingId = (await prisma.analyticsSession.findFirstOrThrow({ where: { entryPath: matchingPath } })).visitorId;
+      headers.set("x-real-ip", "2001:db8::77"); headers.set("user-agent", "Regression Chrome/131.0 Windows");
+      process.env.JWT_SECRET = "rotated-auth-test-secret-0123456789abcdef";
+      await captureVisitorEvent(event, { ...context, eventId: randomUUID(), sessionToken: randomUUID(), clientSequence: 1 }, headers);
+      detail = await getVisitor(id);
+      assert.equal(detail?.sessions.length, 2, "Auth key rotation preserves the analytics visitor ID");
+      assert.equal(detail?.ipHistory.length, 2);
+      assert.equal(detail?.fingerprintHistory.length, 2);
+      assert.equal(detail?.similar, 1, "An earlier fingerprint still matches after a browser update");
+      assert.equal(detail?.lastIp, "2001:db8::77");
+      assert.ok((await listVisitors(new URLSearchParams({ q: "198.51.100.77" }))).items.some(row => row.id === id));
+      assert.ok((await listVisitors(new URLSearchParams({ q: fingerprint }))).items.some(row => row.id === id));
+    } finally {
+      if (id) await prisma.analyticsVisitor.delete({ where: { id } });
+      if (matchingId) await prisma.analyticsVisitor.delete({ where: { id: matchingId } });
+      await prisma.analyticsDaily.deleteMany({ where: { OR: [{ path: { startsWith: path } }, { path: "/v1/contact" }] } });
+      for (const [key, value] of Object.entries({ ANALYTICS_TRUST_PROXY: priorProxy, ANALYTICS_HASH_SECRET: priorKey, JWT_SECRET: priorJwt })) {
+        if (value === undefined) delete process.env[key]; else process.env[key] = value;
+      }
+    }
+  });
+  await t.test("window engagement excludes earlier activity; return metrics and QA filters stay consistent", async () => {
+    const path = `/v1/blog/reporting-${marker}`;
+    const context = { visitorToken: randomUUID(), sessionToken: randomUUID(), eventId: randomUUID(), clientSequence: 1, occurredAt: Date.now(), signals: {} };
+    const event = { type: "pageview" as const, path, destination: "", label: "", referrer: "Direct", device: "desktop" };
+    const headers = new Headers({ "user-agent": "Regression report Chrome/130.0" });
+    let id: string | undefined;
+    try {
+      const beforePublic = await visitorReport(7, "public");
+      await captureVisitorEvent(event, context, headers);
+      const session = await prisma.analyticsSession.findFirstOrThrow({ where: { entryPath: path } }); id = session.visitorId;
+      const old = new Date(Date.now() - 8 * 86_400_000);
+      await prisma.analyticsVisitEvent.updateMany({ where: { sessionId: session.id }, data: { createdAt: old, occurredAt: old } });
+      await prisma.analyticsSession.update({ where: { id: session.id }, data: { startedAt: old, activeMs: 80000, pageviews: 9, contacts: 1 } });
+      await prisma.analyticsVisitor.update({ where: { id }, data: { firstSeen: old } });
+      await captureVisitorEvent({ ...event, type: "engagement" }, { ...context, eventId: randomUUID(), clientSequence: 2, activeMs: 1000 }, headers);
+      const window = await visitorReport(7, "public");
+      assert.equal(window.engagedSessions, beforePublic.engagedSessions, "Lifetime counters do not create in-window engagement");
+      assert.equal(window.contactSessions, beforePublic.contactSessions, "Earlier contacts do not convert this window");
+      assert.ok(!window.landingPages.some(row => row.label === path));
+      // Restore fixture timestamp so its linked aggregate has the same day.
+      await prisma.analyticsVisitEvent.updateMany({ where: { sessionId: session.id, type: "pageview" }, data: { createdAt: new Date(), occurredAt: new Date() } });
+      await captureVisitorEvent(event, { ...context, sessionToken: randomUUID(), eventId: randomUUID() }, headers);
+      const returns = await visitorReport(7, "public");
+      assert.ok(returns.returningVisitors > beforePublic.returningVisitors);
+      assert.ok(returns.returningSessions > beforePublic.returningSessions);
+      assert.equal(returns.newVisitors, beforePublic.newVisitors);
+      const otherSession = await prisma.analyticsSession.findFirstOrThrow({ where: { visitorId: id, id: { not: session.id } } });
+      const yesterday = new Date(Date.now() - 86_400_000);
+      await prisma.analyticsVisitEvent.updateMany({ where: { sessionId: otherSession.id }, data: { createdAt: yesterday, occurredAt: yesterday } });
+      assert.ok((await visitorReport(7, "public")).repeatDayVisitors > beforePublic.repeatDayVisitors);
+      await prisma.analyticsVisitEvent.updateMany({ where: { sessionId: otherSession.id }, data: { createdAt: new Date(), occurredAt: new Date() } });
+      const publicCount = (await analyticsReport(7, "public")).pages.find(row => row.label === path)?.count;
+      assert.equal(publicCount, 2);
+      await setVisitorQa(id, true, false, marker);
+      assert.equal((await analyticsReport(7, "public")).pages.find(row => row.label === path), undefined);
+      assert.equal((await analyticsReport(7, "qa")).pages.find(row => row.label === path)?.count, 2);
+      assert.ok((await listVisitors(new URLSearchParams({ traffic: "qa" }))).items.some(row => row.id === id));
+      assert.ok(!(await listVisitors(new URLSearchParams({ traffic: "public" }))).items.some(row => row.id === id));
+      await assert.rejects(setVisitorQa(id, false, false, marker), /Classification changed/);
+      await captureVisitorEvent(event, { ...context, eventId: randomUUID(), sessionToken: randomUUID() }, headers);
+      assert.equal((await analyticsReport(7, "qa")).pages.find(row => row.label === path)?.count, 3);
+      await setVisitorQa(id, false, true, marker);
+      assert.equal((await analyticsReport(7, "public")).pages.find(row => row.label === path)?.count, 3);
+      // Explicit QA tag arriving later reclassifies only this session's events.
+      await captureVisitorEvent(event, { ...context, eventId: randomUUID(), clientSequence: 3, campaignSource: "qa" }, headers);
+      assert.equal((await analyticsReport(7, "qa")).pages.find(row => row.label === path)?.count, 2);
+      assert.equal((await analyticsReport(7, "all")).pages.find(row => row.label === path)?.count, 4);
+    } finally {
+      if (id) await prisma.analyticsVisitor.delete({ where: { id } });
+      await prisma.analyticsDaily.deleteMany({ where: { path } });
+      await prisma.cmsAuditEvent.deleteMany({ where: { actor: marker, action: "analytics.classify" } });
+    }
+  });
+
 });

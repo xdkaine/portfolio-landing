@@ -68,10 +68,13 @@ test("browser identifiers rotate on expiry and opt-out clears local identifiers"
   assert.equal(first.visitorToken, next.visitorToken);
   assert.equal(first.sessionToken, next.sessionToken);
   assert.notEqual(first.eventId, next.eventId);
+  assert.equal(next.clientSequence, first.clientSequence + 1);
+  assert.equal(next.occurredAt, now);
   now += 31 * 60_000;
   const idle = clientVisitorContext();
   assert.equal(idle.visitorToken, first.visitorToken);
   assert.notEqual(idle.sessionToken, first.sessionToken);
+  assert.equal(idle.clientSequence, 1);
   now += 30 * 86_400_000;
   assert.notEqual(clientVisitorContext().visitorToken, first.visitorToken);
   assert.deepEqual(visitorCampaign(), {

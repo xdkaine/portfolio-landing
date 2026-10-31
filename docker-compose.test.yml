@@ -37,6 +37,7 @@ services:
         NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA"
     environment:
       DATABASE_URL: "postgresql://xtomm:testpassword@db:5432/portfolio?schema=public"
+      ANALYTICS_HASH_SECRET: "ci-only-stable-analytics-secret-0123456789abcdef"
       JWT_SECRET: "test-jwt-secret-must-be-at-least-32-chars-long"
       NEXT_PUBLIC_SITE_URL: "https://localhost"
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA"

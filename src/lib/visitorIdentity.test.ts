@@ -48,6 +48,7 @@ test("visitor IP provenance accepts only a single validated address from a trust
       .ip,
     "198.51.100.7",
   );
+  assert.equal(visitorNetwork(new Headers({ "x-real-ip": "2001:0DB8:0000:0000:0000:0000:0000:0077" }), true).ip, "2001:db8::77");
 });
 test("visitor identifiers are keyed and fingerprints describe browser similarity rather than an IP", () => {
   const context = normalizeVisitorContext(input);

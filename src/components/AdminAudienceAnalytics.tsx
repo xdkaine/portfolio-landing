@@ -29,6 +29,12 @@ export function AdminAudienceAnalytics({
         </p>
       )}
       <div className="cms-audience-stats">
+        <Summary label="New browser profiles" value={audience.newVisitors.toLocaleString()} note="First observed within this reporting window" />
+        <Summary label="Returning browser profiles" value={audience.returningVisitors.toLocaleString()} note={`${audience.returningSessions} sessions followed an earlier retained session`} />
+        <Summary label="Visitors on multiple days" value={audience.repeatDayVisitors.toLocaleString()} note="Observed on at least two UTC dates in this window" />
+        <Summary label="Return measurement" value={`${audience.retentionDays} days`} note="New and returning may overlap; a new profile can return during the period" />
+      </div>
+      <div className="cms-audience-stats">
         <Summary
           label="Browser profiles"
           value={audience.visitors.toLocaleString()}
@@ -47,7 +53,7 @@ export function AdminAudienceAnalytics({
         <Summary
           label="Avg. visible-page time"
           value={`${Math.round(audience.averageActiveMs / 1000)} sec`}
-          note="Average per retained session"
+          note="Window activity per observed session"
         />
       </div>
       <div className="cms-audience-stats">
@@ -97,12 +103,12 @@ export function AdminAudienceAnalytics({
         />
         <Rank
           title="Landing pages"
-          note="Session entry paths"
+          note="First pageview inside this reporting window"
           items={audience.landingPages}
         />
         <Rank
           title="Exit pages"
-          note="Last observed path; a closed tab may not send a final event"
+          note="Last pageview inside this window; delayed clicks do not change it"
           items={audience.exitPages}
         />
       </div>
