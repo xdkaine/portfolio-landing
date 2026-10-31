@@ -35,6 +35,7 @@ test("visitor analytics filters QA, shows repeat journeys and exports the select
     await expect(page.getByText(/1 other retained browser profile/)).toBeVisible();
     await expect(page.getByText(/Retained IP history/)).toBeVisible();
     await expect(page.getByText(/Retained fingerprint history/)).toBeVisible();
+    await page.screenshot({ path: test.info().outputPath("visitor-profile-desktop.png"), fullPage: true });
     await page.getByRole("button", { name: "Mark browser as QA / internal", exact: true }).click();
     await expect(page.getByRole("button", { name: "Remove browser QA override", exact: true })).toBeEnabled();
     await page.getByRole("button", { name: "Remove browser QA override", exact: true }).click();
@@ -49,11 +50,15 @@ test("visitor analytics filters QA, shows repeat journeys and exports the select
     expect(qa.audience.returningVisitors).toBeGreaterThanOrEqual(1);
     const publicResponse = await context.request.get("/v1/api/admin/analytics?days=7&traffic=public");
     expect((await publicResponse.json()).pages.some((row: { label: string }) => row.label === path)).toBe(false);
+    await page.screenshot({ path: test.info().outputPath("analytics-qa-desktop.png"), fullPage: true });
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export CSV", exact: true }).click();
     expect((await downloadPromise).suggestedFilename()).toContain("analytics-qa-");
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath("analytics-qa-mobile.png"), fullPage: true });
+    await page.getByRole("link", { name: "Inspect visitors →", exact: true }).click();
+    await expect(page.getByLabel("Traffic classification", { exact: true })).toHaveValue("qa");
   } finally {
     sql(`DELETE FROM cms_audit_events WHERE entity_id IN (SELECT visitor_id FROM analytics_sessions WHERE entry_path=${literal(path)}); DELETE FROM analytics_visitors WHERE id IN (SELECT visitor_id FROM analytics_sessions WHERE entry_path=${literal(path)}); DELETE FROM analytics_daily WHERE path=${literal(path)}; DELETE FROM users WHERE id=${literal(userId)};`);
   }
