@@ -10,9 +10,9 @@ export type WalkthroughStep = {
 
 export const UMA_WALKTHROUGH = {
   kind: "illustrated-walkthrough",
-  title: "A request, from person to platform.",
+  title: "Follow a VM console request",
   description:
-    "An illustrative model based on the published Uma case study. The scenarios explain design boundaries; they are not a live connection or a reproduction of its authorization engine.",
+    "Choose a user and a task to follow the application boundary. This is an illustration based on Uma's published project description, not a live console or a reproduction of its permission engine.",
   personas: ["member", "administrator"],
   operations: ["console", "access"],
 } as const;
@@ -22,63 +22,70 @@ export function simulateUmaRequest(persona: Persona, operation: Operation) {
   const steps: WalkthroughStep[] = [
     {
       id: "identity",
-      title: "Start with identity",
+      title: "Identify the user",
       layer: "01 / IDENTITY",
       description:
-        "Uma brings LDAP authentication and application sessions together before exposing infrastructure workflows.",
-      decision: `Scenario: an authenticated ${persona} requests ${operation === "console" ? "a console for an assigned VM" : "an access-policy change"}.`,
+        "Uma uses LDAP authentication and application sessions. This example starts with a signed-in user; it does not demonstrate the sign-in process.",
+      decision: `The ${persona} wants to ${operation === "console" ? "open the console of an assigned VM" : "change an application access policy"}.`,
     },
     {
       id: "policy",
-      title: "Check the policy",
+      title: "Check role and scope",
       layer: "02 / AUTHORIZATION",
       description:
-        "Application access controls and assigned pools create a boundary between a person's session and the underlying cluster. Administrative tools have a separate audience.",
+        "Uma's application access controls and assigned pools separate a user's workspace from cluster administration. Console access and access-policy administration are different tasks.",
       decision: allowed
-        ? "This illustrative request can continue within the chosen persona's scope."
-        : "This illustrative member request stops here. Access administration belongs to the administrator scenario.",
+        ? operation === "console"
+          ? "In this example, the VM is assigned to the user. The console request continues."
+          : "The administrator can continue to the application access tools in this example."
+        : "The member cannot change access policies in this example. The request stops before an application change or cluster operation.",
     },
   ];
   if (allowed) {
     steps.push({
       id: "application",
-      title: "Translate the intent",
+      title:
+        operation === "console"
+          ? "Open the console workflow"
+          : "Open access administration",
       layer: "03 / APPLICATION",
       description:
-        "The application turns a focused user workflow into an infrastructure operation. Next.js, TypeScript, and a custom Node server make up the web experience.",
+        operation === "console"
+          ? "The user opens a VM console through Uma's web interface. The application sits between that browser workflow and the Proxmox integration."
+          : "The administrator reaches Uma's application access tools. This path is about application permissions, so it does not include the VM console stages below.",
       decision:
         operation === "console"
-          ? "The requested workflow is browser console access."
-          : "The requested workflow is application access administration.",
+          ? "Next: the Proxmox integration, then the browser console."
+          : "Next: the oversight layer. This illustration does not model a specific policy change or its storage.",
     });
     if (operation === "console") {
       steps.push({
         id: "proxmox",
-        title: "Reach the cluster",
+      title: "Use the Proxmox integration",
         layer: "04 / INFRASTRUCTURE",
         description:
-          "Uma integrates with the Proxmox API to bring cluster resources, virtual machines, and management operations into its own interface.",
+          "Uma integrates with the Proxmox API for VM and cluster operations. The published project also includes creation, snapshots, backups, replication, and hardware settings.",
         decision:
-          "The permitted workflow reaches the infrastructure integration.",
+          "This request follows the console path. The other management operations are outside this example.",
       });
       steps.push({
         id: "console",
-        title: "Bring the console to the browser",
+      title: "Connect the browser console",
         layer: "05 / INTERACTION",
         description:
-          "A custom Node server supports real-time events and secure VNC proxying, alongside Socket.IO features in the wider workspace.",
+          "Uma's custom Node server supports VNC proxying so the VM console can be used in the browser. The same workspace also has real-time features built with Socket.IO.",
         decision:
-          "The person works with the VM through a browser-based console.",
+          "The user reaches the assigned VM's console through Uma. No real VM connection is made by this walkthrough.",
       });
     }
     steps.push({
       id: "audit",
-      title: "Make operations visible",
+      title: "Review the oversight layer",
       layer: operation === "console" ? "06 / OVERSIGHT" : "04 / OVERSIGHT",
       description:
-        "Audit logging and dedicated administrator views provide operational visibility around infrastructure workflows.",
+        "The published project includes audit logging and administrator views. Those tools support review of infrastructure activity alongside the user-facing workflows.",
       decision:
-        "The walkthrough ends at the oversight layer. Exact event schemas and transport details are outside this illustration.",
+        "End of the illustration. This is not an audit record; exact events, permission checks, and transport details are not modeled here.",
     });
   }
   return { allowed, stoppedAt: allowed ? null : "policy", steps };
