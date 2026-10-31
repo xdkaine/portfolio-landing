@@ -48,7 +48,39 @@ The opening now pairs Thomas's name and a short introduction with Uma's actual i
 
 The rewrite restores published implementation details, including UAR's non-production AD clone, its review/provisioning workflow, TBD-DEV's OCI-to-LXC runtime, and ROG Tools' shared edge authentication. No outcome metrics or current service-health claims were added.
 
-The Uma explorer explains a specific console request and the contrasting access-policy path. Without JavaScript it shows all six default stages and disables unavailable scenario controls. Full-size screenshot links allow inspection of dense interfaces. Browser coverage includes the complete paths, no-JavaScript discovery and trace, UAR evidence/metadata, and accessibility/overflow at 320, 390, and 1440 pixels.
+The Uma explorer explains a specific console request and the contrasting access-policy path. Full-size screenshot links allow inspection of dense interfaces. Browser coverage includes the complete paths, no-JavaScript discovery and trace, UAR evidence/metadata, and accessibility/overflow at 320, 390, and 1440 pixels. The 31 October review below supersedes this first explorer's six-stage model.
+
+## Work and writing, 31 October 2026
+
+A second live review covered visual specificity, source accuracy, and the reading experience. The homepage now opens on Uma's actual cluster overview, with a separate UAR account-request spread. Original-resolution evidence links preserve readable controls. UAR's complete request form sits beside the account-matching and email-verification chapters. Small experiments have short notes rather than a padded case-study template. Uma and UAR link to pinned source lines; no results, adoption numbers, or service-health claims are invented.
+
+The console explanation now has four source-backed stages: session and CSRF, VM/pool permission checks, VNC ticket creation with its audit event, and the WebSocket/TLS proxy. The permission description includes the existing pool-management fallback. A separate two-stage access-policy example illustrates the administrator boundary; it does not invent a write or audit sequence. Selected content precedes the compact stage chooser. All four console stages remain readable without JavaScript.
+
+### Publishing and discovery
+
+Keep publishing through the existing CMS in the target environment. Publishing once makes the article available to `/v2/writing/[slug]`, the homepage writing list, and `/v2/work`; there is no second editor or content copy. Development and production retain their separate content stores and release paths. This change does not migrate or synchronize posts between them.
+
+`src/lib/v2/writingServer.ts` is the single read-only integration boundary around `listPublishedPosts` and `getPublishedPostBySlug`. V2 explicitly maps a public DTO rather than exposing editorial records. Drafts, archived/deleted records, and authoring fields stay out of the response. Structured bodies use the existing normalizer and renderer; legacy Markdown receives safe link/media handling. Existing published media storage remains `/v1/uploads/posts/...`. No v1 CMS source, schema, migration, auth, or publication workflow changes are included.
+
+Projects and articles share the library's GET search, discipline, and kind filters, grouped under Projects and Writing. They do not share a fabricated chronology. Relationships are curated in `writing.ts`: the SDC article links to SDC Cloud, describing the author's isolated nested lab inside the institutional SDC. It is not evidence that Thomas owns the institution, nor deployment proof for Uma/UAR. The homelab article stands independently. New published articles appear automatically; adding a related-project link is a small explicit catalog edit when the connection is supported by the article.
+
+Native article pages provide a reading measure, real publication dates, authored media, heading anchors, and responsive contents navigation. Empty publication lists and unavailable content sources have distinct messages. Source failures do not silently become empty libraries; projects remain accessible when writing is unavailable.
+
+| Additional route | Response |
+| --- | --- |
+| `GET /v2/api/library?q=SDC&kind=all` | Grouped projects and published writing, available kinds/disciplines, normalized query, total |
+| `GET /v2/api/writing` | Published writing summaries |
+| `GET /v2/api/writing/[slug]` | Public article with normalized body and curated project links |
+
+These use the existing v2 envelope, no-store/noindex headers, 400 for invalid queries, 404 for missing articles, and 405 for unsupported mutations. An unavailable published reader returns 503 `CONTENT_UNAVAILABLE`. Projects-only library requests do not need the CMS reader.
+
+### Review and verification limits
+
+Focused unit coverage checks public field selection, non-public states, safe media/body normalization, source failure versus empty data, query validation, and grouped filtering. Browser checks cover the real published articles, no-JavaScript reading and discovery, native contents anchors, related links, responsive overflow, and axe at 320, 390, and 1440 pixels. A disposable-CI-only fixture verifies publication-state visibility and unpublishing; it is guarded by both `CI` and the exact local CI base URL, uses the CI Compose database, and never writes to development or production content.
+
+Known baseline limitation: with JavaScript disabled, a missing nested route returns HTTP 404 but its custom error UI is blank. This was reproduced on a production build for existing `/v1/blog`, `/v2/work`, and new `/v2/writing` routes. Published pages work without JavaScript and the custom 404 works with JavaScript. The isolated expected-gap browser test retains its assertions. This release does not broaden into a framework upgrade or shared v1 layout changes to address that issue.
+
+This release targets `dev` only. Verify the deployed revision through `/v1/api/health`, both dev hostname roots redirecting to `/v2`, the library, native articles/media, and the project/article relationship. Rollback is a dev commit revert through the existing pipeline; there are no new database writes or migrations to undo.
 
 ## Verification and delivery
 
