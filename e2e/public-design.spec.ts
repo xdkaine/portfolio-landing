@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { test, expect } from "@playwright/test";
 
 const fixtureId = `public-design-${randomUUID()}`;
-const fixtureNumber = fixtureId;
+// Keep the catalog marker short; the title is the intentional long-content fixture.
+const fixtureNumber = fixtureId.slice(-8);
 let fixturesCreated = false;
 const literal = (value: string) => `'${value.replaceAll("'", "''")}'`;
 
