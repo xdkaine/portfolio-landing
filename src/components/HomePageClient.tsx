@@ -53,7 +53,10 @@ function ProjectCard({ project }: { project: HomeProject }) {
         {image ? (
           <figure className="min-w-0">
             <div className="overflow-hidden border border-iron bg-surface">
-              <Image src={image.src} alt={image.alt} width={1600} height={1000} unoptimized onError={() => setImageUnavailable(true)} className="aspect-[16/10] w-full object-contain transition-transform duration-300 motion-safe:group-hover:scale-[1.015]" />
+              <Image src={image.src} alt={image.alt} width={1600} height={1000}
+                sizes="(min-width: 1024px) calc((100vw - 232px) / 2), (min-width: 768px) calc(100vw - 96px), calc(100vw - 48px)"
+                unoptimized={!image.src.startsWith("/") || image.src.startsWith("//")}
+                onError={() => setImageUnavailable(true)} className="aspect-[16/10] w-full object-contain transition-transform duration-300 motion-safe:group-hover:scale-[1.015]" />
             </div>
             {image.caption ? <figcaption className="mt-3 text-xs leading-relaxed text-steel">{image.caption}</figcaption> : null}
           </figure>

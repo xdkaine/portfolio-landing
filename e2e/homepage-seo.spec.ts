@@ -92,6 +92,8 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
       expect(contentRequests).toEqual([]);
 
       await page.getByRole("link", { name: "CONTACT ME", exact: true }).click();
+      await expect(page).toHaveURL(/\/v1\/contact$/, { timeout: 15_000 });
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("CONTACT");
       await expect(page).toHaveTitle("Contact | Thomas Phao");
       expect(errors).toEqual([]);
     } finally {
