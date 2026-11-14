@@ -25,6 +25,14 @@ The CI wrapper retains Playwright reports, failure traces, and coverage reports 
 
 Linux-only deployment helper tests and the complete browser suite must also pass through the normal VM pipeline before DEV deployment. After deployment, verify the expected revision and repeat the real page/asset/keyboard checks. A successful build alone is not DEV acceptance.
 
+## Live DEV follow-up
+
+The first release, `755552bf`, completed [DEV CI](https://github.com/xdkaine/portfolio-landing/actions/runs/43640451629): 94 Linux Node tests, 12 deployment-helper tests, and 48 browser checks passed, with one existing skip. Its Playwright report was retained in the release's `checks/43640451629-1` directory and the live health revision matched.
+
+All 12 live accessibility scans passed. Live media inspection found that one selected-work preview transferred a 1,489,330-byte original and took 15 seconds on this route. The existing image optimizer served the same image at 750px as a 12,792-byte WebP. Home now requests responsive optimized previews for local images; full case-study images and external-image support remain available.
+
+One live hydration test timed out while awaiting Contact's title before confirming route completion. A separate normal-motion browser trace confirmed that the click started its request immediately, the Contact URL/heading appeared after about 1.9 seconds, and the correct title settled at 2.1 seconds and remained correct through 20 seconds. The test now waits for the Contact URL and heading before checking its title. Both motion variants passed the focused rerun; no title-code change was indicated. The preview follow-up still needs its own normal CI deployment and final live acceptance.
+
 ## Design review
 
 Independent design and interaction reviewers checked the implementation. Their two corrections were applied: prevent a domain suffix becoming a lone oversized letter, and preserve Ctrl/Cmd browser zoom shortcuts. The design reviewer confirmed the domain fix at desktop and mobile widths.
