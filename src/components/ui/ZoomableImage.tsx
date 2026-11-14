@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence, useMotionValue, animate } from "motion/react";
-import { useReducedMotion } from "@/lib/useReducedMotion";
-import { X, ZoomIn, ChevronLeft, ChevronRight } from "lucide-react";
+import { motion, useMotionValue } from "motion/react";
+import { X, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
+import { containDialogFocus } from "@/lib/dialogFocus";
 
 interface ZoomableImageProps {
   src: string;
@@ -16,222 +15,96 @@ interface ZoomableImageProps {
 
 export function ZoomableImage({ src, alt, gallery, index = 0 }: ZoomableImageProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(index);
-  
-  const shouldReduceMotion = Boolean(useReducedMotion());
-  const containerRef = useRef<HTMLDivElement>(null);
-
+  const [zoom, setZoom] = useState(1);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const scale = useMotionValue(1);
-
-  const items = gallery && gallery.length > 0 ? gallery : [{ image: src, alt }];
-  const currentItem = items[currentIndex];
+  const items = gallery?.length ? gallery : [{ image: src, alt }];
+  const currentItem = items[currentIndex] ?? items[0];
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-
-  const handleOpen = () => {
-    setCurrentIndex(index);
-    setIsOpen(true);
-  };
-
-  // Reset values when closing/opening
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      x.set(0);
-      y.set(0);
-      scale.set(1);
-    } else {
-      document.body.style.overflow = "";
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (!isOpen) {
+      if (dialog.open) dialog.close();
+      return;
     }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    if (!dialog.open) dialog.showModal();
+    closeRef.current?.focus();
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
+      if (dialog.open) dialog.close();
     };
-  }, [isOpen, x, y, scale]);
+  }, [isOpen]);
 
-  // Handle keyboard events
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsOpen(false);
-      } else if (e.key === "ArrowLeft" && currentIndex > 0) {
-        setCurrentIndex((prev) => prev - 1);
-        x.set(0); y.set(0); scale.set(1);
-      } else if (e.key === "ArrowRight" && currentIndex < items.length - 1) {
-        setCurrentIndex((prev) => prev + 1);
-        x.set(0); y.set(0); scale.set(1);
-      }
-    };
-    if (isOpen) {
-      window.addEventListener("keydown", handleKeyDown);
+  function zoomTo(value: number) {
+    const next = Math.max(0.5, Math.min(5, value));
+    scale.set(next);
+    setZoom(next);
+  }
+
+  function resetView() {
+    zoomTo(1);
+    x.set(0);
+    y.set(0);
+  }
+
+  function changeImage(delta: number) {
+    setCurrentIndex(current => Math.max(0, Math.min(items.length - 1, current + delta)));
+    resetView();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDialogElement>) {
+    containDialogFocus(event);
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key === "+" || event.key === "=") { event.preventDefault(); zoomTo(zoom * 1.25); }
+    else if (event.key === "-") { event.preventDefault(); zoomTo(zoom / 1.25); }
+    else if (event.key === "0") { event.preventDefault(); resetView(); }
+    else if (event.key.startsWith("Arrow")) {
+      event.preventDefault();
+      if (zoom > 1) {
+        if (event.key === "ArrowLeft") x.set(x.get() + 60);
+        if (event.key === "ArrowRight") x.set(x.get() - 60);
+        if (event.key === "ArrowUp") y.set(y.get() + 60);
+        if (event.key === "ArrowDown") y.set(y.get() - 60);
+      } else if (event.key === "ArrowLeft") changeImage(-1);
+      else if (event.key === "ArrowRight") changeImage(1);
     }
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, currentIndex, items.length, x, y, scale]);
+  }
 
-  const handlePrevious = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-      x.set(0);
-      y.set(0);
-      scale.set(1);
-    }
-  };
-
-  const handleNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (currentIndex < items.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      x.set(0);
-      y.set(0);
-      scale.set(1);
-    }
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    // Zoom in/out to cursor, clamp between 0.5x and 5x
-    const currentScale = scale.get();
-    let newScale = currentScale;
-
-    // Smooth proportional zoom
-    if (e.deltaY < 0) {
-      newScale *= 1.15; 
-    } else {
-      newScale /= 1.15;
-    }
-
-    newScale = Math.min(Math.max(0.5, newScale), 5);
-
-    // Calculate ratio of change
-    const ratio = newScale / currentScale;
-
-    // Get current position
-    const currentX = x.get();
-    const currentY = y.get();
-
-    // Mouse position relative to center of viewport
-    const dx = e.clientX - window.innerWidth / 2;
-    const dy = e.clientY - window.innerHeight / 2;
-
-    // The point under the mouse moves outwards from the image center by the scale ratio.
-    // We want to translate the image to keep that spot under the mouse.
-    const newX = currentX * ratio - dx * (ratio - 1);
-    const newY = currentY * ratio - dy * (ratio - 1);
-
-    // Animate to new values
-    animate(x, newX, { type: "spring", bounce: 0, duration: 0.3 });
-    animate(y, newY, { type: "spring", bounce: 0, duration: 0.3 });
-    animate(scale, newScale, { type: "spring", bounce: 0, duration: 0.3 });
-  };
+  const controlClass = "flex h-11 w-11 shrink-0 items-center justify-center border border-iron bg-void text-bone hover:border-ember disabled:opacity-40 disabled:cursor-default";
 
   return (
     <>
-      <button
-        type="button"
-        className="relative group block w-full cursor-zoom-in appearance-none border-0 bg-transparent p-0 text-left"
-        onClick={handleOpen}
-        aria-label={`Enlarge image: ${alt}`}
-      >
-        <Image
-          src={src}
-          alt={alt}
-          width={1600}
-          height={1000}
-          unoptimized
-          className="block w-full h-auto transition-transform duration-300 group-hover:scale-[1.02]"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <div className="bg-surface/80 text-bone px-3 py-2 rounded-full backdrop-blur-sm border border-iron flex items-center gap-2 text-xs tracking-[0.2em]">
-            <ZoomIn className="w-4 h-4" aria-hidden="true" />
-            <span>ENLARGE</span>
+      <button type="button" className="group relative block w-full cursor-zoom-in border-0 bg-transparent p-0 text-left" onClick={() => { setCurrentIndex(index); resetView(); setIsOpen(true); }} aria-label={`Enlarge image: ${alt}`}>
+        <Image src={src} alt={alt} width={1600} height={1000} unoptimized className="block h-auto w-full" />
+        <span aria-hidden="true" className="absolute bottom-3 right-3 inline-flex items-center gap-2 border border-iron bg-void px-3 py-2 text-xs text-bone"><ZoomIn size={15} />Enlarge</span>
+      </button>
+      <dialog ref={dialogRef} aria-label={`Expanded image: ${currentItem.alt}`} onCancel={() => setIsOpen(false)} onClose={() => setIsOpen(false)} onKeyDown={handleKeyDown} className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-hidden overscroll-contain border-0 bg-void p-0 text-bone open:flex open:flex-col">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-iron bg-void p-3 md:px-6">
+          <span aria-live="polite" className="text-xs text-ash">Image {currentIndex + 1} of {items.length}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" aria-label="Zoom out" onClick={() => zoomTo(zoom / 1.25)} disabled={zoom <= 0.5} className={controlClass}><ZoomOut size={18} aria-hidden="true" /></button>
+            <button type="button" aria-label="Zoom in" onClick={() => zoomTo(zoom * 1.25)} disabled={zoom >= 5} className={controlClass}><ZoomIn size={18} aria-hidden="true" /></button>
+            <button type="button" aria-label="Reset zoom" onClick={resetView} className={controlClass}><RotateCcw size={18} aria-hidden="true" /></button>
+            <span className="hidden w-12 text-center text-xs tabular-nums text-ash sm:inline">{Math.round(zoom * 100)}%</span>
+            <button ref={closeRef} type="button" aria-label="Close image viewer" onClick={() => setIsOpen(false)} className={`${controlClass} ml-2`}><X size={20} aria-hidden="true" /></button>
           </div>
         </div>
-      </button>
-
-      {mounted && createPortal(
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              initial={shouldReduceMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
-              className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center overflow-hidden overscroll-contain"
-              onClick={() => setIsOpen(false)} // Click background to close
-              onWheel={handleWheel}
-              ref={containerRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label={`Expanded image: ${currentItem.alt}`}
-            >
-              {/* Controls */}
-              <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
-                <span className="text-ash text-xs tracking-[0.2em] hidden md:block select-none pointer-events-none">
-                  SCROLL TO ZOOM &bull; DRAG TO PAN
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsOpen(false);
-                  }}
-                  className="bg-surface/50 hover:bg-surface text-bone p-3 rounded-full border border-iron transition-colors"
-                  aria-label="Close"
-                >
-                  <X className="w-5 h-5" aria-hidden="true" />
-                </button>
-              </div>
-
-              {items.length > 1 && (
-                <>
-                  {currentIndex > 0 && (
-                    <button
-                      onClick={handlePrevious}
-                      className="absolute left-6 top-1/2 -translate-y-1/2 z-50 bg-surface/50 hover:bg-surface text-bone p-3 rounded-full border border-iron transition-colors"
-                      aria-label="Previous image"
-                    >
-                      <ChevronLeft className="w-6 h-6" aria-hidden="true" />
-                    </button>
-                  )}
-                  {currentIndex < items.length - 1 && (
-                    <button
-                      onClick={handleNext}
-                      className="absolute right-6 top-1/2 -translate-y-1/2 z-50 bg-surface/50 hover:bg-surface text-bone p-3 rounded-full border border-iron transition-colors"
-                      aria-label="Next image"
-                    >
-                      <ChevronRight className="w-6 h-6" aria-hidden="true" />
-                    </button>
-                  )}
-                </>
-              )}
-
-              <motion.div
-                className="relative w-full h-full flex items-center justify-center cursor-zoom-out"
-                onClick={() => setIsOpen(false)} // Clicking open space around the image
-              >
-                <motion.img
-                  key={currentIndex}
-                  src={currentItem.image}
-                  alt={currentItem.alt}
-                  width={1600}
-                  height={1000}
-                  style={{ x, y, scale }}
-                  drag
-                  dragMomentum={false} // Prevents sliding away endlessly
-                  className="max-h-[100vh] max-w-[100vw] object-contain shadow-2xl select-none cursor-move"
-                  draggable={false}
-                  onClick={(e) => e.stopPropagation()} // Clicking image itself
-                />
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden" onWheel={event => { if (!event.ctrlKey && !event.metaKey && !event.altKey) zoomTo(zoom * (event.deltaY < 0 ? 1.15 : 1 / 1.15)); }}>
+          {isOpen ? <motion.img src={currentItem.image} alt={currentItem.alt} width={1600} height={1000} style={{ x, y, scale }} drag dragMomentum={false} draggable={false} className="max-h-full max-w-full select-none object-contain" /> : null}
+        </div>
+        <div className="relative z-10 flex items-center justify-between gap-4 border-t border-iron bg-void p-3 md:px-6">
+          <button type="button" aria-label="Previous image" disabled={currentIndex === 0} onClick={() => changeImage(-1)} className={controlClass}><ChevronLeft size={20} aria-hidden="true" /></button>
+          <p className="max-w-2xl text-center text-xs leading-relaxed text-ash">{currentItem.alt}<span className="mt-1 hidden text-steel md:block">+ / − to zoom · 0 to reset · Arrow keys to pan when zoomed</span></p>
+          <button type="button" aria-label="Next image" disabled={currentIndex === items.length - 1} onClick={() => changeImage(1)} className={controlClass}><ChevronRight size={20} aria-hidden="true" /></button>
+        </div>
+      </dialog>
     </>
   );
 }

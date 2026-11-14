@@ -18,7 +18,7 @@ test.describe("Homepage first render", () => {
     }[];
     const posts = await postsResponse.json() as { slug: string; title: string }[];
     const featured = projects.filter((project) => project.featured);
-    const selected = (featured.length > 0 ? featured : projects).slice(0, 4);
+    const selected = (featured.length > 0 ? featured : projects).slice(0, 3);
 
     const response = await page.goto("/v1");
     expect(response?.ok()).toBeTruthy();
@@ -130,15 +130,14 @@ test("homepage title stays synchronized with the visible aliases and stops on ot
   await expect(page).toHaveTitle(/\| Thomas Phao — Systems Engineer & Developer/);
 });
 
-test("homepage and About share profile facts and summaries remain compact on mobile", async ({ page }) => {
+test("profile context and compact summaries remain readable on mobile", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/v1");
   await expect(page.getByText(/I'm Thomas Phao, a systems engineer and developer/)).toBeVisible();
   const summaries = await page.locator("[data-project-teaser]").allTextContents();
   for (const summary of summaries) expect(summary.trim().length).toBeLessThanOrEqual(220);
-  const experience = page.getByText("YEARS EXPERIENCE", { exact: true }).locator("../..");
-  await expect(experience).toContainText("2");
+  await expect(page.locator("main")).toContainText("Technology Risk Consultant");
   await expect(page.locator("main")).not.toContainText("48.8566");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.goto("/v1/about");
