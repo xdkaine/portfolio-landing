@@ -290,11 +290,11 @@ export default function ContactPage() {
                   <span className="text-[10px] tracking-widest text-ash leading-relaxed">
                     I consent to this site storing my submitted details to
                     respond to my inquiry. Read{" "}
-                    <PublicLink href="/v1/privacy" intent="utility" className="text-ember hover:underline">
+                    <PublicLink href="/v1/privacy" intent="utility" className="text-ember underline underline-offset-2">
                       Privacy Policy
                     </PublicLink>{" "}
                     and{" "}
-                    <PublicLink href="/v1/terms" intent="utility" className="text-ember hover:underline">
+                    <PublicLink href="/v1/terms" intent="utility" className="text-ember underline underline-offset-2">
                       Terms
                     </PublicLink>
                     .

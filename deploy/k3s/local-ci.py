@@ -37,5 +37,18 @@ except Exception:
  subprocess.run([*compose,'logs','--tail=80'])
  raise
 finally:
+ # Preserve browser evidence on NFS even when a test fails, before cleanup.
+ try:
+  checks=output/'checks'/(os.environ.get('GITHUB_RUN_ID','local')+'-'+os.environ.get('GITHUB_RUN_ATTEMPT','1'))
+  for name in ['playwright-report','test-results','coverage-reports']:
+   source=pathlib.Path(name)
+   if source.is_dir():
+    checks.mkdir(parents=True,exist_ok=True)
+    shutil.copytree(source,checks/name,dirs_exist_ok=True)
+  summary=os.environ.get('GITHUB_STEP_SUMMARY')
+  if summary and checks.exists():
+   with open(summary,'a') as report:report.write('\nBrowser reports retained on the VM: `'+str(checks)+'`\n')
+ except Exception as error:
+  print('Browser report retention failed:',error,flush=True)
  subprocess.run([*compose,'down','-v','--remove-orphans'])
  subprocess.run(['docker','image','prune','--all','--force'])

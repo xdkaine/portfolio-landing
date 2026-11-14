@@ -1,297 +1,57 @@
 import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
-import { ScrollReveal } from "@/components/ScrollReveal";
+import { ProjectStatus } from "@/components/ProjectStatus";
 import { listProjects } from "@/lib/projectCatalog";
-import { getSiteSettings } from "@/lib/siteSettings";
+import { getProjectTeaser } from "@/lib/projectTeaser";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-interface ProjectListItem {
-  id: string;
-  number: string;
-  title: string;
-  description: string;
-  subtitle?: string;
-  tags: string[];
-  year: string;
-  status: "LIVE" | "IN PROGRESS" | "ARCHIVED";
-  featured: boolean;
-}
-
-const permissionString = (status: string) => {
-  switch (status) {
-    case "LIVE":
-      return "drwxr-xr-x";
-    case "IN PROGRESS":
-      return "drwxrw----";
-    case "ARCHIVED":
-      return "dr--r--r--";
-    default:
-      return "drwxr-xr-x";
-  }
-};
-
 export default async function ProjectsPage() {
-  const [settings, storedProjects] = await Promise.all([
-    getSiteSettings(),
-    listProjects().catch(() => []),
-  ]);
-  const projects: ProjectListItem[] = storedProjects.map((project) => ({
-    id: project.id,
-    number: project.number,
-    title: project.title,
-    description: project.description,
-    subtitle: project.caseStudy?.subtitle ?? project.caseStudy?.pitch,
-    tags: project.tags,
-    year: project.year,
-    status: project.status,
-    featured: project.featured,
-  }));
-  const { liveCount, inProgressCount, archivedCount } = (() => {
-    let live = 0;
-    let inProgress = 0;
-    let archived = 0;
-
-    for (const project of projects) {
-      if (project.status === "LIVE") {
-        live += 1;
-      } else if (project.status === "IN PROGRESS") {
-        inProgress += 1;
-      } else if (project.status === "ARCHIVED") {
-        archived += 1;
-      }
-    }
-
-    return {
-      liveCount: live,
-      inProgressCount: inProgress,
-      archivedCount: archived,
-    };
-  })();
+  const { projects, unavailable } = await listProjects()
+    .then(projects => ({ projects, unavailable: false }))
+    .catch(() => ({ projects: [], unavailable: true }));
+  const live = projects.filter(project => project.status === "LIVE").length;
+  const inProgress = projects.filter(project => project.status === "IN PROGRESS").length;
+  const archived = projects.filter(project => project.status === "ARCHIVED").length;
 
   return (
     <>
-      {/* Header */}
-      <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
-        <ScrollReveal variant="row">
-          <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
-            <span>{settings.siteName}</span>
-            <span>/</span>
-            <span className="text-ember">PROJECTS</span>
-          </div>
-        </ScrollReveal>
-
-        <ScrollReveal delay={0.05} variant="headline">
-          <h1 className="font-display text-6xl md:text-8xl lg:text-9xl tracking-tighter">
-            PROJECTS
-          </h1>
-        </ScrollReveal>
-
-        <ScrollReveal delay={0.1}>
-          <p className="text-ash text-xs md:text-sm mt-4 max-w-xl leading-relaxed">
-            A collection of things I&apos;ve built, broken, and shipped. Open any row for a deep dive into the project, including write-ups, concepts, visuals, and demo links.
+      <header className="px-6 pb-10 pt-32 md:px-12 md:pt-40 lg:px-24">
+        <h1 className="font-display text-6xl leading-none tracking-tighter md:text-8xl lg:text-9xl">PROJECTS</h1>
+        <p className="mt-6 max-w-2xl text-base leading-relaxed text-ash">Applications, infrastructure, and experiments. Open a project for the context, decisions, and work behind it.</p>
+        {!unavailable && projects.length > 0 ? (
+          <p className="mt-9 border-y border-iron py-5 text-sm leading-relaxed text-ash">
+            {projects.length} projects <span aria-hidden="true" className="mx-2 text-steel">/</span> {live} live · {inProgress} in progress · {archived} archived
           </p>
-        </ScrollReveal>
+        ) : null}
+      </header>
 
-        {/* Status summary */}
-        <ScrollReveal delay={0.15} variant="rule">
-          <div className="mt-10 flex flex-wrap gap-8 border-t border-b border-iron py-4">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-status-live" />
-              <span className="text-[10px] tracking-[0.2em] text-ash">
-                LIVE ({String(liveCount).padStart(2, "0")})
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-status-progress" />
-              <span className="text-[10px] tracking-[0.2em] text-ash">
-                IN PROGRESS ({String(inProgressCount).padStart(2, "0")})
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-steel" />
-              <span className="text-[10px] tracking-[0.2em] text-ash">
-                ARCHIVED ({String(archivedCount).padStart(2, "0")})
-              </span>
-            </div>
-            <span className="text-[10px] tracking-[0.2em] text-steel ml-auto hidden md:block">
-              TOTAL: {String(projects.length).padStart(2, "0")} ENTRIES
-            </span>
+      <section className="px-6 pb-20 md:px-12 lg:px-24" aria-label="Project catalog">
+        {unavailable ? (
+          <div className="border-y border-iron py-12">
+            <p role="status" className="text-base leading-relaxed text-ash">Projects couldn&apos;t be loaded. Please try again.</p>
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- Retry the server read with a full page load. */}
+            <a href="/v1/projects" className="mt-5 inline-block text-sm text-bone underline underline-offset-4">Reload projects</a>
           </div>
-        </ScrollReveal>
+        ) : projects.length === 0 ? <p className="border-y border-iron py-12 text-base text-ash">No projects have been published yet.</p> : projects.map(project => (
+          <PublicLink key={project.id} href={`/v1/projects/${project.number}`} intent="drill-in" className="group block border-b border-iron py-8 first:border-t md:py-10" aria-label={`Open ${project.title} case study`}>
+            <article className="grid gap-4 md:grid-cols-[48px_minmax(0,1fr)_140px] md:gap-7">
+              <PublicSharedElement kind="project-marker" itemKey={project.number}><span className="block pt-1 text-xs tabular-nums text-steel">{project.number.padStart(2, "0")}</span></PublicSharedElement>
+              <div className="min-w-0">
+                <PublicSharedElement kind="project-title" itemKey={project.number}><h2 className="font-display text-3xl leading-tight tracking-tight transition-colors group-hover:text-ember md:text-4xl [overflow-wrap:anywhere]">{project.title}</h2></PublicSharedElement>
+                <p className="mt-4 max-w-3xl text-base leading-relaxed text-ash">{getProjectTeaser(project)}</p>
+                {project.tags.length > 0 ? <p className="mt-4 text-xs leading-relaxed text-steel">{project.tags.slice(0, 4).join(" · ")}</p> : null}
+                <span className="mt-5 inline-flex min-h-8 items-center gap-3 text-sm text-bone underline decoration-iron underline-offset-4 group-hover:text-ember">Read project <span aria-hidden="true">↗</span></span>
+              </div>
+              <div className="flex items-center justify-between gap-5 md:flex-col md:items-end md:justify-start">
+                <ProjectStatus status={project.status} />
+                <span className="text-xs text-steel">{project.year}</span>
+              </div>
+            </article>
+          </PublicLink>
+        ))}
+        <PublicLink href="/v1" intent="section" className="mt-10 inline-flex min-h-10 items-center gap-3 text-sm text-ash underline underline-offset-4 hover:text-ember"><span aria-hidden="true">←</span> Back home</PublicLink>
       </section>
-
-      {/* Table header */}
-      <section className="px-6 md:px-12 lg:px-24 mb-2">
-        <ScrollReveal delay={0.2} variant="rule">
-          <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_80px] gap-4 text-[10px] tracking-[0.2em] text-steel border-b border-iron pb-2">
-            <span>PERMS</span>
-            <span>NAME</span>
-            <span>TAGS</span>
-            <span>STATUS</span>
-            <span className="text-right">YEAR</span>
-          </div>
-        </ScrollReveal>
-      </section>
-
-      {/* Project listing */}
-      <section className="px-6 md:px-12 lg:px-24 pb-24">
-        {projects.length === 0 ? (
-          <div className="border-b border-iron py-16 text-center">
-            <p className="text-steel text-xs tracking-[0.2em]">NO PROJECTS PUBLISHED</p>
-          </div>
-        ) : (
-          projects.map((project, i) => (
-            <ScrollReveal key={project.id} delay={i * 0.06} variant="row">
-              <PublicLink
-                href={`/v1/projects/${project.number}`}
-                intent="drill-in"
-                className="group block"
-                aria-label={`Open ${project.title} case study`}
-              >
-                <article className="border-b border-iron py-6 hover:bg-surface transition-[background-color,transform] duration-300 hover:translate-x-1 [content-visibility:auto] [contain-intrinsic-size:1px_168px]">
-                  {/* Desktop row */}
-                  <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_80px] gap-4 items-center">
-                    <span className="text-[10px] text-steel tracking-tight">
-                      {permissionString(project.status)}
-                    </span>
-
-                    <div className="min-w-0">
-                      <div className="flex items-baseline gap-3">
-                        <PublicSharedElement kind="project-marker" itemKey={project.number}>
-                          <span className="text-steel text-[10px] tracking-[0.15em] shrink-0">
-                            {project.number}
-                            {"//"}
-                          </span>
-                        </PublicSharedElement>
-                        <PublicSharedElement kind="project-title" itemKey={project.number}>
-                          <h2 className="font-display text-xl group-hover:text-ember transition-colors duration-300 truncate">
-                            {project.title}
-                          </h2>
-                        </PublicSharedElement>
-                      </div>
-                      <p className="text-ash text-xs mt-1 leading-relaxed line-clamp-1 group-hover:line-clamp-none">
-                        {project.subtitle || project.description}
-                      </p>
-                      <span className="inline-flex mt-2 text-[9px] tracking-[0.18em] text-steel group-hover:text-ember transition-colors">
-                        VIEW &rarr;
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1">
-                      {project.tags.slice(0, 2).map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-[9px] tracking-widest text-smoke border border-iron px-1.5 py-0.5"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                      {project.tags.length > 2 && (
-                        <span className="text-[9px] text-steel">
-                          +{project.tags.length - 2}
-                        </span>
-                      )}
-                    </div>
-
-                    <span
-                      className={`text-[10px] tracking-[0.15em] px-2 py-0.5 inline-block w-fit ${
-                        project.status === "LIVE"
-                          ? "text-status-live border border-status-live/30"
-                          : project.status === "IN PROGRESS"
-                            ? "text-status-progress border border-status-progress/30"
-                            : "text-steel border border-iron"
-                      }`}
-                    >
-                      {project.status}
-                    </span>
-
-                    <span className="text-[10px] text-steel tracking-[0.2em] text-right">
-                      {project.year}
-                    </span>
-                  </div>
-
-                  {/* Mobile layout */}
-                  <div className="md:hidden">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-steel text-[10px] tracking-[0.15em]">
-                          {project.number}
-                          {"//"}
-                        </span>
-                        <span className="text-[9px] text-steel tracking-tight">
-                          {permissionString(project.status)}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-[9px] tracking-widest px-1.5 py-0.5 ${
-                          project.status === "LIVE"
-                            ? "text-status-live border border-status-live/30"
-                            : project.status === "IN PROGRESS"
-                              ? "text-status-progress border border-status-progress/30"
-                              : "text-steel border border-iron"
-                        }`}
-                      >
-                        {project.status}
-                      </span>
-                    </div>
-
-                    <h2 className="font-display text-2xl mb-2 group-hover:text-ember transition-colors">
-                      {project.title}
-                    </h2>
-
-                    <p className="text-ash text-xs leading-relaxed mb-2">
-                      {project.subtitle || project.description}
-                    </p>
-                    <span className="inline-flex mb-3 text-[9px] tracking-[0.18em] text-steel group-hover:text-ember transition-colors">
-                      VIEW &rarr;
-                    </span>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-wrap gap-1">
-                        {project.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-[9px] tracking-widest text-smoke border border-iron px-1.5 py-0.5"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                      <span className="text-[10px] text-steel tracking-[0.2em]">
-                        {project.year}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              </PublicLink>
-            </ScrollReveal>
-          ))
-        )}
-
-        {/* Bottom navigation */}
-        <ScrollReveal delay={0.2} variant="row">
-          <div className="mt-16 flex items-center justify-between">
-            <PublicLink
-              href="/v1"
-              intent="section"
-              className="text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors"
-            >
-              &larr; BACK TO INDEX
-            </PublicLink>
-            <span className="text-[10px] text-steel tracking-[0.2em]">
-              {String(projects.length).padStart(2, "0")} ENTRIES LISTED
-            </span>
-          </div>
-        </ScrollReveal>
-      </section>
-
-      {/* Tech marquee */}
-{/*       <Marquee
-        text="REACT &mdash; NEXT.JS &mdash; TYPESCRIPT &mdash; NODE.JS &mdash; RUST &mdash; WEBGL &mdash; POSTGRESQL &mdash; "
-        variant="muted"
-        speed={35}
-      /> */}
     </>
   );
 }

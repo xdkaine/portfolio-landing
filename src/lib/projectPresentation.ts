@@ -1,5 +1,29 @@
 export type DisplayProjectStatus = "LIVE" | "IN PROGRESS" | "ARCHIVED";
 
+interface ProjectAction {
+  href: string;
+  label: string;
+  kind: "source" | "demo";
+}
+
+export function getProjectActions(demoUrl?: string | null, repoUrl?: string | null): ProjectAction[] {
+  const parse = (value?: string | null) => {
+    try {
+      const url = new URL(value ?? "");
+      return ["https:", "http:"].includes(url.protocol) ? url : null;
+    } catch { return null; }
+  };
+  const demo = parse(demoUrl);
+  const source = parse(repoUrl);
+  const destination = (url: URL) => `${url.origin}${url.pathname.replace(/\/$/, "")}${url.search}`;
+  const actions: ProjectAction[] = source ? [{ href: source.href, label: "View source", kind: "source" }] : [];
+  if (demo && (!source || destination(demo) !== destination(source))) {
+    const repository = ["github.com", "gitlab.com", "codeberg.org"].includes(demo.hostname);
+    actions.unshift({ href: demo.href, label: repository ? source ? "Related repository" : "View source" : "Open demo", kind: repository ? "source" : "demo" });
+  }
+  return actions;
+}
+
 export function normalizeProjectStatus(status: unknown): DisplayProjectStatus {
   if (status === "IN_PROGRESS" || status === "IN PROGRESS") {
     return "IN PROGRESS";

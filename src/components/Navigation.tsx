@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, useScroll, useSpring, AnimatePresence } from "motion/react";
+import { motion, useScroll, useSpring } from "motion/react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { X } from "lucide-react";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
 import { PublicLink } from "@/components/PublicTransition";
 import { ThemeControl } from "@/components/ThemeControl";
 import { TypewriterText } from "@/components/TypewriterText";
+import { containDialogFocus } from "@/lib/dialogFocus";
 
 const LINKS = [
   { href: "/v1", label: "INDEX" },
@@ -32,6 +34,7 @@ export function Navigation({
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const shouldReduceMotion = Boolean(useReducedMotion());
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
@@ -50,13 +53,29 @@ export function Navigation({
 
   const navLinks = isAdmin ? [...LINKS, ADMIN_LINK] : LINKS;
 
-  // Prevent body scroll when mobile menu is open
+  // Native modal behavior keeps focus inside, inerts the page, and restores the opener.
   useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "";
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (!isOpen) {
+      if (dialog.open) dialog.close();
+      return;
+    }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    if (!dialog.open) dialog.showModal();
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
+      if (dialog.open) dialog.close();
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const closeOnDesktop = () => { if (desktop.matches) setIsOpen(false); };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
 
   return (
     <>
@@ -144,6 +163,7 @@ export function Navigation({
           className="md:hidden relative w-8 h-8 flex flex-col items-center justify-center gap-1.5"
           aria-label="Toggle navigation menu"
           aria-expanded={isOpen}
+          aria-controls="site-navigation-dialog"
         >
           <motion.span
             className="w-6 h-0.5 bg-bone block"
@@ -171,75 +191,20 @@ export function Navigation({
         </button>
       </motion.nav>
 
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            className="fixed inset-0 bg-void z-40 flex origin-top flex-col items-start justify-center overscroll-contain px-12 md:hidden"
-            initial={shouldReduceMotion ? false : { opacity: 0, scaleY: 0 }}
-            animate={{ opacity: 1, scaleY: 1 }}
-            exit={{ opacity: 0, scaleY: 0 }}
-            transition={{
-              duration: shouldReduceMotion ? 0 : 0.4,
-              ease: [0.16, 1, 0.3, 1],
-            }}
-          >
-            {navLinks.map((link, i) => {
-              const isAdminTab = link.href === "/v1/admin";
-              return (
-                <motion.div
-                  key={link.href}
-                  initial={shouldReduceMotion ? false : { opacity: 0, x: -40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -40 }}
-                  transition={{
-                    delay: shouldReduceMotion ? 0 : i * 0.08,
-                    duration: shouldReduceMotion ? 0 : 0.4,
-                    ease: [0.16, 1, 0.3, 1],
-                  }}
-                >
-                  {isAdminTab ? (
-                    <Link
-                      href={link.href}
-                      onClick={() => setIsOpen(false)}
-                      className="font-display text-5xl block py-2 transition-colors duration-300 text-ember/60 hover:text-ember"
-                    >
-                      {"\u2318 ADMIN"}
-                    </Link>
-                  ) : (
-                    <PublicLink
-                      href={link.href}
-                      intent="section"
-                      onClick={() => setIsOpen(false)}
-                      className={`font-display text-5xl block py-2 transition-colors duration-300 ${
-                        pathname === link.href
-                          ? "text-ember"
-                          : "text-bone hover:text-ember"
-                      }`}
-                    >
-                      {link.label}
-                    </PublicLink>
-                  )}
-                </motion.div>
-              );
-            })}
-
-            <motion.div
-              className="absolute bottom-12 left-12 text-steel text-[10px] tracking-[0.3em] uppercase"
-              initial={shouldReduceMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                delay: shouldReduceMotion ? 0 : 0.5,
-                duration: shouldReduceMotion ? 0 : 0.25,
-              }}
-            >
-              NAVIGATION
-            </motion.div>
-
-            <ThemeControl className="absolute bottom-10 right-12" />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <dialog ref={dialogRef} id="site-navigation-dialog" aria-label="Site navigation" onKeyDown={containDialogFocus} onCancel={() => setIsOpen(false)} onClose={() => setIsOpen(false)} className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-y-auto overscroll-contain border-0 bg-void px-6 py-6 text-bone open:flex open:flex-col">
+        <div className="flex items-center justify-between border-b border-iron pb-5">
+          <span className="text-sm">Navigation</span>
+          <button type="button" onClick={() => setIsOpen(false)} aria-label="Close navigation" className="flex h-11 w-11 items-center justify-center border border-iron hover:border-ember"><X size={22} aria-hidden="true" /></button>
+        </div>
+        <nav aria-label="Main navigation" className="flex flex-1 flex-col justify-center py-8">
+          {navLinks.map(link => link.href === "/v1/admin" ? (
+            <Link key={link.href} href={link.href} onClick={() => setIsOpen(false)} className="font-display py-3 text-5xl text-ember">ADMIN</Link>
+          ) : (
+            <PublicLink key={link.href} href={link.href} intent="section" onClick={() => setIsOpen(false)} aria-current={pathname === link.href ? "page" : undefined} className={`font-display py-3 text-5xl ${pathname === link.href ? "text-ember" : "hover:text-ember"}`}>{link.label}</PublicLink>
+          ))}
+        </nav>
+        <div className="flex items-center justify-between gap-4 border-t border-iron pt-5"><span className="text-xs text-ash">Color theme</span><ThemeControl /></div>
+      </dialog>
     </>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache } from "react";
+import { cache, Fragment } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/projectCatalog";
 import {
   normalizeProjectStatus,
+  getProjectActions,
   type DisplayProjectStatus,
 } from "@/lib/projectPresentation";
 import { DEFAULT_SOCIAL_IMAGE, PORTFOLIO_NAME } from "@/lib/siteMetadata";
@@ -171,7 +172,8 @@ export default async function ProjectDetailPage({
 
   const demoUrl = normalizedProject.url ?? mergedDeepDive.demoUrl;
   const repoUrl = normalizedProject.github ?? mergedDeepDive.repoUrl;
-  const hasDemoSection = Boolean(mergedDeepDive.demoSummary || demoUrl || repoUrl);
+  const projectActions = getProjectActions(demoUrl, repoUrl);
+  const hasDemoSection = Boolean(mergedDeepDive.demoSummary);
 
   let projectOrder: { number: string }[] = [];
   try {
@@ -214,18 +216,23 @@ export default async function ProjectDetailPage({
 
         <ScrollReveal delay={0.05} variant="headline">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 mb-10">
-            <div className="max-w-4xl">
+            <div className="min-w-0 w-full max-w-4xl">
               <PublicSharedElement kind="project-title" itemKey={normalizedProject.number}>
                 <h1
-                  className="font-display text-5xl md:text-7xl lg:text-8xl tracking-tighter"
+                  className={`font-display leading-[1.08] tracking-tighter [overflow-wrap:anywhere] ${!normalizedProject.title.includes(" ") && normalizedProject.title.length > 20 ? "text-[clamp(2.25rem,6vw,5.5rem)]" : "text-5xl md:text-7xl lg:text-8xl"}`}
                   tabIndex={-1}
                 >
-                  {normalizedProject.title}
+                  {normalizedProject.title.split(/(?=\.)/).map((part, index) => <Fragment key={index}><span className="inline-block max-w-full align-baseline">{part}</span><wbr /></Fragment>)}
                 </h1>
               </PublicSharedElement>
               <p className="text-bone/80 text-sm md:text-base leading-relaxed mt-6 max-w-3xl">
                 {mergedDeepDive.subtitle || normalizedProject.description}
               </p>
+              {projectActions.length > 0 ? (
+                <div className="mt-6 flex flex-wrap gap-4">
+                  {projectActions.map(action => <a key={action.href} href={action.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-3 border border-iron px-4 text-sm text-bone transition-colors hover:border-ember hover:text-ember">{action.label}<span aria-hidden="true">↗</span></a>)}
+                </div>
+              ) : null}
             </div>
             <span
               className={`text-[10px] tracking-[0.15em] px-3 py-1 border shrink-0 mt-2 lg:mt-4 ${getStatusClass(normalizedProject.status)}`}
@@ -461,36 +468,13 @@ export default async function ProjectDetailPage({
           <ScrollReveal>
             <div className="border border-iron bg-surface/40 p-6 md:p-10">
               <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
-                DEMO//
+                PROJECT ACCESS
               </span>
               {mergedDeepDive.demoSummary ? (
                 <p className="text-sm md:text-base text-ash leading-relaxed max-w-3xl">
                   {mergedDeepDive.demoSummary}
                 </p>
               ) : null}
-              <div className="mt-8 flex flex-wrap items-center gap-4 text-xs tracking-[0.2em]">
-                {demoUrl ? (
-                  <a
-                    href={demoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 border border-ember/50 text-ember hover:bg-ember/10 transition-colors"
-                  >
-                    OPEN DEMO ↗
-                  </a>
-                ) : null}
-
-                {repoUrl ? (
-                  <a
-                    href={repoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 border border-iron text-ash hover:text-ember hover:border-ember/40 transition-colors"
-                  >
-                    SOURCE CODE ↗
-                  </a>
-                ) : null}
-              </div>
             </div>
           </ScrollReveal>
         </section>

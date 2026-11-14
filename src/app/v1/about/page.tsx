@@ -6,7 +6,7 @@ import { PORTFOLIO_NAME } from "@/lib/siteMetadata";
 import { PORTFOLIO_PROFILE } from "@/lib/portfolioProfile";
 
 const specs = [
-  { label: "ROLE", value: "TECHNOLOGY RISK CONSULTANT" },
+  { label: "ROLE", value: PORTFOLIO_PROFILE.currentRole.toUpperCase() },
   { label: "FOCUS", value: "ENTERPRISE TECHNOLOGY, ERP & SUPPORTING SYSTEMS" },
   { label: "LOCATION", value: PORTFOLIO_PROFILE.location },
   { label: "EXPERIENCE", value: `${PORTFOLIO_PROFILE.experienceYears}+ YEARS` },
@@ -109,7 +109,7 @@ export default function AboutPage() {
               system as people use it.
             </p>
             <p className="text-sm md:text-base leading-relaxed text-ash">
-              I currently work as a Technology Risk Consultant, supporting work
+              I currently work as a {PORTFOLIO_PROFILE.currentRole}, supporting work
               across enterprise technologies, ERP platforms, and the systems around
               them. Outside that role, I keep building applications and infrastructure,
               and use this site to share what I&apos;m working on and learning.

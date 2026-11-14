@@ -15,7 +15,7 @@ export default async function HomePage() {
     listPublishedPosts({ limit: 4 }),
   ]);
   const featured = projects.filter((project) => project.featured);
-  const selectedProjects = (featured.length > 0 ? featured : projects).slice(0, 4);
+  const selectedProjects = (featured.length > 0 ? featured : projects).slice(0, 3);
 
   return (
     <HomePageClient
@@ -27,7 +27,11 @@ export default async function HomePage() {
         description: getProjectTeaser(project),
         tags: project.tags,
         status: project.status,
-        featured: project.featured,
+        image: project.caseStudy?.gallery?.[0] ? {
+          src: project.caseStudy.gallery[0].image,
+          alt: project.caseStudy.gallery[0].alt || project.title,
+          caption: project.caseStudy.gallery[0].caption,
+        } : undefined,
       }))}
       posts={posts.map((post) => ({
         id: post.id,

@@ -1,7 +1,6 @@
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LinkClickTracker } from "@/components/LinkClickTracker";
-import { BackgroundContextMenu } from "@/components/BackgroundContextMenu";
 import { PublicTransitionSurface } from "@/components/PublicTransition";
 import { parseBrandAliases } from "@/lib/brandAliases";
 import { getSiteSettings } from "@/lib/siteSettings";
@@ -29,7 +28,6 @@ export default async function V1Layout({
         SKIP TO MAIN CONTENT
       </a>
       <LinkClickTracker />
-      <BackgroundContextMenu />
       <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
       <main id="main-content" className="flex-1 scroll-mt-20">
         <PublicTransitionSurface>
