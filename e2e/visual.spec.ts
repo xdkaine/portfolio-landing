@@ -9,6 +9,8 @@ test.describe('Homepage design baselines', () => {
         await page.goto('/v1');
         await page.evaluate(() => document.fonts.ready);
         await expect(page.locator('nav').first()).toHaveCSS('opacity', '1');
+        await expect(page.locator('body')).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(0, 0, 0)' : 'rgb(245, 241, 232)');
+        await expect(page.locator('.grain-overlay')).toHaveCount(0);
         // The introduction is independent of changing CMS project/post records.
         await expect(page.locator('main header').first()).toHaveScreenshot(`homepage-hero-${colorScheme}-${width}.png`, {
           animations: 'disabled', maxDiffPixelRatio: 0.01,

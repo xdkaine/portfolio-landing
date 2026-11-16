@@ -63,7 +63,7 @@ export function useSyncedAliasTypewriter(
   );
 
   const [frame, setFrame] = useState<AliasTypewriterFrame>(() =>
-    getAliasTypewriterFrame(safeAliases, resolvedTiming, 0),
+    getStaticAliasFrame(safeAliases),
   );
 
   useEffect(() => {

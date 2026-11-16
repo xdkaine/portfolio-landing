@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion, useScroll, useSpring } from "motion/react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useState, useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { House, X } from "lucide-react";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
 import { PublicLink } from "@/components/PublicTransition";
 import { ThemeControl } from "@/components/ThemeControl";
@@ -13,7 +13,7 @@ import { TypewriterText } from "@/components/TypewriterText";
 import { containDialogFocus } from "@/lib/dialogFocus";
 
 const LINKS = [
-  { href: "/v1", label: "INDEX" },
+  { href: "/v1", label: "Home" },
   { href: "/v1/projects", label: "PROJECTS" },
   { href: "/v1/blog", label: "BLOG" },
   { href: "/v1/about", label: "ABOUT" },
@@ -142,11 +142,13 @@ export function Navigation({
                   key={link.href}
                   href={link.href}
                   intent="section"
-                  className={`relative group text-xs tracking-[0.2em] uppercase transition-colors duration-300 ${
+                  aria-label={link.href === "/v1" ? "Home" : undefined}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`relative group inline-flex min-h-11 items-center justify-center ${link.href === "/v1" ? "min-w-11" : ""} text-xs tracking-[0.2em] uppercase transition-colors duration-300 ${
                     isActive ? "text-ember" : "text-ash hover:text-bone"
                   }`}
                 >
-                  {isActive ? `[${link.label}]` : link.label}
+                  {link.href === "/v1" ? <House size={20} aria-hidden="true" /> : isActive ? `[${link.label}]` : link.label}
                   {!isActive && (
                     <span className="absolute left-0 -bottom-1 w-full h-px bg-ember origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
                   )}
@@ -200,7 +202,7 @@ export function Navigation({
           {navLinks.map(link => link.href === "/v1/admin" ? (
             <Link key={link.href} href={link.href} onClick={() => setIsOpen(false)} className="font-display py-3 text-5xl text-ember">ADMIN</Link>
           ) : (
-            <PublicLink key={link.href} href={link.href} intent="section" onClick={() => setIsOpen(false)} aria-current={pathname === link.href ? "page" : undefined} className={`font-display py-3 text-5xl ${pathname === link.href ? "text-ember" : "hover:text-ember"}`}>{link.label}</PublicLink>
+            <PublicLink key={link.href} href={link.href} intent="section" onClick={() => setIsOpen(false)} aria-label={link.href === "/v1" ? "Home" : undefined} aria-current={pathname === link.href ? "page" : undefined} className={`font-display py-3 text-5xl ${pathname === link.href ? "text-ember" : "hover:text-ember"}`}>{link.href === "/v1" ? <House size={40} aria-hidden="true" /> : link.label}</PublicLink>
           ))}
         </nav>
         <div className="flex items-center justify-between gap-4 border-t border-iron pt-5"><span className="text-xs text-ash">Color theme</span><ThemeControl /></div>

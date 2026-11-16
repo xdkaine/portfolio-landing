@@ -2,7 +2,7 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LinkClickTracker } from "@/components/LinkClickTracker";
 import { PublicTransitionSurface } from "@/components/PublicTransition";
-import { parseBrandAliases } from "@/lib/brandAliases";
+import { parseIdentityAliases } from "@/lib/brandAliases";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export default async function V1Layout({
@@ -11,7 +11,7 @@ export default async function V1Layout({
   children: React.ReactNode;
 }) {
   const settings = await getSiteSettings();
-  const brandAliases = parseBrandAliases(settings.siteAliases);
+  const brandAliases = parseIdentityAliases(settings.siteAliases);
   const primaryBrandName = brandAliases[0] ?? settings.siteName;
   const footerSocials = [
     { label: "GITHUB", href: settings.socialGithub },
@@ -29,7 +29,7 @@ export default async function V1Layout({
       </a>
       <LinkClickTracker />
       <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
-      <main id="main-content" className="flex-1 scroll-mt-20">
+      <main id="main-content" data-portfolio-v1 className="flex-1 scroll-mt-20">
         <PublicTransitionSurface>
           {children}
         </PublicTransitionSurface>
@@ -38,10 +38,8 @@ export default async function V1Layout({
         brandName={primaryBrandName}
         brandAliases={brandAliases}
         socials={footerSocials}
-        legalEffectiveDate={settings.legalEffectiveDate}
         chucklesGifUrl={settings.footerChucklesGifUrl}
       />
-      <div className="grain-overlay" aria-hidden="true" />
     </>
   );
 }

@@ -20,6 +20,11 @@
   --color-status-progress: #FBBF24;
 }
 
+/* V1 uses a flat black canvas; light and system-light preferences still apply. */
+html:has([data-portfolio-v1]) {
+  --color-void: #000000;
+}
+
 html[data-theme="light"] {
   --color-void: #F5F1E8;
   --color-surface: #E9E2D7;
