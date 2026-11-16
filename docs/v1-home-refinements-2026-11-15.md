@@ -15,7 +15,11 @@ Implementation: [PR #69](https://github.com/xdkaine/portfolio-landing/pull/69). 
 
 ## Validation and delivery
 
-TypeScript and focused ESLint passed. VM browser checks, reviewed Linux/Windows screenshot baselines, normal DEV CI and live deployed acceptance are pending at this source checkpoint.
+TypeScript and focused ESLint passed. All 22 VM browser checks passed without retries, including exact synchronization through the three-name cycle, server-rendered content, reduced motion, keyboard navigation and image inspection. Five Linux and five Windows visual checks passed, and the intentional baselines were inspected in both themes at desktop/mobile sizes. Ten additional viewport/theme checks passed at 320, 390, 768, 1024 and 1440px without horizontal overflow or name overlap. A focused check of the real animation components also passed 250 synchronized samples over complete name cycles.
+
+The animation uses one shared external store and timer per alias/timing sequence. Independent component timers could differ by a character at a boundary; all consumers now read the same frame. The timer stops when its last subscriber leaves, and reduced motion uses a stable full-name snapshot.
+
+Dated release results, live revision/commit-link verification, remaining acceptance gaps and recovery references are maintained in the [knowledge base record](https://docs.home.phao.dev/books/agent-knowledge/page/portfolio-v1-homepage-refinements-15-november-2026). Normal DEV CI and live deployed acceptance follow this source checkpoint through PR #69.
 
 The isolated preflight uses the existing runner dependencies only after comparing parsed lockfiles for exact equality. Its source archive is normalized to Linux line endings to reuse unchanged Docker layers. The normal CI install, audit, unit/helper/browser checks and deployment gates remain intact.
 
