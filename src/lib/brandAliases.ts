@@ -28,5 +28,5 @@ export function parseIdentityAliases(raw: string | null | undefined): string[] {
   const aliases = parseBrandAliases(raw).filter((alias) => alias !== PORTFOLIO_NAME);
   const tommy = aliases.indexOf("Tommy");
   if (tommy > 0) aliases.unshift(...aliases.splice(tommy, 1));
-  return [PORTFOLIO_NAME, ...aliases];
+  return aliases.length ? aliases : ["Tommy", "Kaine"];
 }

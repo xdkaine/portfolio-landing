@@ -13,15 +13,15 @@ import {
 } from "@/lib/publicTransition";
 
 const PAGE_TRANSITIONS = {
-  [TRANSITION_TYPES.sectionForward]: "editorial-page-forward",
-  [TRANSITION_TYPES.sectionBack]: "editorial-page-back",
-  [TRANSITION_TYPES.drillIn]: "editorial-page-drill-in",
-  [TRANSITION_TYPES.drillOut]: "editorial-page-drill-out",
-  [TRANSITION_TYPES.siblingNext]: "editorial-page-next",
-  [TRANSITION_TYPES.siblingPrev]: "editorial-page-prev",
-  [TRANSITION_TYPES.utility]: "editorial-page-utility",
+  [TRANSITION_TYPES.sectionForward]: "portfolio-page",
+  [TRANSITION_TYPES.sectionBack]: "portfolio-page",
+  [TRANSITION_TYPES.drillIn]: "portfolio-page",
+  [TRANSITION_TYPES.drillOut]: "portfolio-page",
+  [TRANSITION_TYPES.siblingNext]: "portfolio-page",
+  [TRANSITION_TYPES.siblingPrev]: "portfolio-page",
+  [TRANSITION_TYPES.utility]: "portfolio-page",
   [TRANSITION_TYPES.skip]: "none",
-  default: "editorial-page-history",
+  default: "portfolio-page",
 } as const;
 
 const SHARED_TRANSITIONS = {
@@ -39,8 +39,8 @@ export function PublicTransitionSurface({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ViewTransition default="none" enter="none" exit="none" update={PAGE_TRANSITIONS}>
-      <div className="public-transition-surface">{children}</div>
+    <ViewTransition key={pathname} default="none" enter={PAGE_TRANSITIONS} exit={PAGE_TRANSITIONS} update="none">
+      <div className="public-transition-surface" data-public-page={pathname}>{children}</div>
     </ViewTransition>
   );
 }

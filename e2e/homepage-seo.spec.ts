@@ -51,8 +51,8 @@ test.describe("Homepage first render", () => {
   test("provides an introduction, working actions, and social metadata", async ({ page, request }) => {
     await page.goto("/v1");
     await expect(page).toHaveTitle("Thomas Phao — Builder & Developer");
-    await expect(page.locator("main h1 .absolute.inset-0")).toContainText("Thomas Phao");
-    await expect(page.locator("[data-home-introduction] .absolute.inset-0")).toContainText("Thomas Phao");
+    await expect(page.locator("main h1 .absolute.inset-0")).toContainText("Tommy");
+    await expect(page.locator("[data-home-introduction] .absolute.inset-0")).toContainText("Tommy");
     await expect(page.locator("[data-home-introduction]")).toContainText("a builder and developer");
 
     const projects = page.getByRole("link", { name: "VIEW PROJECTS", exact: true });
@@ -149,8 +149,8 @@ test("profile context and compact summaries remain readable on mobile", async ({
   await expect(page.locator("main")).not.toContainText("48.8566");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.goto("/v1/about");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("ABOUT THOMAS PHAO");
-  await expect(page.getByText("2+ YEARS", { exact: true })).toBeVisible();
-  await expect(page.getByText("LOS ANGELES, CA", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("About Thomas Phao");
+  await expect(page.getByText("2+ YEARS", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Los Angeles, CA", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
 });
