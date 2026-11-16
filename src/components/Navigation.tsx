@@ -101,7 +101,7 @@ export function Navigation({
         <PublicLink
           href="/v1"
           intent="section"
-          className="font-display text-xl md:text-2xl text-bone tracking-widest hover:text-ember transition-colors duration-300"
+          className="whitespace-nowrap font-display text-xl md:text-2xl text-bone tracking-widest hover:text-ember transition-colors duration-300"
         >
           {brandAliases.length > 1 ? (
             <AliasTypewriter
