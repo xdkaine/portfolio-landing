@@ -8,6 +8,8 @@ Blog's distinctive entrance uses a masked headline, sliding rows and drawing rul
 
 First-screen elements enter on document loading and route mounting, using Blog's existing 720ms headline / 560ms block timing and short stagger. CSS provides that entrance before hydration; content remains readable without JavaScript. Scrolling interrupts the entrance instead of leaving queued effects running.
 
+Route measurements wait until the next frame so Next can reset the previous page's scroll position first. A pending mode ignores stale scroll updates during that handoff; keyboard focus still reveals content immediately. This preserves the entrance when navigating from the middle of a page as well as from its top.
+
 Below-screen elements use Motion values tied directly to their position from 94% to 62% of viewport height. There is no spring or timed transition on that progress: slower scrolling reveals gradually, stopping holds the reveal, and a large scroll advances it immediately. Measurement uses an untransformed outer element to avoid feedback from the animated content. Completed reveals remain visible when scrolling back. Reaching the document bottom completes any remaining reveal; keyboard focus makes its content immediately readable. Reduced motion shows all content without transforms, masks or animation delays.
 
 Native scroll behavior and the existing route/shared-element transitions remain intact. No dependencies, content schema or deployment helpers change.

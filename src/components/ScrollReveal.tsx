@@ -23,7 +23,7 @@ export function ScrollReveal({
 }: ScrollRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
-  const mode = useRef<"entry" | "scroll" | "static">("entry");
+  const mode = useRef<"pending" | "entry" | "scroll" | "static">("pending");
   const complete = useRef(false);
   // The server stays readable; only offscreen content is enhanced after measurement.
   const progress = useMotionValue(1);
@@ -54,13 +54,25 @@ export function ScrollReveal({
       progress.set(1);
       return;
     }
-    const top = element.getBoundingClientRect().top;
-    mode.current = window.scrollY < 1 && top < window.innerHeight * 0.94 ? "entry" : "scroll";
-    element.dataset.revealMode = mode.current;
-    const atEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
-    const initial = atEnd ? 1 : Math.min(1, Math.max(0, (window.innerHeight * 0.94 - top) / (window.innerHeight * 0.32)));
-    progress.set(mode.current === "entry" ? 1 : initial);
-    if (mode.current === "scroll" && initial === 1 && once) complete.current = true;
+    // Next restores the route's scroll position after child layout effects.
+    // Measure on the next frame, ignoring stale scroll events until that reset settles.
+    mode.current = "pending";
+    const frame = requestAnimationFrame(() => {
+      if (complete.current) {
+        mode.current = "static";
+        element.dataset.revealMode = "static";
+        progress.set(1);
+        return;
+      }
+      const top = element.getBoundingClientRect().top;
+      mode.current = window.scrollY < 1 && top < window.innerHeight * 0.94 ? "entry" : "scroll";
+      element.dataset.revealMode = mode.current;
+      const atEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+      const initial = atEnd ? 1 : Math.min(1, Math.max(0, (window.innerHeight * 0.94 - top) / (window.innerHeight * 0.32)));
+      progress.set(mode.current === "entry" ? 1 : initial);
+      if (mode.current === "scroll" && initial === 1 && once) complete.current = true;
+    });
+    return () => cancelAnimationFrame(frame);
   }, [disabled, once, progress, shouldReduceMotion]);
 
   useMotionValueEvent(scrollYProgress, "change", latest => {
@@ -71,7 +83,7 @@ export function ScrollReveal({
   });
   useMotionValueEvent(scrollY, "change", latest => {
     // Scrolling takes priority over the first-screen entrance; never leave a timed queue behind.
-    if (mode.current === "entry" && latest > 2) show();
+    if (mode.current === "entry" && latest > 2 && window.scrollY > 2) show();
     if (mode.current === "scroll" && latest + window.innerHeight >= document.documentElement.scrollHeight - 2) {
       progress.set(1);
       if (once) complete.current = true;
