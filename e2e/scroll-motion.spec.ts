@@ -65,6 +65,31 @@ test('reduced motion keeps Home content fully visible before and after scrolling
   expect(await opacity(heading)).toBe(1);
 });
 
+test('navigation from a scrolled page still runs the heading entrance after the route resets', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 500 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/v1');
+  for (const [label, path, title] of [
+    ['ABOUT', '/v1/about', 'ABOUT THOMAS PHAO'],
+    ['BLOG', '/v1/blog', 'Blogs'],
+    ['Home', '/v1', 'Thomas Phao — Builder & Developer'],
+    ['PROJECTS', '/v1/projects', 'PROJECTS'],
+  ]) {
+    await page.evaluate(() => scrollTo({ top: 800, behavior: 'instant' }));
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await page.locator('nav').first().getByRole('link', { name: label, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`${path}$`), { timeout: 15_000 });
+    await expect(page.locator('main h1')).toHaveAccessibleName(title);
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await expect.poll(() => page.locator('main h1').evaluate(element => {
+      let node: Element | null = element;
+      while (node && !node.classList.contains('scroll-reveal-content')) node = node.parentElement;
+      return node?.getAnimations().some(animation => animation instanceof CSSAnimation && animation.animationName === 'portfolio-reveal-headline');
+    })).toBe(true);
+    expect(await page.evaluate(() => scrollY)).toBe(0);
+  }
+});
+
 test('reveal content stays readable without JavaScript', async ({ browser, baseURL }) => {
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false, extraHTTPHeaders: { DNT: '1' } });
   try {
