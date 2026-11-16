@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
 import { LegacyPostBody, PostDocumentBody } from "@/components/blog/PostBody";
 import { PostContents } from "@/components/blog/PostContents";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import { getPostHeadings } from "@/lib/postContent";
 import type { Post } from "@/lib/adminDashboardData";
 
@@ -36,46 +37,52 @@ export function PostArticle({
         </div>
       ) : null}
       <header className={`${preview ? "pt-12" : "pt-32"} pb-10 px-6 md:px-12 lg:px-24`}>
-        <div className="text-steel text-[10px] tracking-[0.3em] flex flex-wrap items-center gap-3 mb-8">
-          {preview ? (
-            <Link href="/v1" className="hover:text-bone">{siteName}</Link>
-          ) : (
-            <PublicLink href="/v1" intent="section" className="hover:text-bone">{siteName}</PublicLink>
-          )}
-          <span>/</span>
-          {preview ? (
-            <Link href="/v1/blog" className="hover:text-bone">TRANSMISSIONS</Link>
-          ) : (
-            <PublicLink
-              href="/v1/blog"
-              intent="drill-out"
-              className="hover:text-bone"
-            >
-              TRANSMISSIONS
-            </PublicLink>
-          )}
-          <span>/</span>
-          <span className="text-ember">{post.slug.toUpperCase()}</span>
-        </div>
-        <div className="max-w-5xl">
-          {preview ? (
-            <h1 className="font-display text-5xl md:text-7xl lg:text-[5.5rem] tracking-tighter leading-[0.95]">
-              {post.title}
-            </h1>
-          ) : (
-            <PublicSharedElement kind="post-title" itemKey={post.slug}>
+        <ScrollReveal variant="row" disabled={preview}>
+          <div className="text-steel text-[10px] tracking-[0.3em] flex flex-wrap items-center gap-3 mb-8">
+            {preview ? (
+              <Link href="/v1" className="hover:text-bone">{siteName}</Link>
+            ) : (
+              <PublicLink href="/v1" intent="section" className="hover:text-bone">{siteName}</PublicLink>
+            )}
+            <span>/</span>
+            {preview ? (
+              <Link href="/v1/blog" className="hover:text-bone">TRANSMISSIONS</Link>
+            ) : (
+              <PublicLink
+                href="/v1/blog"
+                intent="drill-out"
+                className="hover:text-bone"
+              >
+                TRANSMISSIONS
+              </PublicLink>
+            )}
+            <span>/</span>
+            <span className="text-ember">{post.slug.toUpperCase()}</span>
+          </div>
+        </ScrollReveal>
+        <ScrollReveal variant="headline" delay={0.05} disabled={preview}>
+          <div className="max-w-5xl">
+            {preview ? (
               <h1 className="font-display text-5xl md:text-7xl lg:text-[5.5rem] tracking-tighter leading-[0.95]">
                 {post.title}
               </h1>
-            </PublicSharedElement>
-          )}
-          <p className="article-deck mt-7 max-w-3xl">{post.excerpt}</p>
-        </div>
-        <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-iron py-5 text-[10px] tracking-[0.18em]">
-          <span className="text-steel">{post.date}</span>
-          <span className="text-smoke">{post.readTime}</span>
-          {post.tags.map((tag) => <span key={tag} className="border border-iron px-2 py-1 text-smoke">{tag}</span>)}
-        </div>
+            ) : (
+              <PublicSharedElement kind="post-title" itemKey={post.slug}>
+                <h1 className="font-display text-5xl md:text-7xl lg:text-[5.5rem] tracking-tighter leading-[0.95]">
+                  {post.title}
+                </h1>
+              </PublicSharedElement>
+            )}
+            <p className="article-deck mt-7 max-w-3xl">{post.excerpt}</p>
+          </div>
+        </ScrollReveal>
+        <ScrollReveal variant="rule" delay={0.12} disabled={preview}>
+          <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-iron py-5 text-[10px] tracking-[0.18em]">
+            <span className="text-steel">{post.date}</span>
+            <span className="text-smoke">{post.readTime}</span>
+            {post.tags.map((tag) => <span key={tag} className="border border-iron px-2 py-1 text-smoke">{tag}</span>)}
+          </div>
+        </ScrollReveal>
       </header>
 
       <section className="article-layout px-6 md:px-12 lg:px-24 pb-20 grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,760px)_260px] gap-10 lg:gap-16">

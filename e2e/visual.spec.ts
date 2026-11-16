@@ -47,15 +47,11 @@ test('login page matches visual baseline', async ({ page }) => {
 
 test.describe('About design baselines', () => {
   for (const colorScheme of ['dark', 'light'] as const) for (const width of [1280, 390]) {
-    test(`${colorScheme} About at ${width}px uses a balanced layout`, async ({ page }) => {
+    test(`${colorScheme} About at ${width}px preserves the terminal identity`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
       await page.goto('/v1/about');
       await page.evaluate(() => document.fonts.ready);
-      for (const image of await page.locator('[data-about-page] img').all()) {
-        await image.scrollIntoViewIfNeeded();
-        await expect.poll(() => image.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
-      }
       // The fixed navigation is covered by Home's baselines; isolate the tall About article.
       await page.evaluate(() => scrollTo(0, 0));
       await page.addStyleTag({ content: 'nav, a[href="#main-content"] { visibility: hidden !important; }' });

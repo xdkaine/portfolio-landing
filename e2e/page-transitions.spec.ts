@@ -30,7 +30,7 @@ test('page navigation animates content once while the shell stays steady', async
   await page.evaluate(() => { window.portfolioTransitions = []; });
   await nav.getByRole('link', { name: 'ABOUT', exact: true }).click();
   await expect(page).toHaveURL(/\/v1\/about$/, { timeout: 15_000 });
-  await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('About Thomas Phao');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('ABOUT THOMAS PHAO');
   await expect.poll(() => page.evaluate(() => window.portfolioTransitions.flat().filter(a => a.name === 'portfolio-page-enter').length)).toBeGreaterThan(0);
   await page.waitForTimeout(350);
   const motion = await page.evaluate(() => window.portfolioTransitions.flat());
@@ -75,6 +75,6 @@ test('navigation respects reduced motion and works without the browser transitio
     await fallback.goto('/v1');
     await fallback.locator('nav').first().getByRole('link', { name: 'ABOUT', exact: true }).click();
     await expect(fallback).toHaveURL(/\/v1\/about$/, { timeout: 15_000 });
-    await expect(fallback.getByRole('heading', { level: 1 })).toHaveAccessibleName('About Thomas Phao');
+    await expect(fallback.getByRole('heading', { level: 1 })).toHaveAccessibleName('ABOUT THOMAS PHAO');
   } finally { await context.close(); }
 });

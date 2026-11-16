@@ -156,8 +156,7 @@ test("profile context and compact summaries remain readable on mobile", async ({
   await expect(page.locator("main")).not.toContainText("48.8566");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.goto("/v1/about");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("About Thomas Phao");
-  await expect(page.getByText("2+ YEARS", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Los Angeles, CA", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("ABOUT THOMAS PHAO");
+  await expect(page.getByText("LOS ANGELES, CA", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
 });

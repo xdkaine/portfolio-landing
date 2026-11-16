@@ -1,65 +1,155 @@
-import Image from "next/image";
-import { PublicLink, PublicTransitionSurface } from "@/components/PublicTransition";
-import { getSiteSettings } from "@/lib/siteSettings";
+"use client";
+
+import { ScrollReveal } from "@/components/ScrollReveal";
+import { PublicTransitionSurface } from "@/components/PublicTransition";
+import { useSiteSettings } from "@/lib/useSiteSettings";
 import { PORTFOLIO_NAME } from "@/lib/siteMetadata";
 import { PORTFOLIO_PROFILE } from "@/lib/portfolioProfile";
 
-export const dynamic = "force-dynamic";
+const specs = [
+  { label: "ROLE", value: PORTFOLIO_PROFILE.currentRole.toUpperCase() },
+  { label: "FOCUS", value: "ENTERPRISE TECHNOLOGY, ERP & SUPPORTING SYSTEMS" },
+  { label: "LOCATION", value: PORTFOLIO_PROFILE.location },
+  { label: "EXPERIENCE", value: `${PORTFOLIO_PROFILE.experienceYears}+ YEARS` },
+  { label: "STATUS", value: "AVAILABLE", accent: true },
+];
 
-export default async function AboutPage() {
-  const settings = await getSiteSettings();
+const techTree = [
+  {
+    category: "LANGUAGES",
+    items: ["TypeScript", "Python", "Lua", "PHP", "SQL"],
+  },
+  {
+    category: "FRONTEND",
+    items: ["React", "Next.js", "Vue", "Tailwind"],
+  },
+  {
+    category: "BACKEND",
+    items: ["Node.js", "PostgreSQL", "Redis", "GraphQL"],
+  },
+  {
+    category: "TOOLS",
+    items: ["Git", "Docker", "Figma", "Linux"],
+  },
+];
+
+export default function AboutPage() {
+  const settings = useSiteSettings();
 
   return (
-    <PublicTransitionSurface>
-      <article className="px-6 pb-16 pt-32 md:px-12 md:pb-24 md:pt-36 lg:px-24" data-about-page>
-        <header className="mx-auto max-w-6xl border-b border-iron pb-12 text-center md:pb-16">
-          <p className="mb-5 text-sm text-ash">{PORTFOLIO_NAME}</p>
-          <h1 aria-label={`About ${PORTFOLIO_NAME}`} className="font-display text-[clamp(5rem,12vw,10rem)] leading-[1.04] tracking-tighter text-bone">About me.</h1>
-          <p className="mx-auto mt-7 max-w-3xl font-editorial text-xl leading-relaxed text-ash md:text-2xl">A builder and developer working across applications and the infrastructure behind them.</p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-3 text-sm text-ash">
-            <a href={settings.socialLinkedin || "https://linkedin.com/in/thomasphao"} target="_blank" rel="noopener noreferrer" className="text-bone underline decoration-steel underline-offset-4 hover:text-ember">{PORTFOLIO_PROFILE.currentRole} <span aria-hidden="true">↗</span></a>
-            <span aria-hidden="true" className="hidden h-1 w-1 bg-ember sm:block" />
-            <span>Los Angeles, CA</span>
+    <PublicTransitionSurface><div data-about-page>
+      {/* Header */}
+      <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
+        <ScrollReveal variant="row">
+          <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
+            <span>{settings.siteName}</span>
+            <span>/</span>
+            <span className="text-ember">ABOUT</span>
           </div>
-        </header>
+        </ScrollReveal>
 
-        <section aria-label="My background" className="mx-auto grid max-w-6xl gap-10 py-12 md:grid-cols-2 md:gap-12 md:py-16 lg:gap-20">
-          <div>
-            <h2 className="mb-5 text-sm text-ember">Why I build</h2>
-            <p className="font-editorial text-xl leading-relaxed text-bone md:text-2xl">{PORTFOLIO_PROFILE.personalNote}</p>
-          </div>
-          <div className="space-y-6 text-base leading-relaxed text-ash md:pt-10 md:text-lg">
-            <p>I&apos;m a developer who works across applications and infrastructure. The work I enjoy most is building and deploying systems that other people actually use. That can mean an application, the infrastructure behind it, or getting the two working together.</p>
-            <p>In my current role, I support work across enterprise technologies, ERP platforms, and the systems around them. Outside that role, I keep building applications and infrastructure, and use this site to share what I&apos;m working on and learning.</p>
-          </div>
-        </section>
+        <ScrollReveal delay={0.05} variant="headline">
+          <h1 className="font-display text-[clamp(3rem,9vw,8rem)] leading-[1.05] tracking-tighter text-balance">
+            ABOUT {PORTFOLIO_NAME.toUpperCase()}
+          </h1>
+        </ScrollReveal>
+      </section>
 
-        <section aria-labelledby="about-in-practice" className="mx-auto max-w-6xl border-t border-iron pt-10 md:pt-12">
-          <div className="mb-8 flex flex-wrap items-baseline justify-between gap-4">
-            <h2 id="about-in-practice" className="font-display text-3xl tracking-tight md:text-4xl">What that looks like.</h2>
-            <PublicLink href="/v1/projects" intent="section" className="inline-flex min-h-10 items-center gap-2 text-sm text-ash underline underline-offset-4 hover:text-ember">Explore my projects <span aria-hidden="true">↗</span></PublicLink>
-          </div>
-          <div className="grid gap-8 md:grid-cols-2">
-            <PublicLink href="/v1/projects/2" intent="drill-in" className="group block min-w-0" aria-label="Read about Uma, a Proxmox management application">
-              <figure>
-                <div className="overflow-hidden border border-iron bg-surface"><Image src="/v2/uma-overview.png" alt="Uma interface for viewing and managing virtual machines" width={1440} height={900} sizes="(min-width: 1280px) 568px, (min-width: 768px) calc((100vw - 144px) / 2), calc(100vw - 48px)" className="aspect-[16/10] w-full object-contain transition-transform duration-300 motion-safe:group-hover:scale-[1.015]" /></div>
-                <figcaption className="mt-4 flex items-baseline justify-between gap-4 text-sm"><span className="text-bone group-hover:text-ember">Uma</span><span className="text-ash">Virtual machine management <span aria-hidden="true">↗</span></span></figcaption>
-              </figure>
-            </PublicLink>
-            <PublicLink href="/v1/projects/1" intent="drill-in" className="group block min-w-0" aria-label="Read about UAR, an account request application">
-              <figure>
-                <div className="overflow-hidden border border-iron bg-surface"><Image src="/v2/uar-dashboard.png" alt="UAR interface for reviewing account requests" width={1440} height={900} sizes="(min-width: 1280px) 568px, (min-width: 768px) calc((100vw - 144px) / 2), calc(100vw - 48px)" className="aspect-[16/10] w-full object-contain transition-transform duration-300 motion-safe:group-hover:scale-[1.015]" /></div>
-                <figcaption className="mt-4 flex items-baseline justify-between gap-4 text-sm"><span className="text-bone group-hover:text-ember">UAR</span><span className="text-ash">Account request workflows <span aria-hidden="true">↗</span></span></figcaption>
-              </figure>
-            </PublicLink>
-          </div>
-        </section>
+      {/* Profile summary */}
+      <section className="px-6 md:px-12 lg:px-24 pb-16">
+        <ScrollReveal delay={0.1} variant="block">
+          <div className="border-2 border-iron p-6 md:p-8 max-w-2xl">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="text-[10px] tracking-[0.3em] text-steel">
+                $ cat /etc/profile
+              </span>
+              <span className="cursor-blink text-ember text-xs">&#9608;</span>
+            </div>
 
-        <section aria-label="Get in touch" className="mx-auto mt-12 flex max-w-6xl flex-wrap items-center justify-between gap-6 border-t border-iron pt-10 md:mt-16 md:pt-12">
-          <p className="font-display text-3xl leading-tight tracking-tight md:text-4xl">Want to talk about something?</p>
-          <PublicLink href="/v1/contact" intent="section" className="inline-flex min-h-12 items-center gap-8 border border-ember bg-ember px-6 text-sm text-void transition-colors hover:border-bone hover:bg-bone">Get in touch <span aria-hidden="true">↗</span></PublicLink>
-        </section>
-      </article>
-    </PublicTransitionSurface>
+            <div className="space-y-3">
+              {specs.map((spec) => (
+                <div
+                  key={spec.label}
+                  className="flex items-start gap-3 sm:gap-4"
+                >
+                  <span className="text-[10px] tracking-[0.2em] text-steel w-20 sm:w-28 shrink-0">
+                    {spec.label}
+                  </span>
+                  <span className="text-steel">:</span>
+                  <span
+                    className={`min-w-0 text-xs leading-relaxed tracking-[0.1em] ${
+                      spec.accent ? "text-ember" : "text-bone"
+                    }`}
+                  >
+                    {spec.value}
+                  </span>
+                  {spec.accent && (
+                    <span className="w-1.5 h-1.5 bg-ember rounded-full animate-pulse ml-1" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* Bio */}
+      <section className="px-6 md:px-12 lg:px-24 pb-24">
+        <ScrollReveal delay={0.1}>
+          <div className="border-l-2 border-ember pl-6 md:pl-10 max-w-3xl">
+            <p className="text-sm md:text-base leading-relaxed text-bone mb-6">
+              I&apos;m a developer who works across applications and infrastructure. The work I enjoy
+              most is building and deploying systems that other people actually use.
+              That can mean an application, the infrastructure behind it, or getting
+              the two working together.
+            </p>
+            <p className="text-sm md:text-base leading-relaxed text-ash mb-6">{PORTFOLIO_PROFILE.personalNote}</p>
+            <p className="text-sm md:text-base leading-relaxed text-ash">
+              I currently work as a {PORTFOLIO_PROFILE.currentRole}, supporting work
+              across enterprise technologies, ERP platforms, and the systems around
+              them. Outside that role, I keep building applications and infrastructure,
+              and use this site to share what I&apos;m working on and learning.
+            </p>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* Tech tree */}
+      <section className="px-6 md:px-12 lg:px-24 pb-24">
+        <ScrollReveal variant="headline">
+          <div className="border-b-2 border-bone pb-4 mb-12">
+            <h2 className="font-display text-4xl md:text-5xl">TECH STACK</h2>
+          </div>
+        </ScrollReveal>
+
+        <div className="grid md:grid-cols-2 gap-8 max-w-3xl">
+          {techTree.map((group, gi) => (
+            <ScrollReveal key={group.category} delay={gi * 0.08} variant="row">
+              <div>
+                <span className="text-[10px] tracking-[0.3em] text-steel block mb-3">
+                  {group.category}/
+                </span>
+                <div className="space-y-1">
+                  {group.items.map((item, ii) => {
+                    const isLast = ii === group.items.length - 1;
+                    return (
+                      <div key={item} className="flex items-center gap-2">
+                        <span className="text-steel text-xs">
+                          {isLast ? "\u2514\u2500\u2500" : "\u251C\u2500\u2500"}
+                        </span>
+                        <span className="text-xs text-bone tracking-[0.05em]">
+                          {item}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </ScrollReveal>
+          ))}
+        </div>
+      </section>
+
+    </div></PublicTransitionSurface>
   );
 }

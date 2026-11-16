@@ -11,6 +11,7 @@ import { parseIdentityAliases } from "@/lib/brandAliases";
 import type { PublicSiteSettings } from "@/lib/siteSettings-schema";
 import type { DisplayProjectStatus } from "@/lib/projectPresentation";
 import { ProjectStatus } from "@/components/ProjectStatus";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 interface HomeProject {
   id: string;
@@ -78,49 +79,63 @@ export default function HomePageClient({ siteSettings, projects, posts }: {
       <TitleTypewriter brandName={siteSettings.siteName} brandAliases={brandAliases} />
       <header className="px-6 pb-16 pt-32 md:px-12 md:pb-20 md:pt-40 lg:px-24">
         <div className="grid items-end gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
-          <h1 className="min-w-0 font-display text-[clamp(3.25rem,13.5vw,11rem)] leading-[1.08] tracking-tighter text-bone">
-            <span className="sr-only">{PORTFOLIO_TITLE}</span>
-            <span aria-hidden="true"><AliasTypewriter aliases={brandAliases.length ? brandAliases : [siteSettings.siteName]} cursorClassName="text-[0.22em]" /></span>
-          </h1>
-          <div className="max-w-xl pb-3">
-            <p data-home-introduction className="text-base leading-relaxed text-bone md:text-lg">I&apos;m <AliasTypewriter aliases={brandAliases} cursor="" className="align-bottom" />, a builder and developer. I build applications and the infrastructure they run on, and share my experiences here.</p>
-            <p className="mt-4 text-sm leading-relaxed text-ash">I currently work as a <a href={siteSettings.socialLinkedin || "https://linkedin.com/in/thomasphao"} target="_blank" rel="noopener noreferrer" className="text-bone underline decoration-steel underline-offset-4 transition-colors hover:text-ember">{PORTFOLIO_PROFILE.currentRole}</a>.</p>
-            <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-3">
-              <PublicLink href="/v1/projects" intent="section" className="inline-flex min-h-12 items-center gap-3 border border-ember bg-ember px-5 text-xs tracking-[0.08em] text-void transition-colors hover:border-bone hover:bg-bone">VIEW PROJECTS <span aria-hidden="true">↗</span></PublicLink>
-              <PublicLink href="/v1/contact" intent="section" className="inline-flex min-h-12 items-center text-xs tracking-[0.08em] text-bone underline decoration-steel underline-offset-4 transition-colors hover:text-ember">CONTACT ME</PublicLink>
+          <ScrollReveal variant="headline" delay={0.05} className="min-w-0">
+            <h1 className="min-w-0 font-display text-[clamp(3.25rem,13.5vw,11rem)] leading-[1.08] tracking-tighter text-bone">
+              <span className="sr-only">{PORTFOLIO_TITLE}</span>
+              <span aria-hidden="true"><AliasTypewriter aliases={brandAliases.length ? brandAliases : [siteSettings.siteName]} cursorClassName="text-[0.22em]" /></span>
+            </h1>
+          </ScrollReveal>
+          <ScrollReveal variant="block" delay={0.1} className="min-w-0">
+            <div className="max-w-xl pb-3">
+              <p data-home-introduction className="text-base leading-relaxed text-bone md:text-lg">I&apos;m <AliasTypewriter aliases={brandAliases} cursor="" className="align-bottom" />, a builder and developer. I build applications and the infrastructure they run on, and share my experiences here.</p>
+              <p className="mt-4 text-sm leading-relaxed text-ash">I currently work as a <a href={siteSettings.socialLinkedin || "https://linkedin.com/in/thomasphao"} target="_blank" rel="noopener noreferrer" className="text-bone underline decoration-steel underline-offset-4 transition-colors hover:text-ember">{PORTFOLIO_PROFILE.currentRole}</a>.</p>
+              <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-3">
+                <PublicLink href="/v1/projects" intent="section" className="inline-flex min-h-12 items-center gap-3 border border-ember bg-ember px-5 text-xs tracking-[0.08em] text-void transition-colors hover:border-bone hover:bg-bone">VIEW PROJECTS <span aria-hidden="true">↗</span></PublicLink>
+                <PublicLink href="/v1/contact" intent="section" className="inline-flex min-h-12 items-center text-xs tracking-[0.08em] text-bone underline decoration-steel underline-offset-4 transition-colors hover:text-ember">CONTACT ME</PublicLink>
+              </div>
             </div>
-          </div>
+          </ScrollReveal>
         </div>
       </header>
 
       <section className="border-t border-iron px-6 py-12 md:px-12 md:py-16 lg:px-24" aria-labelledby="selected-work">
-        <div className="flex flex-wrap items-baseline justify-between gap-4 border-b-2 border-bone pb-5">
-          <h2 id="selected-work" className="font-display text-4xl tracking-tight md:text-6xl">Projects</h2>
-          <PublicLink href="/v1/projects" intent="section" className="inline-flex min-h-10 items-center gap-2 text-sm text-ash underline underline-offset-4 hover:text-ember">All projects <span aria-hidden="true">↗</span></PublicLink>
-        </div>
-        {projects.length ? projects.map(project => <ProjectCard key={project.id} project={project} />) : <p className="py-10 text-base leading-relaxed text-ash">New project write-ups are on the way.</p>}
+        <ScrollReveal variant="rule" delay={0.12}>
+          <div className="flex flex-wrap items-baseline justify-between gap-4 border-b-2 border-bone pb-5">
+            <h2 id="selected-work" className="font-display text-4xl tracking-tight md:text-6xl">Projects</h2>
+            <PublicLink href="/v1/projects" intent="section" className="inline-flex min-h-10 items-center gap-2 text-sm text-ash underline underline-offset-4 hover:text-ember">All projects <span aria-hidden="true">↗</span></PublicLink>
+          </div>
+        </ScrollReveal>
+        {projects.length ? projects.map((project, index) => <ScrollReveal key={project.id} variant="row" delay={Math.min(index * 0.04, 0.16)}><ProjectCard project={project} /></ScrollReveal>) : <ScrollReveal><p className="py-10 text-base leading-relaxed text-ash">New project write-ups are on the way.</p></ScrollReveal>}
       </section>
 
       <section className="grid gap-7 border-y border-iron px-6 py-14 md:px-12 md:py-20 lg:grid-cols-[1fr_1.15fr] lg:gap-16 lg:px-24" aria-labelledby="behind-projects">
-        <h2 id="behind-projects" className="font-display text-4xl leading-tight tracking-tight md:text-5xl">BEHIND THE PROJECTS</h2>
-        <div className="max-w-2xl">
-          <p className="font-editorial text-xl leading-relaxed text-bone md:text-2xl">{PORTFOLIO_PROFILE.personalNote}</p>
-          <PublicLink href="/v1/about" intent="section" className="mt-6 inline-flex min-h-10 items-center gap-3 text-sm text-ash underline underline-offset-4 hover:text-ember">More about me <span aria-hidden="true">↗</span></PublicLink>
-        </div>
+        <ScrollReveal variant="headline">
+          <h2 id="behind-projects" className="font-display text-4xl leading-tight tracking-tight md:text-5xl">BEHIND THE PROJECTS</h2>
+        </ScrollReveal>
+        <ScrollReveal variant="block" delay={0.08}>
+          <div className="max-w-2xl">
+            <p className="font-editorial text-xl leading-relaxed text-bone md:text-2xl">{PORTFOLIO_PROFILE.personalNote}</p>
+            <PublicLink href="/v1/about" intent="section" className="mt-6 inline-flex min-h-10 items-center gap-3 text-sm text-ash underline underline-offset-4 hover:text-ember">More about me <span aria-hidden="true">↗</span></PublicLink>
+          </div>
+        </ScrollReveal>
       </section>
 
       <section className="px-6 py-14 md:px-12 md:py-20 lg:px-24" aria-labelledby="recent-writing">
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-4 border-b-2 border-bone pb-5">
-          <h2 id="recent-writing" className="font-display text-4xl tracking-tight md:text-5xl">FROM THE BLOG</h2>
-          <PublicLink href="/v1/blog" intent="section" className="inline-flex min-h-10 items-center gap-2 text-sm text-ash underline underline-offset-4 hover:text-ember">All posts <span aria-hidden="true">↗</span></PublicLink>
-        </div>
-        {posts.length ? posts.map(post => (
-          <PublicLink key={post.id} href={`/v1/blog/${post.slug}`} intent="drill-in" className="group grid gap-3 border-b border-iron py-7 md:grid-cols-[140px_1fr_auto] md:items-baseline md:gap-8">
-            <span className="text-xs text-steel">{post.date}</span>
-            <PublicSharedElement kind="post-title" itemKey={post.slug}><h3 className="font-display text-2xl leading-tight tracking-tight group-hover:text-ember md:text-3xl">{post.title}</h3></PublicSharedElement>
-            <span className="flex items-center gap-5 text-xs text-ash">{post.readTime}<span aria-hidden="true">↗</span></span>
-          </PublicLink>
-        )) : <p className="py-8 text-base text-ash">New notes from the build are on the way.</p>}
+        <ScrollReveal variant="rule">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-4 border-b-2 border-bone pb-5">
+            <h2 id="recent-writing" className="font-display text-4xl tracking-tight md:text-5xl">FROM THE BLOG</h2>
+            <PublicLink href="/v1/blog" intent="section" className="inline-flex min-h-10 items-center gap-2 text-sm text-ash underline underline-offset-4 hover:text-ember">All posts <span aria-hidden="true">↗</span></PublicLink>
+          </div>
+        </ScrollReveal>
+        {posts.length ? posts.map((post, index) => (
+          <ScrollReveal key={post.id} variant="row" delay={Math.min(index * 0.04, 0.16)}>
+            <PublicLink href={`/v1/blog/${post.slug}`} intent="drill-in" className="group grid gap-3 border-b border-iron py-7 md:grid-cols-[140px_1fr_auto] md:items-baseline md:gap-8">
+              <span className="text-xs text-steel">{post.date}</span>
+              <PublicSharedElement kind="post-title" itemKey={post.slug}><h3 className="font-display text-2xl leading-tight tracking-tight group-hover:text-ember md:text-3xl">{post.title}</h3></PublicSharedElement>
+              <span className="flex items-center gap-5 text-xs text-ash">{post.readTime}<span aria-hidden="true">↗</span></span>
+            </PublicLink>
+          </ScrollReveal>
+        )) : <ScrollReveal><p className="py-8 text-base text-ash">New notes from the build are on the way.</p></ScrollReveal>}
       </section>
     </>
   );
