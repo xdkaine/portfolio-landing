@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const PORTFOLIO_NAME = "Thomas Phao";
-export const PORTFOLIO_TITLE = `${PORTFOLIO_NAME} — Systems Engineer & Developer`;
+export const PORTFOLIO_TITLE = `${PORTFOLIO_NAME} — Builder & Developer`;
 
 export const DEFAULT_SOCIAL_IMAGE = {
   url: "/v1/opengraph-image",

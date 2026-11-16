@@ -50,8 +50,10 @@ test.describe("Homepage first render", () => {
 
   test("provides an introduction, working actions, and social metadata", async ({ page, request }) => {
     await page.goto("/v1");
-    await expect(page).toHaveTitle("Thomas Phao — Systems Engineer & Developer");
-    await expect(page.getByText(/I'm Thomas Phao, a systems engineer and developer/)).toBeVisible();
+    await expect(page).toHaveTitle("Thomas Phao — Builder & Developer");
+    await expect(page.locator("main h1 .absolute.inset-0")).toContainText("Thomas Phao");
+    await expect(page.locator("[data-home-introduction] .absolute.inset-0")).toContainText("Thomas Phao");
+    await expect(page.locator("[data-home-introduction]")).toContainText("a builder and developer");
 
     const projects = page.getByRole("link", { name: "VIEW PROJECTS", exact: true });
     await expect(projects).toHaveAttribute("href", "/v1/projects");
@@ -85,8 +87,8 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
       });
       await page.goto("/v1", { waitUntil: "domcontentloaded" });
       await expect(page).toHaveTitle(reducedMotion === "reduce"
-        ? "Thomas Phao — Systems Engineer & Developer"
-        : /\| Thomas Phao — Systems Engineer & Developer/);
+        ? "Thomas Phao — Builder & Developer"
+        : /\| Thomas Phao — Builder & Developer/);
       await expect(page.getByRole("link", { name: "CONTACT ME", exact: true })).toBeVisible();
       expect(errors).toEqual([]);
       expect(contentRequests).toEqual([]);
@@ -105,41 +107,45 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
 test("homepage title stays synchronized with the visible aliases and stops on other routes", async ({ page }) => {
   await page.clock.install();
   await page.goto("/v1");
-  await expect(page).toHaveTitle(/\| Thomas Phao — Systems Engineer & Developer/);
+  await expect(page).toHaveTitle(/\| Thomas Phao — Builder & Developer/);
   const samples: string[] = [];
-  for (const milliseconds of [350, 800, 2000, 2400, 700]) {
+  for (const milliseconds of [1400, 2400, 1200, 1300, 2000, 1000, 1200, 2400, 600]) {
     await page.clock.runFor(milliseconds);
     const sample = await page.evaluate(() => {
       const hero = document.querySelector("main h1 .absolute.inset-0");
       const nav = document.querySelector("nav a .absolute.inset-0");
+      const introduction = document.querySelector("[data-home-introduction] .absolute.inset-0");
       const typed = (element: Element | null) => {
         const child = element?.firstChild;
         return child?.nodeType === Node.TEXT_NODE ? child.textContent ?? "" : "";
       };
-      return { hero: typed(hero), nav: typed(nav), title: document.title };
+      return { hero: typed(hero), nav: typed(nav), introduction: typed(introduction), title: document.title };
     });
     expect(sample.hero).toBe(sample.nav);
+    expect(sample.hero).toBe(sample.introduction);
     if (sample.hero) expect(sample.title.startsWith(`${sample.hero} | `)).toBeTruthy();
     samples.push(sample.title);
   }
   expect(new Set(samples).size).toBeGreaterThan(1);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("Thomas Phao — Systems Engineer & Developer");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("Thomas Phao — Builder & Developer");
   await page.getByRole("link", { name: "CONTACT ME", exact: true }).click();
   await expect(page).toHaveTitle("Contact | Thomas Phao");
   await page.clock.runFor(6000);
   await expect(page).toHaveTitle("Contact | Thomas Phao");
-  await page.getByRole("link", { name: "INDEX", exact: true }).click();
-  await expect(page).toHaveTitle(/\| Thomas Phao — Systems Engineer & Developer/);
+  await page.getByRole("link", { name: "Home", exact: true }).click();
+  await expect(page).toHaveTitle(/\| Thomas Phao — Builder & Developer/);
 });
 
 test("profile context and compact summaries remain readable on mobile", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/v1");
-  await expect(page.getByText(/I'm Thomas Phao, a systems engineer and developer/)).toBeVisible();
+  await expect(page.locator("[data-home-introduction]")).toContainText("a builder and developer");
   const summaries = await page.locator("[data-project-teaser]").allTextContents();
   for (const summary of summaries) expect(summary.trim().length).toBeLessThanOrEqual(220);
-  await expect(page.locator("main")).toContainText("Technology Risk Consultant");
+  await expect(page.getByRole("link", { name: "Technology Risk Consultant", exact: true })).toHaveAttribute("href", "https://linkedin.com/in/thomasphao");
+  await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible();
+  await expect(page.locator("main header")).not.toContainText("LOS ANGELES, CA");
   await expect(page.locator("main")).not.toContainText("48.8566");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.goto("/v1/about");

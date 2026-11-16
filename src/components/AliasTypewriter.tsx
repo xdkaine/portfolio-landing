@@ -49,8 +49,9 @@ export function AliasTypewriter({
     <span className={`relative inline-block ${className}`}>
       <span className="sr-only">{activeAlias}</span>
       {reserveSpace && (
-        <span className="invisible pointer-events-none select-none">
+        <span className="invisible pointer-events-none select-none" aria-hidden="true">
           {longestAlias}
+          <span className={cursorClassName}>{cursor}</span>
         </span>
       )}
       <span

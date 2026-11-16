@@ -3,5 +3,5 @@ export const PORTFOLIO_PROFILE = {
   location: "LOS ANGELES, CA",
   experienceYears: 2,
   currentRole: "Technology Risk Consultant",
-  personalNote: "Having people rely on something I built is what makes technology rewarding for me. I enjoy that responsibility: keeping things running, working through problems, and improving a system as people use it.",
+  personalNote: "Having people rely on things I build is what makes being a developer rewarding for me. I enjoy that responsibility: keeping things running, working through tough problems, and improving a system that people actually use.",
 } as const;

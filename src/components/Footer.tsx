@@ -13,7 +13,6 @@ interface FooterProps {
   brandName?: string;
   brandAliases?: string[];
   socials?: { label: string; href: string }[];
-  legalEffectiveDate?: string;
   chucklesGifUrl?: string;
 }
 
@@ -21,11 +20,10 @@ export function Footer({
   brandName = "Kaine",
   brandAliases = [],
   socials = DEFAULT_SOCIALS,
-  legalEffectiveDate,
   chucklesGifUrl,
 }: FooterProps) {
-  const legalDateText = legalEffectiveDate ? ` - UPDATED ${legalEffectiveDate}` : "";
-  const currentYear = new Date().getFullYear();
+  const revision = process.env.APP_REVISION?.trim();
+  const deployedRevision = revision && /^[0-9a-f]{40}$/i.test(revision) ? revision : null;
 
   return (
     <footer className="border-t-2 border-iron px-6 md:px-12 lg:px-24 py-12">
@@ -50,9 +48,7 @@ export function Footer({
               />
             )}
           </PublicLink>
-          <p className="text-ash text-[10px] mt-2 tracking-[0.2em] uppercase">
-            &copy; {currentYear} &mdash; ALL RIGHTS RESERVED{legalDateText}
-          </p>
+          {deployedRevision ? <a href={`https://github.com/xdkaine/portfolio-landing/commit/${deployedRevision}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-ash underline decoration-iron underline-offset-4 hover:text-ember">Commit {deployedRevision.slice(0, 8)}</a> : null}
           <div className="mt-4 flex items-center gap-4 text-[10px] tracking-[0.2em]">
             <PublicLink
               href="/v1/privacy"

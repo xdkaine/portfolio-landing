@@ -1,3 +1,5 @@
+import { PORTFOLIO_NAME } from "@/lib/siteMetadata";
+
 const FALLBACK_ALIASES = ["Kaine", "Tommy"];
 
 export function parseBrandAliases(raw: string | null | undefined): string[] {
@@ -20,4 +22,11 @@ export function parseBrandAliases(raw: string | null | undefined): string[] {
   );
 
   return aliases.length > 0 ? aliases : [...FALLBACK_ALIASES];
+}
+// Use one sequence for the homepage, introduction, navigation, footer and title.
+export function parseIdentityAliases(raw: string | null | undefined): string[] {
+  const aliases = parseBrandAliases(raw).filter((alias) => alias !== PORTFOLIO_NAME);
+  const tommy = aliases.indexOf("Tommy");
+  if (tommy > 0) aliases.unshift(...aliases.splice(tommy, 1));
+  return [PORTFOLIO_NAME, ...aliases];
 }

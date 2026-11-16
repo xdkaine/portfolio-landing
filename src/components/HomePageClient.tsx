@@ -5,9 +5,9 @@ import { useState } from "react";
 import { AliasTypewriter } from "@/components/AliasTypewriter";
 import { TitleTypewriter } from "@/components/TitleTypewriter";
 import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
-import { PORTFOLIO_NAME, PORTFOLIO_TITLE } from "@/lib/siteMetadata";
+import { PORTFOLIO_TITLE } from "@/lib/siteMetadata";
 import { PORTFOLIO_PROFILE } from "@/lib/portfolioProfile";
-import { parseBrandAliases } from "@/lib/brandAliases";
+import { parseIdentityAliases } from "@/lib/brandAliases";
 import type { PublicSiteSettings } from "@/lib/siteSettings-schema";
 import type { DisplayProjectStatus } from "@/lib/projectPresentation";
 import { ProjectStatus } from "@/components/ProjectStatus";
@@ -71,23 +71,20 @@ export default function HomePageClient({ siteSettings, projects, posts }: {
   projects: HomeProject[];
   posts: HomePost[];
 }) {
-  const brandAliases = parseBrandAliases(siteSettings.siteAliases);
+  const brandAliases = parseIdentityAliases(siteSettings.siteAliases);
 
   return (
     <>
       <TitleTypewriter brandName={siteSettings.siteName} brandAliases={brandAliases} />
       <header className="px-6 pb-16 pt-32 md:px-12 md:pb-20 md:pt-40 lg:px-24">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-iron pb-5 text-xs tracking-[0.08em] text-ash">
-          <p>{PORTFOLIO_NAME}</p><p>{PORTFOLIO_PROFILE.location}</p>
-        </div>
-        <div className="grid items-end gap-6 pt-7 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pt-10">
-          <h1 className="min-w-0 font-display text-[clamp(5rem,19vw,15rem)] leading-[1.08] tracking-tighter text-bone">
+        <div className="grid items-end gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+          <h1 className="min-w-0 font-display text-[clamp(3.25rem,13.5vw,11rem)] leading-[1.08] tracking-tighter text-bone">
             <span className="sr-only">{PORTFOLIO_TITLE}</span>
             <span aria-hidden="true"><AliasTypewriter aliases={brandAliases.length ? brandAliases : [siteSettings.siteName]} cursorClassName="text-[0.22em]" /></span>
           </h1>
           <div className="max-w-xl pb-3">
-            <p className="text-base leading-relaxed text-bone md:text-lg">I&apos;m {PORTFOLIO_NAME}, a systems engineer and developer. I build applications and the infrastructure they run on, and share the decisions and lessons behind that work here.</p>
-            <p className="mt-4 text-sm leading-relaxed text-ash">I currently work as a {PORTFOLIO_PROFILE.currentRole}.</p>
+            <p data-home-introduction className="text-base leading-relaxed text-bone md:text-lg">I&apos;m <AliasTypewriter aliases={brandAliases} cursor="" className="align-bottom" />, a builder and developer. I build applications and the infrastructure they run on, and share my experiences here.</p>
+            <p className="mt-4 text-sm leading-relaxed text-ash">I currently work as a <a href={siteSettings.socialLinkedin || "https://linkedin.com/in/thomasphao"} target="_blank" rel="noopener noreferrer" className="text-bone underline decoration-steel underline-offset-4 transition-colors hover:text-ember">{PORTFOLIO_PROFILE.currentRole}</a>.</p>
             <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-3">
               <PublicLink href="/v1/projects" intent="section" className="inline-flex min-h-12 items-center gap-3 border border-ember bg-ember px-5 text-xs tracking-[0.08em] text-void transition-colors hover:border-bone hover:bg-bone">VIEW PROJECTS <span aria-hidden="true">↗</span></PublicLink>
               <PublicLink href="/v1/contact" intent="section" className="inline-flex min-h-12 items-center text-xs tracking-[0.08em] text-bone underline decoration-steel underline-offset-4 transition-colors hover:text-ember">CONTACT ME</PublicLink>
@@ -98,7 +95,7 @@ export default function HomePageClient({ siteSettings, projects, posts }: {
 
       <section className="border-t border-iron px-6 py-12 md:px-12 md:py-16 lg:px-24" aria-labelledby="selected-work">
         <div className="flex flex-wrap items-baseline justify-between gap-4 border-b-2 border-bone pb-5">
-          <h2 id="selected-work" className="font-display text-4xl tracking-tight md:text-6xl">SELECTED WORK</h2>
+          <h2 id="selected-work" className="font-display text-4xl tracking-tight md:text-6xl">Projects</h2>
           <PublicLink href="/v1/projects" intent="section" className="inline-flex min-h-10 items-center gap-2 text-sm text-ash underline underline-offset-4 hover:text-ember">All projects <span aria-hidden="true">↗</span></PublicLink>
         </div>
         {projects.length ? projects.map(project => <ProjectCard key={project.id} project={project} />) : <p className="py-10 text-base leading-relaxed text-ash">New project write-ups are on the way.</p>}
