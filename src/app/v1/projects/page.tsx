@@ -1,4 +1,4 @@
-import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
+import { PublicLink, PublicSharedElement, PublicTransitionSurface } from "@/components/PublicTransition";
 import { ProjectStatus } from "@/components/ProjectStatus";
 import { listProjects } from "@/lib/projectCatalog";
 import { getProjectTeaser } from "@/lib/projectTeaser";
@@ -15,7 +15,7 @@ export default async function ProjectsPage() {
   const archived = projects.filter(project => project.status === "ARCHIVED").length;
 
   return (
-    <>
+    <PublicTransitionSurface>
       <header className="px-6 pb-10 pt-32 md:px-12 md:pt-40 lg:px-24">
         <h1 className="font-display text-6xl leading-none tracking-tighter md:text-8xl lg:text-9xl">PROJECTS</h1>
         <p className="mt-6 max-w-2xl text-base leading-relaxed text-ash">Applications, infrastructure, and experiments. Open a project for the context, decisions, and work behind it.</p>
@@ -52,6 +52,6 @@ export default async function ProjectsPage() {
         ))}
         <PublicLink href="/v1" intent="section" className="mt-10 inline-flex min-h-10 items-center gap-3 text-sm text-ash underline underline-offset-4 hover:text-ember"><span aria-hidden="true">←</span> Back home</PublicLink>
       </section>
-    </>
+    </PublicTransitionSurface>
   );
 }

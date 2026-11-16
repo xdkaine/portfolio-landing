@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { cache, Fragment } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
+import { PublicLink, PublicSharedElement, PublicTransitionSurface } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { ZoomableImage } from "@/components/ui/ZoomableImage";
 import {
@@ -192,7 +192,7 @@ export default async function ProjectDetailPage({
       : null;
 
   return (
-    <>
+    <PublicTransitionSurface>
       <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
         <ScrollReveal variant="row">
           <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
@@ -519,6 +519,6 @@ export default async function ProjectDetailPage({
           </div>
         </div>
       </section>
-    </>
+    </PublicTransitionSurface>
   );
 }

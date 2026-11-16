@@ -51,8 +51,8 @@ test.describe("Homepage first render", () => {
   test("provides an introduction, working actions, and social metadata", async ({ page, request }) => {
     await page.goto("/v1");
     await expect(page).toHaveTitle("Thomas Phao — Builder & Developer");
-    await expect(page.locator("main h1 .absolute.inset-0")).toContainText("Thomas Phao");
-    await expect(page.locator("[data-home-introduction] .absolute.inset-0")).toContainText("Thomas Phao");
+    await expect(page.locator("main h1 .absolute.inset-0")).toContainText("Tommy");
+    await expect(page.locator("[data-home-introduction] .absolute.inset-0")).toContainText("Tommy");
     await expect(page.locator("[data-home-introduction]")).toContainText("a builder and developer");
 
     const projects = page.getByRole("link", { name: "VIEW PROJECTS", exact: true });
@@ -85,7 +85,8 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
           contentRequests.push(request.url());
         }
       });
-      await page.goto("/v1", { waitUntil: "domcontentloaded" });
+      await page.goto("/v1");
+      await expect(page.locator("nav").first()).toHaveCSS("opacity", "1");
       await expect(page).toHaveTitle(reducedMotion === "reduce"
         ? "Thomas Phao — Builder & Developer"
         : /\| Thomas Phao — Builder & Developer/);
@@ -105,12 +106,13 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
 }
 
 test("homepage title stays synchronized with the visible aliases and stops on other routes", async ({ page }) => {
-  await page.clock.install();
   await page.goto("/v1");
   await expect(page).toHaveTitle(/\| Thomas Phao — Builder & Developer/);
   const samples: string[] = [];
-  for (const milliseconds of [1400, 2400, 1200, 1300, 2000, 1000, 1200, 2400, 600]) {
-    await page.clock.runFor(milliseconds);
+  const activeAliases = new Set<string>();
+  // Sample the running animation; native route transitions use real animation frames too.
+  for (const milliseconds of [800, 2000, 800, 800, 2000, 800, 800, 2000]) {
+    await page.waitForTimeout(milliseconds);
     const sample = await page.evaluate(() => {
       const hero = document.querySelector("main h1 .absolute.inset-0");
       const nav = document.querySelector("nav a .absolute.inset-0");
@@ -119,18 +121,23 @@ test("homepage title stays synchronized with the visible aliases and stops on ot
         const child = element?.firstChild;
         return child?.nodeType === Node.TEXT_NODE ? child.textContent ?? "" : "";
       };
-      return { hero: typed(hero), nav: typed(nav), introduction: typed(introduction), title: document.title };
+      const activeAlias = document.querySelector("main h1 .relative .sr-only")?.textContent;
+      return { hero: typed(hero), nav: typed(nav), introduction: typed(introduction), title: document.title, activeAlias };
     });
     expect(sample.hero).toBe(sample.nav);
     expect(sample.hero).toBe(sample.introduction);
+    expect(["Tommy", "Kaine"]).toContain(sample.activeAlias);
+    activeAliases.add(sample.activeAlias!);
     if (sample.hero) expect(sample.title.startsWith(`${sample.hero} | `)).toBeTruthy();
     samples.push(sample.title);
   }
   expect(new Set(samples).size).toBeGreaterThan(1);
+  expect([...activeAliases].sort()).toEqual(["Kaine", "Tommy"]);
   await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("Thomas Phao — Builder & Developer");
   await page.getByRole("link", { name: "CONTACT ME", exact: true }).click();
+  await expect(page).toHaveURL(/\/v1\/contact$/);
   await expect(page).toHaveTitle("Contact | Thomas Phao");
-  await page.clock.runFor(6000);
+  await page.waitForTimeout(6000);
   await expect(page).toHaveTitle("Contact | Thomas Phao");
   await page.getByRole("link", { name: "Home", exact: true }).click();
   await expect(page).toHaveTitle(/\| Thomas Phao — Builder & Developer/);
@@ -149,8 +156,8 @@ test("profile context and compact summaries remain readable on mobile", async ({
   await expect(page.locator("main")).not.toContainText("48.8566");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.goto("/v1/about");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("ABOUT THOMAS PHAO");
-  await expect(page.getByText("2+ YEARS", { exact: true })).toBeVisible();
-  await expect(page.getByText("LOS ANGELES, CA", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("About Thomas Phao");
+  await expect(page.getByText("2+ YEARS", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Los Angeles, CA", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
 });

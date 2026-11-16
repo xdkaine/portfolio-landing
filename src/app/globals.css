@@ -72,7 +72,7 @@ body {
   background-color: var(--color-void);
   color: var(--color-bone);
   overflow-x: hidden;
-  cursor: crosshair;
+  cursor: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 180ms ease, color 180ms ease;
@@ -159,91 +159,13 @@ textarea {
   }
 }
 
-@keyframes editorial-old-forward {
-  to {
-    opacity: 0;
-    transform: translateX(-0.5rem);
-  }
+@keyframes portfolio-page-exit {
+  to { opacity: 0; transform: translateY(-4px); }
 }
 
-@keyframes editorial-new-forward {
-  from {
-    opacity: 0;
-    transform: translateX(0.75rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes editorial-old-back {
-  to {
-    opacity: 0;
-    transform: translateX(0.5rem);
-  }
-}
-
-@keyframes editorial-new-back {
-  from {
-    opacity: 0;
-    transform: translateX(-0.75rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes editorial-old-drill-in {
-  to {
-    opacity: 0;
-    transform: translateY(-0.45rem);
-  }
-}
-
-@keyframes editorial-new-drill-in {
-  from {
-    opacity: 0;
-    transform: translateY(0.7rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes editorial-old-drill-out {
-  to {
-    opacity: 0;
-    transform: translateY(0.45rem);
-  }
-}
-
-@keyframes editorial-new-drill-out {
-  from {
-    opacity: 0;
-    transform: translateY(-0.7rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes editorial-old-utility {
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes editorial-new-utility {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+@keyframes portfolio-page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes editorial-shared-old {
@@ -302,63 +224,21 @@ textarea {
   position: relative;
 }
 
-::view-transition-group(.editorial-page-forward),
-::view-transition-group(.editorial-page-back),
-::view-transition-group(.editorial-page-drill-in),
-::view-transition-group(.editorial-page-drill-out),
-::view-transition-group(.editorial-page-next),
-::view-transition-group(.editorial-page-prev),
-::view-transition-group(.editorial-page-utility),
-::view-transition-group(.editorial-page-history) {
-  animation-duration: 280ms;
-  animation-fill-mode: both;
+/* Keep the shell steady and navigation usable while route content changes. */
+::view-transition { pointer-events: none; }
+::view-transition-group(root),
+::view-transition-new(root) { animation: none; }
+::view-transition-old(root) { display: none; }
+
+::view-transition-group(.portfolio-page) {
+  animation-duration: 220ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
-
-::view-transition-old(.editorial-page-forward),
-::view-transition-old(.editorial-page-next) {
-  animation-name: editorial-old-forward;
+::view-transition-old(.portfolio-page) {
+  animation: portfolio-page-exit 160ms ease-out both;
 }
-
-::view-transition-new(.editorial-page-forward),
-::view-transition-new(.editorial-page-next) {
-  animation-name: editorial-new-forward;
-}
-
-::view-transition-old(.editorial-page-back),
-::view-transition-old(.editorial-page-prev) {
-  animation-name: editorial-old-back;
-}
-
-::view-transition-new(.editorial-page-back),
-::view-transition-new(.editorial-page-prev) {
-  animation-name: editorial-new-back;
-}
-
-::view-transition-old(.editorial-page-drill-in) {
-  animation-name: editorial-old-drill-in;
-}
-
-::view-transition-new(.editorial-page-drill-in) {
-  animation-name: editorial-new-drill-in;
-}
-
-::view-transition-old(.editorial-page-drill-out) {
-  animation-name: editorial-old-drill-out;
-}
-
-::view-transition-new(.editorial-page-drill-out) {
-  animation-name: editorial-new-drill-out;
-}
-
-::view-transition-old(.editorial-page-utility),
-::view-transition-old(.editorial-page-history) {
-  animation-name: editorial-old-utility;
-}
-
-::view-transition-new(.editorial-page-utility),
-::view-transition-new(.editorial-page-history) {
-  animation-name: editorial-new-utility;
+::view-transition-new(.portfolio-page) {
+  animation: portfolio-page-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 ::view-transition-group(.editorial-shared-title) {

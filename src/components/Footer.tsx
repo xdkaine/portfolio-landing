@@ -48,7 +48,6 @@ export function Footer({
               />
             )}
           </PublicLink>
-          {deployedRevision ? <a href={`https://github.com/xdkaine/portfolio-landing/commit/${deployedRevision}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-ash underline decoration-iron underline-offset-4 hover:text-ember">Commit {deployedRevision.slice(0, 8)}</a> : null}
           <div className="mt-4 flex items-center gap-4 text-[10px] tracking-[0.2em]">
             <PublicLink
               href="/v1/privacy"
@@ -82,8 +81,14 @@ export function Footer({
         </div>
       </div>
 
-      <div className="mt-12 pt-8 border-t border-iron">
+      <div className="mt-12 flex flex-wrap items-center gap-x-5 gap-y-4 border-t border-iron pt-8">
         <FooterChuckles gifUrl={chucklesGifUrl} />
+        {deployedRevision ? (
+          <a href={`https://github.com/xdkaine/portfolio-landing/commit/${deployedRevision}`} target="_blank" rel="noopener noreferrer" aria-label={`View build ${deployedRevision.slice(0, 8)} on GitHub`} className="group inline-flex min-h-8 items-center gap-2 text-xs text-ash transition-colors hover:text-bone" data-build-link>
+            <span aria-hidden="true" className="translate-y-0.5 text-xl leading-none text-ember">*</span>
+            <span>Build <span className="underline decoration-iron underline-offset-4 group-hover:decoration-ember">{deployedRevision.slice(0, 8)}</span></span>
+          </a>
+        ) : null}
       </div>
     </footer>
   );

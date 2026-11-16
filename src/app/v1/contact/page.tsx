@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { PublicLink } from "@/components/PublicTransition";
+import { PublicLink, PublicTransitionSurface } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import {
   TurnstileWidget,
@@ -126,7 +126,7 @@ export default function ContactPage() {
   const contactEmail = settings.contactEmail || "hello@phao.dev";
 
   return (
-    <>
+    <PublicTransitionSurface>
       {/* Header */}
       <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
         <ScrollReveal variant="row">
@@ -445,6 +445,6 @@ export default function ContactPage() {
           </div>
         </ScrollReveal>
       </section>
-    </>
+    </PublicTransitionSurface>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
+import { PublicLink, PublicSharedElement, PublicTransitionSurface } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { listPublishedPosts, listPublishedTags } from "@/lib/postEditorial";
 import { TRANSITION_TYPES } from "@/lib/publicTransition";
@@ -54,7 +54,7 @@ export default async function BlogPage({
   };
 
   return (
-    <>
+    <PublicTransitionSurface>
       <header className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
         <ScrollReveal variant="row">
           <div className="text-steel text-[10px] tracking-[0.3em] flex gap-3 mb-7">
@@ -170,6 +170,6 @@ export default async function BlogPage({
           </div>
         ) : null}
       </section>
-    </>
+    </PublicTransitionSurface>
   );
 }
