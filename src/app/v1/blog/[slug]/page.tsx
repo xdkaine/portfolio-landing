@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { PostArticle } from "@/components/blog/PostArticle";
+import { PublicTransitionSurface } from "@/components/PublicTransition";
 import { getPostConnections, getPublishedPostBySlug } from "@/lib/postEditorial";
 import { DEFAULT_SOCIAL_IMAGE } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
@@ -82,7 +83,7 @@ export default async function BlogPostPage({
   };
 
   return (
-    <>
+    <PublicTransitionSurface>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -96,6 +97,6 @@ export default async function BlogPostPage({
         next={connections.next}
         related={connections.related}
       />
-    </>
+    </PublicTransitionSurface>
   );
 }

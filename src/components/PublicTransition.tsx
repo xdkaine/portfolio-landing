@@ -31,6 +31,7 @@ const SHARED_TRANSITIONS = {
   "post-cover": "editorial-shared-media",
 } as const;
 
+// Place inside each page: the router owns its mount/unmount lifecycle, while the shell persists.
 export function PublicTransitionSurface({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
@@ -39,7 +40,7 @@ export function PublicTransitionSurface({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ViewTransition key={pathname} default="none" enter={PAGE_TRANSITIONS} exit={PAGE_TRANSITIONS} update="none">
+    <ViewTransition default="none" enter={PAGE_TRANSITIONS} exit={PAGE_TRANSITIONS} update="none">
       <div className="public-transition-surface" data-public-page={pathname}>{children}</div>
     </ViewTransition>
   );

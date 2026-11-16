@@ -1,7 +1,6 @@
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LinkClickTracker } from "@/components/LinkClickTracker";
-import { PublicTransitionSurface } from "@/components/PublicTransition";
 import { parseIdentityAliases } from "@/lib/brandAliases";
 import { getSiteSettings } from "@/lib/siteSettings";
 
@@ -30,9 +29,7 @@ export default async function V1Layout({
       <LinkClickTracker />
       <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
       <main id="main-content" data-portfolio-v1 className="flex-1 scroll-mt-20">
-        <PublicTransitionSurface>
-          {children}
-        </PublicTransitionSurface>
+        {children}
       </main>
       <Footer
         brandName={primaryBrandName}
