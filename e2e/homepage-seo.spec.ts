@@ -51,6 +51,8 @@ test.describe("Homepage first render", () => {
   test("provides an introduction, working actions, and social metadata", async ({ page, request }) => {
     await page.goto("/v1");
     await expect(page).toHaveTitle("Thomas Phao — Builder & Developer");
+    await expect(page.locator("main h1 .absolute.inset-0")).toContainText("Thomas Phao");
+    await expect(page.locator("[data-home-introduction] .absolute.inset-0")).toContainText("Thomas Phao");
     await expect(page.locator("[data-home-introduction]")).toContainText("a builder and developer");
 
     const projects = page.getByRole("link", { name: "VIEW PROJECTS", exact: true });
