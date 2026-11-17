@@ -76,7 +76,12 @@ test.describe("Content authoring in the disposable stack", () => {
     const saved = page.waitForResponse(response => response.url().endsWith("/v1/api/projects") && response.request().method() === "POST");
     await page.getByRole("button", { name: "Save project", exact: true }).click();
     const response = await saved; expect(response.ok()).toBeTruthy();
-    const project = await response.json(); createdProjects.push(project.id);
+    await expect(page.getByText("Project saved.", { exact: true })).toBeVisible();
+    // Verify the user-facing save confirmation and the persisted catalog record.
+    const catalog = await page.request.get("/v1/api/projects");
+    expect(catalog.ok()).toBeTruthy();
+    const project = (await catalog.json()).find((item: { title: string }) => item.title === title);
+    expect(project).toBeTruthy(); createdProjects.push(project.id);
     expect(project.number).toMatch(/^\d+$/);
     await page.goto(`/v1/projects/${project.number}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);

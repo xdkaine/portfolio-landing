@@ -253,7 +253,7 @@ function normalizeGallery(
       const image = normalizeString(item.image);
       if (!image || !isSafeProjectImage(image)) return null;
 
-      const title = normalizeString(item.title) ?? `VISUAL NOTE ${index + 1}`;
+      const title = normalizeString(item.title) ?? `Project image ${index + 1}`;
       const caption = normalizeString(item.caption) ?? "";
       const alt = normalizeString(item.alt) ?? title;
       return {

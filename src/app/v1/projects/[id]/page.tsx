@@ -1,4 +1,4 @@
-import { projectCover } from "@/lib/projectMedia";
+import { projectCover, projectGalleryImages } from "@/lib/projectMedia";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache, Fragment } from "react";
@@ -192,7 +192,7 @@ export default async function ProjectDetailPage({
       ? projectOrder[currentIndex + 1]
       : null;
 
-  const images = mergedDeepDive.gallery.map(image => ({ src: image.image, alt: image.alt || image.title || normalizedProject.title, caption: image.caption || image.title }));
+  const images = projectGalleryImages(mergedDeepDive).map(image => ({ src: image.image, alt: image.alt || image.title || normalizedProject.title, caption: image.caption || image.title }));
   const coverImage = projectCover(mergedDeepDive);
   const cover = coverImage ? { src: coverImage.image, alt: coverImage.alt || normalizedProject.title, caption: coverImage.caption || coverImage.title } : undefined;
   return (
