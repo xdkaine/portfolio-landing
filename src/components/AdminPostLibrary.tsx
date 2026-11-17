@@ -8,8 +8,8 @@ import type { Post } from "@/lib/adminDashboardData";
 type FilterStatus = "ALL" | Post["status"];
 
 const STATUS_STYLES: Record<Post["status"], string> = {
-  DRAFT: "text-amber-400 border-amber-400/30",
-  PUBLISHED: "text-emerald-400 border-emerald-400/30",
+  DRAFT: "text-status-progress border-status-progress/30",
+  PUBLISHED: "text-status-live border-status-live/30",
   ARCHIVED: "text-steel border-iron",
 };
 
@@ -79,8 +79,8 @@ export function AdminPostLibrary({
       <div className="border border-iron bg-surface/30 p-4 md:p-5 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
           <div>
-            <p className="text-[10px] tracking-[0.3em] text-steel mb-2">BLOG POSTS // STUDIO</p>
-            <h2 className="font-display text-3xl md:text-4xl">PUBLICATION QUEUE</h2>
+            <h2 className="font-display text-3xl md:text-4xl">BLOG POSTS</h2>
+            <p className="mt-2 text-sm text-ash">Write, preview, and publish from here.</p>
           </div>
           <button
             type="button"
@@ -118,7 +118,7 @@ export function AdminPostLibrary({
         </div>
       </div>
 
-      {notice ? <p className="text-xs text-amber-400 mb-4" aria-live="polite">{notice}</p> : null}
+      {notice ? <p className="text-xs text-status-progress mb-4" aria-live="polite">{notice}</p> : null}
 
       <div className="space-y-3">
         {filteredPosts.map((post) => (
@@ -140,7 +140,7 @@ export function AdminPostLibrary({
                   {post.status}
                 </span>
                 {post.featured ? <span className="text-[9px] tracking-widest text-ember">FEATURED</span> : null}
-                {post.needsContent ? <span className="text-[9px] tracking-widest text-amber-400">NEEDS BODY</span> : null}
+                {post.needsContent ? <span className="text-[9px] tracking-widest text-status-progress">NEEDS BODY</span> : null}
               </div>
               <h3 className="text-sm text-bone truncate">{post.title || "Untitled blog post"}</h3>
               <p className="text-[10px] tracking-wider text-steel mt-2 truncate">

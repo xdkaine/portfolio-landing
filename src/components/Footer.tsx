@@ -85,8 +85,8 @@ export function Footer({
         <FooterChuckles gifUrl={chucklesGifUrl} />
         {deployedRevision ? (
           <a href={`https://github.com/xdkaine/portfolio-landing/commit/${deployedRevision}`} target="_blank" rel="noopener noreferrer" aria-label={`View build ${deployedRevision.slice(0, 8)} on GitHub`} className="group inline-flex min-h-8 items-center gap-2 text-xs text-ash transition-colors hover:text-bone" data-build-link>
-            <span aria-hidden="true" className="translate-y-0.5 text-xl leading-none text-ember">*</span>
-            <span>Build <span className="underline decoration-iron underline-offset-4 group-hover:decoration-ember">{deployedRevision.slice(0, 8)}</span></span>
+            <span aria-hidden="true" className="text-xs leading-none text-ember">●</span>
+            <strong className="font-semibold">Build <span className="underline decoration-iron underline-offset-4 group-hover:decoration-ember">{deployedRevision.slice(0, 8)}</span></strong>
           </a>
         ) : null}
       </div>

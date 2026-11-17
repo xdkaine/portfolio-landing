@@ -12,6 +12,8 @@ import {
   isSafePostMediaSource,
   missingImageAltCount,
   normalizePostDocument,
+  postDocumentText,
+  markdownText,
   type PostDocument,
 } from "@/lib/postContent";
 import { normalizeV1PublicUrl } from "@/lib/v1Path";
@@ -253,6 +255,8 @@ export async function updateAdminPost(id: string, input: unknown) {
   if (!current) throw new PostEditorialError("Post not found", 404);
 
   const changes = parseEditorialChanges(input);
+  const expected = (input as Record<string, unknown>).expectedUpdatedAt;
+  if (expected !== undefined && expected !== current.updatedAt.toISOString()) throw new PostEditorialError("This post was edited elsewhere. Reload before saving to preserve those changes.", 409);
   if (
     changes.slug &&
     current.publishedAt &&
@@ -267,7 +271,7 @@ export async function updateAdminPost(id: string, input: unknown) {
   };
   if (changes.title !== undefined) nextContent.title = changes.title;
   if (changes.slug !== undefined) nextContent.slug = changes.slug;
-  if (changes.excerpt !== undefined) nextContent.excerpt = changes.excerpt;
+  if (changes.excerpt !== undefined) nextContent.excerpt = changes.excerpt || (postDocumentText(document) || markdownText(current.content)).slice(0, MAX_EXCERPT_LENGTH);
   if (changes.tags !== undefined) nextContent.tags = changes.tags;
   if (changes.coverImage !== undefined) nextContent.coverImage = changes.coverImage;
   if (changes.coverAlt !== undefined) nextContent.coverAlt = changes.coverAlt;
@@ -276,17 +280,20 @@ export async function updateAdminPost(id: string, input: unknown) {
     nextContent.bodyJson = changes.bodyJson as unknown as Prisma.InputJsonValue;
   }
 
-  const post = await prisma.post.update({
-    where: { id },
-    data: nextContent,
+  const post = await prisma.$transaction(async tx => {
+    const result = await tx.post.updateMany({
+      where: { id, ...(expected !== undefined ? { updatedAt: current.updatedAt } : {}) }, data: nextContent,
+    });
+    if (!result.count) throw new PostEditorialError("This post was edited elsewhere. Reload before saving.", 409);
+    return tx.post.findUniqueOrThrow({ where: { id } });
   });
   return toAdminPostRecord(post);
 }
 
 function validatePublishable(post: PostRecord): void {
   const document = bodyDocument(post);
-  if (!post.title.trim() || !post.slug.trim() || !post.excerpt.trim()) {
-    throw new PostEditorialError("Title, slug, and excerpt are required before publishing", 400);
+  if (!post.title.trim() || !post.slug.trim()) {
+    throw new PostEditorialError("A title is required before publishing", 400);
   }
   validateSlug(post.slug);
   if (!hasPostBody(document) && !post.content?.trim()) {
@@ -314,6 +321,7 @@ export async function publishAdminPost(id: string) {
       publishedAt,
       date: formatEditorialDate(publishedAt),
       readTime: calculatePostReadTime(bodyDocument(current), current.content, current.excerpt),
+      excerpt: current.excerpt.trim() || (postDocumentText(bodyDocument(current)) || markdownText(current.content)).slice(0, MAX_EXCERPT_LENGTH),
     },
   });
   return toAdminPostRecord(post);

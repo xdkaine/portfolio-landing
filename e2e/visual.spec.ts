@@ -54,7 +54,7 @@ test.describe('About design baselines', () => {
       await page.evaluate(() => document.fonts.ready);
       // The fixed navigation is covered by Home's baselines; isolate the tall About article.
       await page.evaluate(() => scrollTo(0, 0));
-      await page.addStyleTag({ content: 'nav, a[href="#main-content"] { visibility: hidden !important; }' });
+      await page.addStyleTag({ content: 'nav, a[href="#main-content"], nextjs-portal { visibility: hidden !important; }' });
       await expect(page.locator('[data-about-page]')).toHaveScreenshot(`about-${colorScheme}-${width}.png`, {
         animations: 'disabled', maxDiffPixelRatio: 0.01,
       });

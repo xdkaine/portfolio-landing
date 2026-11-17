@@ -1,3 +1,6 @@
+import { getAboutContent } from "@/lib/aboutStore";
+import { DEFAULT_ABOUT_CONTENT } from "@/lib/aboutContent";
+import { projectCover } from "@/lib/projectMedia";
 import HomePageClient from "@/components/HomePageClient";
 import { PublicTransitionSurface } from "@/components/PublicTransition";
 import { getProjectTeaser } from "@/lib/projectTeaser";
@@ -10,10 +13,11 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const [settings, projects, posts] = await Promise.all([
+  const [settings, projects, posts, about] = await Promise.all([
     getSiteSettings(),
     listProjects(),
     listPublishedPosts({ limit: 4 }),
+    getAboutContent().then(result => result.content).catch(() => DEFAULT_ABOUT_CONTENT),
   ]);
   const featured = projects.filter((project) => project.featured);
   const selectedProjects = (featured.length > 0 ? featured : projects).slice(0, 3);
@@ -22,19 +26,20 @@ export default async function HomePage() {
     <PublicTransitionSurface>
       <HomePageClient
         siteSettings={pickPublicSiteSettings(settings)}
-        projects={selectedProjects.map((project) => ({
+        profile={{ currentRole: about.currentRole, personalNote: about.personalNote }}
+        projects={selectedProjects.map((project) => { const cover = projectCover(project.caseStudy); return ({
           id: project.id,
           number: project.number,
           title: project.title,
           description: getProjectTeaser(project),
           tags: project.tags,
           status: project.status,
-          image: project.caseStudy?.gallery?.[0] ? {
-            src: project.caseStudy.gallery[0].image,
-            alt: project.caseStudy.gallery[0].alt || project.title,
-            caption: project.caseStudy.gallery[0].caption,
+          image: cover ? {
+            src: cover.image,
+            alt: cover.alt || project.title,
+            caption: cover.caption,
           } : undefined,
-        }))}
+        }); })}
         posts={posts.map((post) => ({
           id: post.id,
           slug: post.slug,

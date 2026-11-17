@@ -11,19 +11,8 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { AdminMetricsDashboard } from "@/components/AdminMetricsDashboard";
 import { AdminPostLibrary } from "@/components/AdminPostLibrary";
-import {
-  ChevronUp,
-  ChevronDown,
-  Trash2,
-  Image as ImageIcon,
-  ArrowUpToLine,
-  ArrowDownToLine,
-  Pencil,
-} from "lucide-react";
 import {
   deleteProjectRecord,
   fetchAdminDashboardData,
@@ -44,11 +33,12 @@ import {
   DEFAULT_SITE_SETTINGS,
   type SiteSettings,
 } from "@/lib/siteSettings-schema";
-import { transformProjectMarkdownUrl } from "@/lib/projectCaseStudy";
+import { ProjectEditor } from "@/components/ProjectEditor";
+import { AboutEditor } from "@/components/AboutEditor";
 
-type Tab = "metrics" | "projects" | "posts" | "messages" | "settings";
+type Tab = "metrics" | "projects" | "posts" | "messages" | "settings" | "about";
 
-const TAB_KEYS: Tab[] = ["metrics", "projects", "posts", "messages", "settings"];
+const TAB_KEYS: Tab[] = ["projects", "posts", "about", "messages", "metrics", "settings"];
 
 const messageDateFormatter = new Intl.DateTimeFormat(undefined);
 
@@ -63,7 +53,7 @@ export default function AdminDashboardClient() {
   const isMountedRef = useRef(true);
   const tab = useMemo<Tab>(() => {
     const queryTab = searchParams.get("tab");
-    return isTab(queryTab) ? queryTab : "metrics";
+    return isTab(queryTab) ? queryTab : "projects";
   }, [searchParams]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -81,6 +71,7 @@ export default function AdminDashboardClient() {
 
   // Shared unmount guard for async callbacks (fetching + save actions).
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
@@ -126,8 +117,9 @@ export default function AdminDashboardClient() {
 
   const updateTab = useCallback(
     (nextTab: Tab) => {
+      if (nextTab === tab) return;
       const params = new URLSearchParams(searchParams.toString());
-      if (nextTab === "metrics") {
+      if (nextTab === "projects") {
         params.delete("tab");
       } else {
         params.set("tab", nextTab);
@@ -138,7 +130,7 @@ export default function AdminDashboardClient() {
         scroll: false,
       });
     },
-    [pathname, router, searchParams],
+    [pathname, router, searchParams, tab],
   );
 
   const updateSetting = useCallback(
@@ -159,7 +151,7 @@ export default function AdminDashboardClient() {
     const result = await saveProjectRecord(project);
     if (!result.ok) {
       setProjectSaveNotice(result.error || "Failed to save project.");
-      return;
+      throw new Error(result.error || "Failed to save project.");
     }
 
     setEditingProject(null);
@@ -323,19 +315,15 @@ export default function AdminDashboardClient() {
 
   const tabs = useMemo<{ key: Tab; label: string; count: number }[]>(
     () => [
-      {
-        key: "metrics",
-        label: "METRICS",
-        count: projects.length + posts.length + messages.length + linkClicks.length,
-      },
       { key: "projects", label: "PROJECTS", count: projects.length },
-      { key: "posts", label: "POSTS", count: posts.length },
+      { key: "posts", label: "BLOG POSTS", count: posts.length },
+      { key: "about", label: "ABOUT", count: 1 },
       { key: "messages", label: "MESSAGES", count: unreadMessagesCount },
+      { key: "metrics", label: "ANALYTICS", count: linkClicks.length },
       { key: "settings", label: "SETTINGS", count: 1 },
     ],
     [
       linkClicks.length,
-      messages.length,
       posts.length,
       projects.length,
       unreadMessagesCount,
@@ -343,7 +331,7 @@ export default function AdminDashboardClient() {
   );
 
   return (
-    <section className="pt-32 pb-24 px-6 md:px-12 lg:px-24 min-h-screen">
+    <section data-admin-ui className="pt-28 pb-16 px-4 md:px-8 lg:px-12 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -364,7 +352,15 @@ export default function AdminDashboardClient() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b-2 border-iron mb-8" role="tablist" aria-label="Dashboard sections">
+      <div className="flex flex-wrap gap-2 border-b-2 border-iron mb-8" role="tablist" aria-label="Dashboard sections" onKeyDown={event => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+        const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+        const index = buttons.indexOf(event.target as HTMLButtonElement);
+        if (index < 0) return;
+        event.preventDefault();
+        const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length;
+        buttons[next].focus();
+      }}>
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -372,7 +368,8 @@ export default function AdminDashboardClient() {
             role="tab"
             id={`admin-tab-${t.key}`}
             aria-selected={tab === t.key}
-            aria-controls={`admin-panel-${t.key}`}
+            aria-controls={tab === t.key ? `admin-panel-${t.key}` : undefined}
+            tabIndex={tab === t.key ? 0 : -1}
             onClick={() => updateTab(t.key)}
             className={`text-[10px] tracking-[0.2em] px-4 py-3 border-b-2 -mb-0.5 transition-colors ${
               tab === t.key
@@ -421,8 +418,7 @@ export default function AdminDashboardClient() {
                       {orderedProjects.length} projects
                     </span>
                     <p className="text-[10px] tracking-[0.18em] text-iron mt-2">
-                      Manual order is live. Lower display order appears first on the
-                      public site.
+                      Use the arrows to reorder projects. Your changes appear on the site immediately.
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
@@ -471,7 +467,7 @@ export default function AdminDashboardClient() {
                 ) : null}
 
                 {(showNewProject || editingProject) && (
-                  <ProjectForm
+                  <ProjectEditor
                     key={editingProject?.id ?? "new-project"}
                     project={editingProject}
                     onSave={saveProject}
@@ -487,7 +483,7 @@ export default function AdminDashboardClient() {
                   {orderedProjects.map((p, index) => (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between py-3 border-b border-iron group hover:bg-surface/50 px-2 -mx-2"
+                      className="admin-project-row flex flex-col items-stretch gap-3 sm:flex-row sm:items-center justify-between py-3 border-b border-iron group hover:bg-surface/50 px-2 -mx-2"
                     >
                       <div className="flex items-center gap-4 min-w-0">
                         <span className="text-iron text-[10px] w-14">
@@ -498,9 +494,9 @@ export default function AdminDashboardClient() {
                         <span
                           className={`text-[9px] tracking-widest px-1.5 py-0.5 border ${
                             p.status === "LIVE"
-                              ? "text-emerald-400 border-emerald-400/30"
+                              ? "text-status-live border-status-live/30"
                               : p.status === "IN PROGRESS"
-                                ? "text-amber-400 border-amber-400/30"
+                                ? "text-status-progress border-status-progress/30"
                                 : "text-steel border-iron"
                           }`}
                         >
@@ -590,6 +586,7 @@ export default function AdminDashboardClient() {
             )}
 
             {/* Settings */}
+            {tab === "about" && <AboutEditor />}
             {tab === "settings" && (
               <motion.div
                 className="border-2 border-iron p-6"
@@ -724,754 +721,6 @@ export default function AdminDashboardClient() {
         </AnimatePresence>
       )}
     </section>
-  );
-}
-
-// Normalizes UI-friendly text inputs into the API shape expected by /v1/api/projects.
-
-interface VisualNoteFormItem {
-  title: string;
-  caption: string;
-  image: string;
-  alt: string;
-  _expanded?: boolean;
-}
-
-const emptyVisualNote = (): VisualNoteFormItem => ({
-  title: "",
-  caption: "",
-  image: "",
-  alt: "",
-  _expanded: true,
-});
-
-function markdownToPlainText(markdown: string): string {
-  return markdown
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`([^`]*)`/g, "$1")
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/^>\s?/gm, "")
-    .replace(/[*_~]/g, "")
-    .replace(/^-{1,3}\s+/gm, "")
-    .replace(/\n+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function ProjectForm({
-  project,
-  defaultSortOrder,
-  onSave,
-  onCancel,
-}: {
-  project: Project | null;
-  defaultSortOrder: number;
-  onSave: (p: EditableProject) => void;
-  onCancel: () => void;
-}) {
-  const [form, setForm] = useState({
-    id: project?.id || "",
-    number: project?.number || "",
-    title: project?.title || "",
-    description: project?.description || "",
-    tags: project?.tags?.join(", ") || "",
-    year: project?.year || new Date().getFullYear().toString(),
-    url: project?.url || "",
-    github: project?.github || "",
-    status: project?.status || "LIVE",
-    featured: project?.featured ?? false,
-    sortOrder: project?.sortOrder ?? defaultSortOrder,
-    subtitle: project?.caseStudy?.subtitle || project?.caseStudy?.pitch || "",
-    role: project?.caseStudy?.role || "",
-    timeline: project?.caseStudy?.timeline || "",
-    challenge: project?.caseStudy?.challenge || "",
-    concept: project?.caseStudy?.concept || "",
-    writeup:
-      project?.caseStudy?.writeupMarkdown ||
-      project?.caseStudy?.writeup?.join("\n\n") ||
-      "",
-    highlights: project?.caseStudy?.highlights?.join("\n") || "",
-    demoSummary: project?.caseStudy?.demoSummary || "",
-    demoUrl: project?.caseStudy?.demoUrl || "",
-    repoUrl: project?.caseStudy?.repoUrl || "",
-  });
-  const [visualNotes, setVisualNotes] = useState<VisualNoteFormItem[]>(
-    project?.caseStudy?.gallery?.length
-      ? project.caseStudy.gallery.map((item) => ({
-          title: item.title || "",
-          caption: item.caption || "",
-          image: item.image || "",
-          alt: item.alt || "",
-          _expanded: false,
-        }))
-      : [],
-  );
-  const [uploadingVisualNoteIndex, setUploadingVisualNoteIndex] = useState<
-    number | null
-  >(null);
-  const [visualNoteUploadNotice, setVisualNoteUploadNotice] = useState("");
-  const [bulkUploading, setBulkUploading] = useState(false);
-
-  const updateVisualNote = (
-    index: number,
-    field: keyof VisualNoteFormItem,
-    value: string,
-  ) => {
-    setVisualNotes((prev) =>
-      prev.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [field]: value } : item,
-      ),
-    );
-  };
-
-  const moveVisualNoteToIndex = (currentIndex: number, targetIndex: number) => {
-    setVisualNotes((prev) => {
-      if (targetIndex < 0 || targetIndex >= prev.length || currentIndex === targetIndex) return prev;
-      const nextNotes = [...prev];
-      const [movedNote] = nextNotes.splice(currentIndex, 1);
-      nextNotes.splice(targetIndex, 0, movedNote);
-      return nextNotes;
-    });
-  };
-
-  const moveVisualNote = (index: number, direction: -1 | 1) => {
-    setVisualNotes((prev) => {
-      const nextIndex = index + direction;
-      if (nextIndex < 0 || nextIndex >= prev.length) return prev;
-      const nextNotes = [...prev];
-      const [movedNote] = nextNotes.splice(index, 1);
-      nextNotes.splice(nextIndex, 0, movedNote);
-      return nextNotes;
-    });
-  };
-
-  const uploadVisualNoteImage = async (index: number, file: File) => {
-    setVisualNoteUploadNotice("");
-    setUploadingVisualNoteIndex(index);
-
-    try {
-      const payload = new FormData();
-      payload.append("file", file);
-
-      const response = await fetch("/v1/api/uploads/project-image", {
-        method: "POST",
-        body: payload,
-      });
-
-      const data = (await response.json().catch(() => ({}))) as {
-        url?: string;
-        error?: string;
-      };
-
-      if (!response.ok || !data.url) {
-        setVisualNoteUploadNotice(data.error || "Image upload failed.");
-        return;
-      }
-
-      updateVisualNote(index, "image", data.url);
-      setVisualNoteUploadNotice("Image uploaded.");
-    } catch {
-      setVisualNoteUploadNotice("Network error while uploading image.");
-    } finally {
-      setUploadingVisualNoteIndex(null);
-    }
-  };
-
-  const bulkUploadImages = async (files: FileList) => {
-    if (files.length === 0) return;
-    if (files.length > 20) {
-      setVisualNoteUploadNotice("You can upload a maximum of 20 images at a time.");
-      return;
-    }
-
-    setVisualNoteUploadNotice("");
-    setBulkUploading(true);
-
-    try {
-      const payload = new FormData();
-      for (const file of Array.from(files)) {
-        payload.append("files", file);
-      }
-
-      const response = await fetch("/v1/api/uploads/project-image", {
-        method: "POST",
-        body: payload,
-      });
-
-      const data = (await response.json().catch(() => ({}))) as {
-        urls?: string[];
-        url?: string;
-        error?: string;
-      };
-
-      if (!response.ok) {
-        setVisualNoteUploadNotice(data.error || "Bulk upload failed.");
-        return;
-      }
-
-      const urls = data.urls ?? (data.url ? [data.url] : []);
-      if (urls.length === 0) {
-        setVisualNoteUploadNotice("Upload returned no image URLs.");
-        return;
-      }
-
-      // Create a new visual note stub for each uploaded image.
-      const newNotes: VisualNoteFormItem[] = urls.map((url) => ({
-        title: "",
-        caption: "",
-        image: url,
-        alt: "",
-      }));
-
-      setVisualNotes((prev) => [...prev, ...newNotes]);
-      setVisualNoteUploadNotice(`${urls.length} image${urls.length > 1 ? "s" : ""} uploaded. Add titles and captions below.`);
-    } catch {
-      setVisualNoteUploadNotice("Network error during bulk upload.");
-    } finally {
-      setBulkUploading(false);
-    }
-  };
-
-  const handleSave = () => {
-    const writeupMarkdown = form.writeup.trim();
-    const writeupParagraphs = writeupMarkdown
-      .split(/\n\s*\n/g)
-      .map((p) => p.trim())
-      .filter(Boolean);
-    const highlights = form.highlights
-      .split(/\n|,/g)
-      .map((h) => h.trim())
-      .filter(Boolean);
-    const mainDescription =
-      markdownToPlainText(writeupParagraphs[0] || writeupMarkdown) ||
-      form.subtitle.trim() ||
-      form.description.trim() ||
-      form.title.trim();
-
-    onSave({
-      ...(form.id ? { id: form.id } : {}),
-      number: form.number,
-      title: form.title,
-      description: mainDescription,
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-      year: form.year,
-      url: form.url || undefined,
-      github: form.github || undefined,
-      status: form.status,
-      featured: form.featured,
-      sortOrder: form.sortOrder,
-      caseStudy: {
-        subtitle: form.subtitle || undefined,
-        pitch: form.subtitle || undefined,
-        role: form.role || undefined,
-        timeline: form.timeline || undefined,
-        challenge: form.challenge || undefined,
-        concept: form.concept || undefined,
-        writeupMarkdown: writeupMarkdown || undefined,
-        // Backward compatibility for legacy consumers.
-        writeup: writeupParagraphs,
-        highlights,
-        demoSummary: form.demoSummary || undefined,
-        demoUrl: form.demoUrl || undefined,
-        repoUrl: form.repoUrl || undefined,
-        gallery: visualNotes
-          .map((item) => ({
-            title: item.title.trim(),
-            caption: item.caption.trim(),
-            image: item.image.trim(),
-            alt: item.alt.trim(),
-          }))
-          .filter((item) => item.image.length > 0),
-      },
-    });
-  };
-
-  return (
-    <motion.div
-      className="border-2 border-iron p-6 mb-6"
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      <div className="grid md:grid-cols-2 gap-4">
-        <AdminTextInput label="NUMBER" value={form.number} onChange={(v) => setForm({ ...form, number: v })} placeholder="07" inputMode="numeric" />
-        <AdminTextInput label="TITLE" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="PROJECT NAME" />
-        <AdminTextInput label="TAGS (comma separated)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} placeholder="REACT, TYPESCRIPT" />
-        <AdminTextInput label="YEAR" value={form.year} onChange={(v) => setForm({ ...form, year: v })} placeholder="2025" inputMode="numeric" />
-        <div>
-          <label htmlFor="project-sort-order" className="text-[10px] tracking-[0.2em] text-steel block mb-2">
-            DISPLAY ORDER
-          </label>
-          <input
-            id="project-sort-order"
-            name="project-sort-order"
-            type="number"
-            min={0}
-            step={1}
-            autoComplete="off"
-            inputMode="numeric"
-            value={form.sortOrder}
-            onChange={(event) =>
-              setForm({
-                ...form,
-                sortOrder: Math.max(
-                  0,
-                  Number.isFinite(event.currentTarget.valueAsNumber)
-                    ? event.currentTarget.valueAsNumber
-                    : 0,
-                ),
-              })
-            }
-            className="w-full bg-void border border-iron text-bone text-xs py-2 px-3 focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40"
-          />
-          <p className="text-[10px] tracking-[0.15em] text-iron mt-2">
-            Lower numbers display first.
-          </p>
-        </div>
-        <AdminTextInput label="URL" value={form.url} onChange={(v) => setForm({ ...form, url: v })} placeholder="https://…" type="url" inputMode="url" autoComplete="url" />
-        <AdminTextInput label="GITHUB" value={form.github} onChange={(v) => setForm({ ...form, github: v })} placeholder="https://github.com/…" type="url" inputMode="url" autoComplete="url" />
-        <div>
-          <label htmlFor="project-status" className="text-[10px] tracking-[0.2em] text-steel block mb-2">STATUS</label>
-          <select
-            id="project-status"
-            name="project-status"
-            value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value })}
-            className="w-full bg-void border border-iron text-bone text-xs py-2 px-3 focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40"
-          >
-            <option value="LIVE">LIVE</option>
-            <option value="IN PROGRESS">IN PROGRESS</option>
-            <option value="ARCHIVED">ARCHIVED</option>
-          </select>
-        </div>
-        <label className="flex items-center gap-3 pt-6 cursor-pointer">
-          <input
-            type="checkbox"
-            name="featured"
-            checked={form.featured}
-            onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-            className="accent-ember"
-          />
-          <span className="text-[10px] tracking-[0.2em] text-ash">FEATURED</span>
-        </label>
-
-        <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
-          <span className="text-[10px] tracking-[0.25em] text-ember block mb-4">
-            PROJECT DETAILS
-          </span>
-        </div>
-
-        <div className="md:col-span-2">
-          <AdminTextarea
-            label="SUBTITLE"
-            value={form.subtitle}
-            onChange={(v) => setForm({ ...form, subtitle: v })}
-            placeholder="One-line framing under the project title…"
-          />
-        </div>
-
-        <div className="md:col-span-2">
-          <AdminTextarea
-            label="CHALLENGE"
-            value={form.challenge}
-            onChange={(v) => setForm({ ...form, challenge: v })}
-            placeholder="Optional: what was hard about this project?"
-          />
-        </div>
-        <div className="md:col-span-2">
-          <AdminTextarea
-            label="CONCEPT"
-            value={form.concept}
-            onChange={(v) => setForm({ ...form, concept: v })}
-            placeholder="Optional: how did you approach the solution?"
-          />
-        </div>
-        <div className="md:col-span-2 grid lg:grid-cols-2 gap-4">
-          <div className="flex flex-col h-[500px]">
-            <label htmlFor="writeup-markdown-editor" className="text-[10px] tracking-[0.2em] text-steel block mb-2">
-              WRITE-UP MARKDOWN
-            </label>
-            <textarea
-              id="writeup-markdown-editor"
-              value={form.writeup}
-              onChange={(e) => setForm({ ...form, writeup: e.target.value })}
-              placeholder="# What You Built\n\nUse markdown: headings, lists, links, code, and images…"
-              className="flex-1 w-full bg-void border border-iron focus-visible:border-ember focus-visible:ring-2 focus-visible:ring-ember/40 text-bone text-xs p-3 transition-colors resize-none overflow-y-auto"
-            />
-          </div>
-          <div className="flex flex-col h-[500px]">
-            <span className="text-[10px] tracking-[0.2em] text-steel block mb-2">
-              WRITE-UP PREVIEW
-            </span>
-            <div className="flex-1 border border-iron bg-surface/20 p-4 overflow-y-auto">
-              {form.writeup.trim() ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  urlTransform={transformProjectMarkdownUrl}
-                  components={{
-                    p: ({ children }) => (
-                      <p className="text-xs md:text-sm text-ash leading-relaxed mb-3 last:mb-0">
-                        {children}
-                      </p>
-                    ),
-                    h1: ({ children }) => (
-                      <h3 className="font-display text-xl text-bone tracking-tight mb-3">
-                        {children}
-                      </h3>
-                    ),
-                    h2: ({ children }) => (
-                      <h4 className="font-display text-lg text-bone tracking-tight mb-2">
-                        {children}
-                      </h4>
-                    ),
-                    ul: ({ children }) => (
-                      <ul className="list-disc pl-5 space-y-1 text-xs md:text-sm text-ash mb-3">
-                        {children}
-                      </ul>
-                    ),
-                    ol: ({ children }) => (
-                      <ol className="list-decimal pl-5 space-y-1 text-xs md:text-sm text-ash mb-3">
-                        {children}
-                      </ol>
-                    ),
-                    code: ({ children }) => (
-                      <code className="text-[11px] bg-void border border-iron px-1.5 py-0.5 text-smoke">
-                        {children}
-                      </code>
-                    ),
-                    pre: ({ children }) => (
-                      <pre className="text-[11px] bg-void border border-iron p-3 mb-3 overflow-x-auto text-smoke">
-                        {children}
-                      </pre>
-                    ),
-                    img: ({ src, alt }) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={src ?? ""}
-                        alt={alt ?? ""}
-                        width={1600}
-                        height={1000}
-                        loading="lazy"
-                        className="w-full h-auto border border-iron mb-3"
-                      />
-                    ),
-                    a: ({ href, children }) => (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-ember underline underline-offset-2"
-                      >
-                        {children}
-                      </a>
-                    ),
-                  }}
-                >
-                  {form.writeup}
-                </ReactMarkdown>
-              ) : (
-                <p className="text-[10px] tracking-[0.15em] text-iron">
-                  Add markdown above to preview rendered output.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
-          <span className="text-[10px] tracking-[0.25em] text-steel block mb-4">
-            SNAPSHOT
-          </span>
-        </div>
-        <AdminTextInput
-          label="ROLE"
-          value={form.role}
-          onChange={(v) => setForm({ ...form, role: v })}
-          placeholder="Architecture, frontend, backend…"
-        />
-        <AdminTextInput
-          label="TIMELINE"
-          value={form.timeline}
-          onChange={(v) => setForm({ ...form, timeline: v })}
-          placeholder="8 weeks"
-        />
-        <div className="md:col-span-2">
-          <AdminTextarea
-            label="HIGHLIGHTS (one per line)"
-            value={form.highlights}
-            onChange={(v) => setForm({ ...form, highlights: v })}
-            placeholder="Key outcomes, architecture wins, etc."
-            rows={5}
-          />
-        </div>
-
-        <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <span className="text-[10px] tracking-[0.25em] text-steel block">
-              VISUAL NOTES
-            </span>
-            <div className="flex items-center gap-2">
-              <label className="text-[10px] tracking-[0.2em] text-ember border border-ember px-3 py-1 hover:bg-ember hover:text-void transition-colors cursor-pointer">
-                {bulkUploading ? "UPLOADING…" : "+ BULK UPLOAD"}
-                <input
-                  name="bulk-visual-notes"
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  multiple
-                  className="hidden"
-                  disabled={bulkUploading}
-                  onChange={(event) => {
-                    const fileList = event.target.files;
-                    if (fileList && fileList.length > 0) {
-                      void bulkUploadImages(fileList);
-                    }
-                    event.currentTarget.value = "";
-                  }}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => setVisualNotes((prev) => [...prev, emptyVisualNote()])}
-                className="text-[10px] tracking-[0.2em] text-ember border border-ember px-3 py-1 hover:bg-ember hover:text-void transition-colors"
-              >
-                + ADD NOTE
-              </button>
-            </div>
-          </div>
-
-          {visualNotes.length === 0 ? (
-            <p className="text-[10px] tracking-[0.15em] text-iron border border-iron px-3 py-3">
-              No visual notes yet. Add at least one image note to populate the Visual Notes section.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {visualNotes.map((note, index) => (
-                <div key={`visual-note-${index}`} className="border border-iron bg-void transition-colors">
-                  <div className={`flex flex-col md:flex-row md:items-center justify-between p-4 gap-4 ${note._expanded ? "border-b border-iron bg-surface/20" : "hover:bg-surface/10"}`}>
-                    <div className="flex items-center gap-4">
-                      {note.image ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={note.image} alt="" className="w-12 h-12 object-cover border border-iron bg-void" />
-                      ) : (
-                        <div className="w-12 h-12 flex items-center justify-center border border-iron bg-void text-iron">
-                          <ImageIcon size={18} />
-                        </div>
-                      )}
-                      <div>
-                        <span className="text-[10px] tracking-[0.2em] text-ash block">
-                          NOTE {String(index + 1).padStart(2, "0")}
-                        </span>
-                        <span className="text-xs text-bone block mt-0.5 truncate max-w-[200px] md:max-w-[300px]">
-                          {note.title || "Untitled"}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center flex-wrap gap-3">
-                      <div className="flex items-center gap-1 bg-void border border-iron px-2 py-1.5" title="Move to position">
-                        <span className="text-[10px] tracking-[0.2em] text-steel">POS:</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={visualNotes.length}
-                          value={index + 1}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value, 10);
-                            if (!isNaN(val) && val > 0 && val <= visualNotes.length) {
-                              moveVisualNoteToIndex(index, val - 1);
-                            }
-                          }}
-                          className="w-8 bg-transparent text-bone text-[10px] tracking-[0.1em] text-center focus:outline-none focus:text-ember transition-colors"
-                        />
-                      </div>
-                      
-                      <div className="flex items-center gap-1.5 px-2">
-                        <button
-                          type="button"
-                          onClick={() => moveVisualNoteToIndex(index, 0)}
-                          disabled={index === 0}
-                          title="Move to Top"
-                          className="text-ash hover:text-bone disabled:opacity-30 transition-colors p-1"
-                        >
-                          <ArrowUpToLine size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveVisualNote(index, -1)}
-                          disabled={index === 0}
-                          title="Move Up"
-                          className="text-ash hover:text-bone disabled:opacity-30 transition-colors p-1"
-                        >
-                          <ChevronUp size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveVisualNote(index, 1)}
-                          disabled={index === visualNotes.length - 1}
-                          title="Move Down"
-                          className="text-ash hover:text-bone disabled:opacity-30 transition-colors p-1"
-                        >
-                          <ChevronDown size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveVisualNoteToIndex(index, visualNotes.length - 1)}
-                          disabled={index === visualNotes.length - 1}
-                          title="Move to Bottom"
-                          className="text-ash hover:text-bone disabled:opacity-30 transition-colors p-1"
-                        >
-                          <ArrowDownToLine size={14} />
-                        </button>
-                      </div>
-
-                      <div className="hidden md:block w-px h-6 bg-iron mx-1" />
-
-                      <button
-                        type="button"
-                        onClick={() => setVisualNotes(prev => prev.map((item, i) => i === index ? { ...item, _expanded: !item._expanded } : item))}
-                        className="text-[10px] tracking-[0.15em] text-ember hover:text-ember/80 flex items-center gap-1.5 transition-colors px-2 py-1.5 border border-transparent hover:border-ember/30"
-                      >
-                        <Pencil size={12} /> {note._expanded ? "COLLAPSE" : "EDIT"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setVisualNotes((prev) =>
-                            prev.filter((_, itemIndex) => itemIndex !== index),
-                          )
-                        }
-                        title="Remove Note"
-                        className="text-ash hover:text-red-400 transition-colors p-1.5 border border-transparent hover:border-red-400/30"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {note._expanded && (
-                    <div className="p-4 grid md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <AdminTextInput
-                        label="NOTE TITLE"
-                        value={note.title}
-                        onChange={(value) => updateVisualNote(index, "title", value)}
-                        placeholder="SYSTEM FLOW"
-                      />
-                      <AdminTextInput
-                        label="ALT TEXT"
-                        value={note.alt}
-                        onChange={(value) => updateVisualNote(index, "alt", value)}
-                        placeholder="Short accessible image description…"
-                      />
-                      <div className="md:col-span-2">
-                        <AdminTextInput
-                          label="IMAGE PATH OR URL"
-                          value={note.image}
-                          onChange={(value) => updateVisualNote(index, "image", value)}
-                          placeholder="/v1/assets/projects/uar-system.png"
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label htmlFor={`visual-note-upload-${index}`} className="text-[10px] tracking-[0.2em] text-steel block mb-2">
-                          UPLOAD IMAGE
-                        </label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            id={`visual-note-upload-${index}`}
-                            name={`visual-note-upload-${index}`}
-                            type="file"
-                            accept="image/png,image/jpeg,image/webp,image/gif"
-                            onChange={(event) => {
-                              const file = event.target.files?.[0];
-                              if (file) {
-                                void uploadVisualNoteImage(index, file);
-                              }
-                              event.currentTarget.value = "";
-                            }}
-                            className="text-[10px] tracking-[0.15em] text-ash file:mr-3 file:border file:border-iron file:bg-void file:text-smoke file:px-3 file:py-1 file:text-[10px] file:tracking-[0.15em] hover:file:border-ember cursor-pointer"
-                          />
-                          {uploadingVisualNoteIndex === index ? (
-                            <span className="text-[10px] tracking-[0.15em] text-steel animate-pulse">
-                              UPLOADING…
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className="md:col-span-2">
-                        <AdminTextarea
-                          label="CAPTION"
-                          value={note.caption}
-                          onChange={(value) => updateVisualNote(index, "caption", value)}
-                          placeholder="Explain what this visual shows…"
-                        />
-                      </div>
-                      {note.image && (
-                        <div className="md:col-span-2 mt-2">
-                          <span className="text-[10px] tracking-[0.2em] text-steel block mb-2">
-                            PREVIEW
-                          </span>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={note.image}
-                            alt={note.alt || note.title || 'Preview'}
-                            className="w-auto max-h-64 border border-iron object-contain bg-surface/20"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          {visualNoteUploadNotice ? (
-            <p className="text-[10px] tracking-[0.15em] text-ash mt-3">
-              {visualNoteUploadNotice}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
-          <span className="text-[10px] tracking-[0.25em] text-steel block mb-4">
-            DEMO (OPTIONAL)
-          </span>
-        </div>
-        <div className="md:col-span-2">
-          <AdminTextarea
-            label="DEMO SUMMARY"
-            value={form.demoSummary}
-            onChange={(v) => setForm({ ...form, demoSummary: v })}
-            placeholder="Optional summary for the demo section…"
-          />
-        </div>
-        <AdminTextInput
-          label="DEMO URL"
-          value={form.demoUrl}
-          onChange={(v) => setForm({ ...form, demoUrl: v })}
-          placeholder="https://…"
-          type="url"
-          inputMode="url"
-          autoComplete="url"
-        />
-        <AdminTextInput
-          label="REPO URL"
-          value={form.repoUrl}
-          onChange={(v) => setForm({ ...form, repoUrl: v })}
-          placeholder="https://github.com/…"
-          type="url"
-          inputMode="url"
-          autoComplete="url"
-        />
-      </div>
-      <div className="flex gap-3 mt-8 sticky bottom-0 bg-void/90 backdrop-blur-md p-4 border-t border-iron z-10 -mx-6 -mb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-        <button type="button" onClick={handleSave} className="text-[10px] tracking-[0.2em] bg-ember text-void px-8 py-3 hover:bg-ember/80 transition-colors">
-          SAVE PROJECT
-        </button>
-        <button type="button" onClick={onCancel} className="text-[10px] tracking-[0.2em] text-ash hover:text-bone px-8 py-3 border border-iron hover:bg-surface/30 transition-colors">
-          CANCEL
-        </button>
-      </div>
-    </motion.div>
   );
 }
 

@@ -1,0 +1,5 @@
+Chuckles GIF used in the existing portfolio footer.
+Source: https://c.tenor.com/EuxlYRvXPDMAAAAC/tenor.gif
+Original SHA256: 821193ebcb4c380a1676869213755bcb80e8dd775f8199968f53573759a5b260
+Repaired SHA256: 356f1da0a5f65a9ac9025e61a32b2cce68915e3633e8a619abdf6b2729b5de07
+Format repair: removed the final solid-black frame; retained the first 55 frames byte-for-byte, their 50ms durations, and infinite looping. No pixels were changed.
