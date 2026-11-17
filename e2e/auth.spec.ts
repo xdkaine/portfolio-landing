@@ -30,6 +30,6 @@ test.describe('Authentication & Turnstile', () => {
 
     // We should see an error message indicating invalid credentials, meaning Turnstile PASSED
     // and the server processed the login attempt and rejected the bad password.
-    await expect(page.locator('text=ERROR:')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=ERROR:')).toContainText('Invalid credentials');
   });
 });
