@@ -45,6 +45,8 @@ export default defineConfig({
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:80',
+    // Only the guarded disposable TLS stack uses a self-signed certificate.
+    ignoreHTTPSErrors: process.env.PLAYWRIGHT_TEST_BASE_URL === 'https://127.0.0.1:18089',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',

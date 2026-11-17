@@ -9,7 +9,7 @@ let fixturesCreated = false;
 const literal = (value: string) => `'${value.replaceAll("'", "''")}'`;
 
 function disposableSql(baseURL: string | undefined, sql: string) {
-  if (process.env.CI !== "true" || baseURL !== "http://127.0.0.1:18089") {
+  if (process.env.CI !== "true" || baseURL !== "https://127.0.0.1:18089") {
     throw new Error("Design fixtures require the exact disposable CI Compose stack.");
   }
   return execFileSync("docker", [
@@ -29,7 +29,7 @@ test.describe("Public portfolio interactions", () => {
   test.use({ contextOptions: { reducedMotion: "reduce" } });
 
   test.beforeAll(async ({ baseURL }) => {
-    if (process.env.CI !== "true" || baseURL !== "http://127.0.0.1:18089") return;
+    if (process.env.CI !== "true" || baseURL !== "https://127.0.0.1:18089") return;
     const study = JSON.stringify({
       subtitle: "A disposable project for checking long titles and image inspection.",
       gallery: [{ title: "Interface", caption: "Disposable gallery fixture.", alt: "A project interface", image: "https://example.invalid/design-fixture.svg" }],

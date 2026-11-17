@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { test, expect } from "@playwright/test";
 
 test("sitemap reflects live published content and removes unpublished URLs", async ({ request, baseURL }) => {
-  test.skip(process.env.CI !== "true" || baseURL !== "http://127.0.0.1:18089", "Uses only the local CI Compose test stack");
+  test.skip(process.env.CI !== "true" || baseURL !== "https://127.0.0.1:18089", "Uses only the local CI Compose test stack");
   test.setTimeout(60000);
   // Use the named disposable Compose database, never an environment DATABASE_URL.
   function sql(query: string) {

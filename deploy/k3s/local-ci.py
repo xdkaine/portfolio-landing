@@ -1,5 +1,5 @@
 """Local CI preserves regression gates and keeps packages on NFS."""
-import pathlib,os,subprocess,json,shutil,time
+import pathlib,os,subprocess,json,shutil,time,tempfile
 key=os.environ['LOCAL_CI_KEY'];rev=os.environ['GITHUB_SHA'];branch=os.environ['GITHUB_REF_NAME']
 def run(*a,**kw):subprocess.run(a,check=True,**kw)
 base=pathlib.Path('/srv/ci-artifacts')/key
@@ -14,10 +14,14 @@ if local.exists():local.rmdir()
 local.symlink_to(output)
 assert subprocess.check_output(['docker','info','--format','{{.Host.Security.Rootless}}']).strip()==b'true'
 assert shutil.disk_usage('/').free>10*1024**3,'Core disk reserve is required'
-os.environ.update({'CI':'true','DATABASE_URL':'postgresql://dummy:dummy@localhost:5432/dummy','JWT_SECRET':'ci-only-session-secret-0123456789abcdef','TURNSTILE_SITE_KEY':'ci-site-key','TURNSTILE_SECRET_KEY':'ci-secret-key','npm_config_cache':str(base/'npm-cache'),'PLAYWRIGHT_BROWSERS_PATH':str(base/'browsers'),'PLAYWRIGHT_TEST_BASE_URL':'http://127.0.0.1:18089'})
+os.environ.update({'CI':'true','DATABASE_URL':'postgresql://dummy:dummy@localhost:5432/dummy','JWT_SECRET':'ci-only-session-secret-0123456789abcdef','TURNSTILE_SITE_KEY':'ci-site-key','TURNSTILE_SECRET_KEY':'ci-secret-key','npm_config_cache':str(base/'npm-cache'),'PLAYWRIGHT_BROWSERS_PATH':str(base/'browsers'),'PLAYWRIGHT_TEST_BASE_URL':'https://127.0.0.1:18089'})
 if branch=='dev':os.environ.update({'NEXT_PUBLIC_SITE_URL':'https://portfolio-dev.devops.home.phao.dev','NEXT_PUBLIC_TURNSTILE_SITE_KEY':'1x00000000000000000000AA'})
 compose=['docker','compose','-p','portfolio-ci','-f','docker-compose.test.yml']
+tls=tempfile.TemporaryDirectory(prefix='portfolio-ci-tls-')
+os.environ['PORTFOLIO_CI_TLS_DIR']=tls.name
 try:
+ run('openssl','req','-x509','-newkey','rsa:2048','-nodes','-days','1','-subj','/CN=127.0.0.1','-addext','subjectAltName=IP:127.0.0.1,DNS:localhost','-keyout',tls.name+'/key.pem','-out',tls.name+'/cert.pem',stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+ pathlib.Path(tls.name+'/key.pem').chmod(0o600)
  run('npm','ci')
  run('npx','tsc','--noEmit')
  run('npm','run','lint')
@@ -51,4 +55,5 @@ finally:
  except Exception as error:
   print('Browser report retention failed:',error,flush=True)
  subprocess.run([*compose,'down','-v','--remove-orphans'])
+ tls.cleanup()
  subprocess.run(['docker','image','prune','--all','--force'])

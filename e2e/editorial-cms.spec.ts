@@ -11,7 +11,7 @@ let bootstrapped = false;
 let sessionCookies: Cookie[] = [];
 
 function authorizedFixture(baseURL: string | undefined) {
-  return process.env.CI === "true" && baseURL === "http://127.0.0.1:18089" || process.env.EDITORIAL_PREVIEW_FIXTURES === "true" && baseURL === "http://127.0.0.1:18090";
+  return process.env.CI === "true" && baseURL === "https://127.0.0.1:18089" || process.env.EDITORIAL_PREVIEW_FIXTURES === "true" && baseURL === "http://127.0.0.1:18090";
 }
 async function login(page: Page) {
   if (sessionCookies.length) {
