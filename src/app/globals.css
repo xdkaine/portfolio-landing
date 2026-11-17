@@ -169,7 +169,7 @@ textarea {
 }
 
 @keyframes portfolio-reveal-headline {
-  from { opacity: 0; transform: translate(var(--entry-x, 0px), var(--entry-headline-y, 34px)); clip-path: var(--entry-headline-clip, inset(0 0 100% 0)); }
+  from { opacity: 0; transform: translate(var(--entry-x, 0px), var(--entry-headline-y, 34px)); clip-path: inset(0 0 100% 0); }
   to { opacity: 1; transform: none; clip-path: inset(0 0 0% 0); }
 }
 @keyframes portfolio-reveal-block {
@@ -177,7 +177,7 @@ textarea {
   to { opacity: 1; transform: none; clip-path: inset(0 0 0% 0); }
 }
 @keyframes portfolio-reveal-row {
-  from { opacity: 0; transform: translateX(var(--entry-x, -24px)); clip-path: var(--entry-headline-clip, inset(0 100% 0 0)); }
+  from { opacity: 0; transform: translateX(var(--entry-x, -24px)); clip-path: var(--entry-row-clip, inset(0 100% 0 0)); }
   to { opacity: 1; transform: none; clip-path: inset(0 0% 0 0); }
 }
 @keyframes portfolio-reveal-rule {
@@ -192,17 +192,15 @@ textarea {
 [data-page-entry="from-left"], [data-page-entry="from-right"] {
   --entry-headline-y: 0px;
   --entry-block-y: 0px;
+  --entry-row-clip: inset(0 0 18% 0);
+  --entry-block-clip: inset(0 0 18% 0);
 }
 [data-page-entry="from-left"] {
   --entry-x: clamp(-72px, -5vw, -32px);
-  --entry-headline-clip: inset(0 100% 0 0);
-  --entry-block-clip: inset(0 14% 0 0);
   --entry-origin: left center;
 }
 [data-page-entry="from-right"] {
   --entry-x: clamp(32px, 5vw, 72px);
-  --entry-headline-clip: inset(0 0 0 100%);
-  --entry-block-clip: inset(0 0 0 14%);
   --entry-origin: right center;
 }
 

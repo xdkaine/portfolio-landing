@@ -4,6 +4,8 @@ V1's navigation and entrance direction share one ordered route list: Home, Proje
 
 The incoming headline, rows and divider origins inherit one direction. The native page boundary provides a short opacity fade, while the contents own the directional movement; it no longer adds a second vertical slide. Stagger delays are bounded at 180ms. The shared shell stays in place, and the CSS entrance also works without the native view-transition API.
 
+Directional headings keep a vertical mask so short titles reveal promptly inside wide containers. Horizontal travel carries the navigation direction; it does not require a mask to sweep across the surrounding empty space.
+
 Below-screen reveal progress spans 98% to 45% of viewport height. Larger rises and masks make progress more visible. Home project cards and the featured blog post use a media variant with a 94% to 100% scale and a crop reveal. Position maps directly to progress, without a spring or timed queue: stopping holds the reveal, faster scrolling advances it, and completed content stays readable on return. Keyboard focus and reaching the document bottom complete reveals. Reduced motion removes movement and masks; CSS finishes reading entrances without JavaScript.
 
 Public labels, accessible project actions, post navigation, search and empty states, metadata, RSS and CMS labels use Projects and Blog posts. New drafts use `untitled-post-*` and `UNTITLED BLOG POST`; the editor accepts the former draft prefix too, preserving existing draft editing and published URLs. The persisted `caseStudy` field remains an API compatibility detail. Existing authored content is not rewritten. The contact acknowledgment says MESSAGE RECEIVED.
