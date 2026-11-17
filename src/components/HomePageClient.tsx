@@ -35,7 +35,7 @@ function ProjectCard({ project }: { project: HomeProject }) {
   const [imageUnavailable, setImageUnavailable] = useState(false);
   const image = imageUnavailable ? undefined : project.image;
   return (
-    <PublicLink href={`/v1/projects/${project.number}`} intent="drill-in" className="group block border-b border-iron py-9 md:py-12" aria-label={`Read ${project.title} case study`}>
+    <PublicLink href={`/v1/projects/${project.number}`} intent="drill-in" className="group block border-b border-iron py-9 md:py-12" aria-label={`View project: ${project.title}`}>
       <article className={`grid gap-7 md:gap-10 ${image ? "lg:grid-cols-2 lg:items-center" : "lg:grid-cols-[1fr_1.15fr]"}`}>
         <div className="min-w-0">
           <div className="mb-4 flex items-center gap-4 text-xs text-steel">
@@ -49,7 +49,7 @@ function ProjectCard({ project }: { project: HomeProject }) {
           </PublicSharedElement>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-ash" data-project-teaser>{project.description}</p>
           {project.tags.length > 0 ? <p className="mt-5 text-xs leading-relaxed text-steel">{project.tags.slice(0, 4).join(" · ")}</p> : null}
-          <span className="mt-6 inline-flex min-h-10 items-center gap-3 text-sm text-bone underline decoration-iron underline-offset-4 transition-colors group-hover:text-ember">Read case study <span aria-hidden="true">↗</span></span>
+          <span className="mt-6 inline-flex min-h-10 items-center gap-3 text-sm text-bone underline decoration-iron underline-offset-4 transition-colors group-hover:text-ember">View project <span aria-hidden="true">↗</span></span>
         </div>
         {image ? (
           <figure className="min-w-0">
@@ -99,13 +99,13 @@ export default function HomePageClient({ siteSettings, projects, posts }: {
       </header>
 
       <section className="border-t border-iron px-6 py-12 md:px-12 md:py-16 lg:px-24" aria-labelledby="selected-work">
-        <ScrollReveal variant="rule" delay={0.12}>
+        <ScrollReveal variant="block" delay={0.12}>
           <div className="flex flex-wrap items-baseline justify-between gap-4 border-b-2 border-bone pb-5">
             <h2 id="selected-work" className="font-display text-4xl tracking-tight md:text-6xl">Projects</h2>
             <PublicLink href="/v1/projects" intent="section" className="inline-flex min-h-10 items-center gap-2 text-sm text-ash underline underline-offset-4 hover:text-ember">All projects <span aria-hidden="true">↗</span></PublicLink>
           </div>
         </ScrollReveal>
-        {projects.length ? projects.map((project, index) => <ScrollReveal key={project.id} variant="row" delay={Math.min(index * 0.04, 0.16)}><ProjectCard project={project} /></ScrollReveal>) : <ScrollReveal><p className="py-10 text-base leading-relaxed text-ash">New project write-ups are on the way.</p></ScrollReveal>}
+        {projects.length ? projects.map((project, index) => <ScrollReveal key={project.id} variant="media" delay={Math.min(index * 0.04, 0.16)}><ProjectCard project={project} /></ScrollReveal>) : <ScrollReveal><p className="py-10 text-base leading-relaxed text-ash">New project write-ups are on the way.</p></ScrollReveal>}
       </section>
 
       <section className="grid gap-7 border-y border-iron px-6 py-14 md:px-12 md:py-20 lg:grid-cols-[1fr_1.15fr] lg:gap-16 lg:px-24" aria-labelledby="behind-projects">
@@ -121,7 +121,7 @@ export default function HomePageClient({ siteSettings, projects, posts }: {
       </section>
 
       <section className="px-6 py-14 md:px-12 md:py-20 lg:px-24" aria-labelledby="recent-writing">
-        <ScrollReveal variant="rule">
+        <ScrollReveal variant="block">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-4 border-b-2 border-bone pb-5">
             <h2 id="recent-writing" className="font-display text-4xl tracking-tight md:text-5xl">FROM THE BLOG</h2>
             <PublicLink href="/v1/blog" intent="section" className="inline-flex min-h-10 items-center gap-2 text-sm text-ash underline underline-offset-4 hover:text-ember">All posts <span aria-hidden="true">↗</span></PublicLink>

@@ -25,7 +25,7 @@ export default async function ProjectsPage() {
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-ash">Applications, infrastructure, and experiments. Open a project for the context, decisions, and work behind it.</p>
         </ScrollReveal>
         {!unavailable && projects.length > 0 ? (
-          <ScrollReveal variant="rule" delay={0.12}>
+          <ScrollReveal variant="block" delay={0.12}>
             <p className="mt-9 border-y border-iron py-5 text-sm leading-relaxed text-ash">
               {projects.length} projects <span aria-hidden="true" className="mx-2 text-steel">/</span> {live} live · {inProgress} in progress · {archived} archived
             </p>
@@ -42,7 +42,7 @@ export default async function ProjectsPage() {
           </div>
         ) : projects.length === 0 ? <p className="border-y border-iron py-12 text-base text-ash">No projects have been published yet.</p> : projects.map((project, index) => (
           <ScrollReveal key={project.id} variant="row" delay={Math.min(index * 0.04, 0.16)}>
-            <PublicLink href={`/v1/projects/${project.number}`} intent="drill-in" className={`group block border-b border-iron py-8 md:py-10 ${index === 0 ? "border-t" : ""}`} aria-label={`Open ${project.title} case study`}>
+            <PublicLink href={`/v1/projects/${project.number}`} intent="drill-in" className={`group block border-b border-iron py-8 md:py-10 ${index === 0 ? "border-t" : ""}`} aria-label={`View project: ${project.title}`}>
               <article className="grid gap-4 md:grid-cols-[48px_minmax(0,1fr)_140px] md:gap-7">
                 <PublicSharedElement kind="project-marker" itemKey={project.number}><span className="block pt-1 text-xs tabular-nums text-steel">{project.number.padStart(2, "0")}</span></PublicSharedElement>
                 <div className="min-w-0">

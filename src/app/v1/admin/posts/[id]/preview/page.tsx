@@ -7,7 +7,7 @@ import { PRIVATE_ROUTE_ROBOTS } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export const metadata: Metadata = {
-  title: "Private Transmission Preview",
+  title: "Private Blog Post Preview",
   robots: PRIVATE_ROUTE_ROBOTS,
 };
 

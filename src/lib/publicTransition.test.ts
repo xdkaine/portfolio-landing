@@ -2,11 +2,24 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   isPublicTransitionPath,
+  entranceDirectionForNavigation,
   publicSectionForPath,
   sharedElementName,
   TRANSITION_TYPES,
   transitionTypesForNavigation,
 } from "@/lib/publicTransition";
+
+test("entrances follow the menu order, including returning from Blog to Projects", () => {
+  assert.equal(entranceDirectionForNavigation("/v1/blog", "/v1/projects"), "from-right");
+  assert.equal(entranceDirectionForNavigation("/v1/projects", "/v1"), "from-right");
+  assert.equal(entranceDirectionForNavigation("/v1", "/v1/blog"), "from-left");
+  assert.equal(entranceDirectionForNavigation("/v1/blog/post", "/v1/projects/1"), "from-right");
+  assert.equal(entranceDirectionForNavigation("/v1/projects", "/v1/projects/1"), "from-left");
+  assert.equal(entranceDirectionForNavigation("/v1/projects/1", "/v1/projects"), "from-right");
+  assert.equal(entranceDirectionForNavigation(null, "/v1/blog"), "initial");
+  assert.equal(entranceDirectionForNavigation("/v1/blog", "/v1/blog?q=hello"), "initial");
+  assert.equal(entranceDirectionForNavigation("/v1/admin", "/v1"), "initial");
+});
 
 test("classifies public routes without including administration or sign-in", () => {
   assert.equal(isPublicTransitionPath("/v1"), true);

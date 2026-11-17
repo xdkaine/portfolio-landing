@@ -11,14 +11,7 @@ import { PublicLink } from "@/components/PublicTransition";
 import { ThemeControl } from "@/components/ThemeControl";
 import { TypewriterText } from "@/components/TypewriterText";
 import { containDialogFocus } from "@/lib/dialogFocus";
-
-const LINKS = [
-  { href: "/v1", label: "Home" },
-  { href: "/v1/projects", label: "PROJECTS" },
-  { href: "/v1/blog", label: "BLOG" },
-  { href: "/v1/about", label: "ABOUT" },
-  { href: "/v1/contact", label: "CONTACT" },
-];
+import { PUBLIC_NAVIGATION as LINKS } from "@/lib/publicTransition";
 
 const ADMIN_LINK = { href: "/v1/admin", label: "ADMIN" };
 

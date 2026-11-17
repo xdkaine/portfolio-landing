@@ -30,7 +30,7 @@ export async function generateMetadata({
     : DEFAULT_SOCIAL_IMAGE;
 
   return {
-    title: `${post.title} | Transmissions`,
+    title: `${post.title} | Blog`,
     description: post.excerpt,
     authors: [{ name: settings.siteName }],
     alternates: { canonical: `/v1/blog/${post.slug}` },
@@ -43,7 +43,7 @@ export async function generateMetadata({
       publishedTime: post.publishedAt ?? undefined,
       modifiedTime: post.updatedAt,
       authors: [settings.siteName],
-      section: "Transmissions",
+      section: "Blog",
       tags: post.tags,
       images: [socialImage],
     },

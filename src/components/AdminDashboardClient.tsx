@@ -1058,7 +1058,7 @@ function ProjectForm({
 
         <div className="md:col-span-2 border-t border-iron mt-3 pt-5">
           <span className="text-[10px] tracking-[0.25em] text-ember block mb-4">
-            CASE STUDY CONTENT
+            PROJECT DETAILS
           </span>
         </div>
 

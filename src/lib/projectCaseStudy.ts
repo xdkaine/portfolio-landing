@@ -102,17 +102,17 @@ export function transformProjectMarkdownUrl(value: string): string {
 export function validateProjectCaseStudyInput(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return "Project case study must be an object";
+    return "Project details must be an object";
   }
 
   let serialized: string;
   try {
     serialized = JSON.stringify(value);
   } catch {
-    return "Project case study must be serializable";
+    return "Project details must be serializable";
   }
   if (new TextEncoder().encode(serialized).byteLength > MAX_CASE_STUDY_BYTES) {
-    return "Project case study exceeds the 100 KB limit";
+    return "Project details exceed the 100 KB limit";
   }
 
   const data = value as Record<string, unknown>;

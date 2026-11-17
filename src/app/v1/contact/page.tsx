@@ -377,7 +377,7 @@ export default function ContactPage() {
                 <div className="flex items-center gap-3 mb-6">
                   <span className="w-2 h-2 bg-ember" />
                   <span className="text-[10px] tracking-[0.3em] text-ember">
-                    TRANSMISSION RECEIVED
+                    MESSAGE RECEIVED
                   </span>
                 </div>
                 <p className="font-display text-3xl md:text-4xl text-bone mb-4">

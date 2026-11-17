@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { PORTFOLIO_TITLE } from "@/lib/siteMetadata";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useSyncedAliasTypewriter } from "@/components/useSyncedAliasTypewriter";
@@ -20,7 +20,7 @@ export function TitleTypewriter({ brandName, brandAliases }: TitleTypewriterProp
   const reducedMotion = useReducedMotion();
   const lastWrittenTitle = useRef<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const initialTitle = document.title;
     return () => {
       // Navigation may already have installed the destination's metadata.
@@ -28,7 +28,8 @@ export function TitleTypewriter({ brandName, brandAliases }: TitleTypewriterProp
     };
   }, []);
 
-  useEffect(() => {
+  // Commit the tab title with the visible alias, before a frame can show mismatched names.
+  useLayoutEffect(() => {
     const cursor = frame.isDeleting ? "" : " |";
     const title = reducedMotion ? PORTFOLIO_TITLE
       : `${frame.typedAlias || frame.activeAlias} | ${PORTFOLIO_TITLE}${cursor}`;

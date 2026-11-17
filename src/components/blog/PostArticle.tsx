@@ -33,7 +33,7 @@ export function PostArticle({
     <>
       {preview ? (
         <div className="mt-16 border-y border-ember bg-ember/5 px-6 md:px-12 lg:px-24 py-3 text-[10px] tracking-[0.28em] text-ember">
-          PRIVATE PREVIEW // THIS TRANSMISSION IS NOT PUBLIC
+          PRIVATE PREVIEW // THIS BLOG POST IS NOT PUBLIC
         </div>
       ) : null}
       <header className={`${preview ? "pt-12" : "pt-32"} pb-10 px-6 md:px-12 lg:px-24`}>
@@ -46,14 +46,14 @@ export function PostArticle({
             )}
             <span>/</span>
             {preview ? (
-              <Link href="/v1/blog" className="hover:text-bone">TRANSMISSIONS</Link>
+              <Link href="/v1/blog" className="hover:text-bone">BLOG POSTS</Link>
             ) : (
               <PublicLink
                 href="/v1/blog"
                 intent="drill-out"
                 className="hover:text-bone"
               >
-                TRANSMISSIONS
+                BLOG POSTS
               </PublicLink>
             )}
             <span>/</span>
@@ -76,7 +76,7 @@ export function PostArticle({
             <p className="article-deck mt-7 max-w-3xl">{post.excerpt}</p>
           </div>
         </ScrollReveal>
-        <ScrollReveal variant="rule" delay={0.12} disabled={preview}>
+        <ScrollReveal variant="block" delay={0.12} disabled={preview}>
           <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-iron py-5 text-[10px] tracking-[0.18em]">
             <span className="text-steel">{post.date}</span>
             <span className="text-smoke">{post.readTime}</span>
@@ -128,7 +128,7 @@ export function PostArticle({
               <div className="article-prose">
                 <p>{post.excerpt}</p>
                 <p className="border border-iron bg-surface/40 p-6 text-smoke">
-                  This legacy transmission has not yet been expanded into a full article.
+                  This blog post has not yet been expanded into a full article.
                 </p>
               </div>
             )}
@@ -140,7 +140,7 @@ export function PostArticle({
         <footer className="px-6 md:px-12 lg:px-24 py-12 border-t border-iron">
           {related.length > 0 ? (
             <div className="mb-12">
-              <p className="text-[10px] tracking-[0.3em] text-steel mb-5">RELATED TRANSMISSIONS //</p>
+              <p className="text-[10px] tracking-[0.3em] text-steel mb-5">RELATED BLOG POSTS</p>
               <div className="grid md:grid-cols-3 gap-4">
                 {related.map((item) => (
                   <PublicLink key={item.slug} href={`/v1/blog/${item.slug}`} intent="sibling-next" className="border border-iron p-4 hover:border-ember transition-colors">
@@ -157,7 +157,7 @@ export function PostArticle({
               intent="drill-out"
               className="text-ash hover:text-ember"
             >
-              &larr; ALL TRANSMISSIONS
+              &larr; ALL BLOG POSTS
             </PublicLink>
             <div className="flex gap-6">
               {previous ? <PublicLink href={`/v1/blog/${previous.slug}`} intent="sibling-prev" className="text-ash hover:text-ember">PREV: {previous.title}</PublicLink> : null}

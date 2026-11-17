@@ -313,7 +313,7 @@ export function AdminMetricsDashboard({
       {
         label: "TOTAL PROJECTS",
         value: String(projects.length).padStart(2, "0"),
-        note: `${featuredProjects} featured, ${projectsWithCaseStudy} with case study`,
+        note: `${featuredProjects} featured, ${projectsWithCaseStudy} with project details`,
         accentClass: "text-bone",
       },
       {
