@@ -150,6 +150,7 @@ export async function saveProjectRecord(project: EditableProject): Promise<{
     body: JSON.stringify(project),
   });
   if (response.ok) {
+    await response.json();
     return { ok: true };
   }
 
