@@ -79,7 +79,7 @@ export function AdminPostLibrary({
       <div className="border border-iron bg-surface/30 p-4 md:p-5 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
           <div>
-            <p className="text-[10px] tracking-[0.3em] text-steel mb-2">TRANSMISSIONS // STUDIO</p>
+            <p className="text-[10px] tracking-[0.3em] text-steel mb-2">BLOG POSTS // STUDIO</p>
             <h2 className="font-display text-3xl md:text-4xl">PUBLICATION QUEUE</h2>
           </div>
           <button
@@ -88,7 +88,7 @@ export function AdminPostLibrary({
             onClick={() => void createDraft()}
             className="text-[10px] tracking-[0.2em] text-ember border border-ember px-4 py-3 hover:bg-ember hover:text-void transition-colors disabled:opacity-50"
           >
-            {busy === "new" ? "CREATING..." : "+ NEW TRANSMISSION"}
+            {busy === "new" ? "CREATING..." : "+ NEW BLOG POST"}
           </button>
         </div>
         <div className="grid md:grid-cols-[1fr_auto] gap-3 mt-6">
@@ -142,7 +142,7 @@ export function AdminPostLibrary({
                 {post.featured ? <span className="text-[9px] tracking-widest text-ember">FEATURED</span> : null}
                 {post.needsContent ? <span className="text-[9px] tracking-widest text-amber-400">NEEDS BODY</span> : null}
               </div>
-              <h3 className="text-sm text-bone truncate">{post.title || "Untitled transmission"}</h3>
+              <h3 className="text-sm text-bone truncate">{post.title || "Untitled blog post"}</h3>
               <p className="text-[10px] tracking-wider text-steel mt-2 truncate">
                 {post.date} / {post.readTime} / {post.slug}
               </p>
@@ -161,7 +161,7 @@ export function AdminPostLibrary({
         ))}
         {filteredPosts.length === 0 ? (
           <p className="border border-iron py-14 text-center text-[10px] tracking-[0.25em] text-steel">
-            NO TRANSMISSIONS MATCH THE FILTER
+            NO BLOG POSTS MATCH THE FILTER
           </p>
         ) : null}
       </div>

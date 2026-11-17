@@ -7,7 +7,7 @@ import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "rea
 interface ScrollRevealProps {
   children: ReactNode;
   delay?: number;
-  variant?: "headline" | "block" | "row" | "rule";
+  variant?: "headline" | "block" | "row" | "rule" | "media";
   className?: string;
   once?: boolean;
   disabled?: boolean;
@@ -27,15 +27,16 @@ export function ScrollReveal({
   const complete = useRef(false);
   // The server stays readable; only offscreen content is enhanced after measurement.
   const progress = useMotionValue(1);
-  const { scrollY, scrollYProgress } = useScroll({ target: ref, offset: ["start 94%", "start 62%"] });
-  const x = useTransform(progress, [0, 1], [variant === "row" ? -24 : 0, 0]);
-  const y = useTransform(progress, [0, 1], [variant === "headline" ? 34 : variant === "block" ? 18 : 0, 0]);
+  const { scrollY, scrollYProgress } = useScroll({ target: ref, offset: ["start 98%", "start 45%"] });
+  const x = useTransform(progress, [0, 1], [variant === "row" ? -56 : 0, 0]);
+  const y = useTransform(progress, [0, 1], [variant === "headline" ? 64 : variant === "block" ? 56 : variant === "media" ? 72 : 0, 0]);
+  const scale = useTransform(progress, [0, 1], [variant === "media" ? 0.94 : 1, 1]);
   const scaleX = useTransform(progress, [0, 1], [variant === "rule" ? 0 : 1, 1]);
   const clipPath = useTransform(progress, value => {
     const remaining = (1 - value) * 100;
     if (variant === "headline") return `inset(0 0 ${remaining}% 0)`;
     if (variant === "row") return `inset(0 ${remaining}% 0 0)`;
-    return `inset(0 0 ${variant === "block" ? remaining * 0.18 : 0}% 0)`;
+    return `inset(0 0 ${variant === "block" ? remaining * 0.36 : variant === "media" ? remaining * 0.32 : 0}% 0)`;
   });
 
   const show = () => {
@@ -65,10 +66,10 @@ export function ScrollReveal({
         return;
       }
       const top = element.getBoundingClientRect().top;
-      mode.current = window.scrollY < 1 && top < window.innerHeight * 0.94 ? "entry" : "scroll";
+      mode.current = window.scrollY < 1 && top < window.innerHeight * 0.85 ? "entry" : "scroll";
       element.dataset.revealMode = mode.current;
       const atEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
-      const initial = atEnd ? 1 : Math.min(1, Math.max(0, (window.innerHeight * 0.94 - top) / (window.innerHeight * 0.32)));
+      const initial = atEnd ? 1 : Math.min(1, Math.max(0, (window.innerHeight * 0.98 - top) / (window.innerHeight * 0.53)));
       progress.set(mode.current === "entry" ? 1 : initial);
       if (mode.current === "scroll" && initial === 1 && once) complete.current = true;
     });
@@ -91,8 +92,8 @@ export function ScrollReveal({
   });
 
   return (
-    <div ref={ref} className={className} data-scroll-reveal={variant} data-reveal-mode={disabled ? "static" : undefined} onFocusCapture={show} style={{ "--reveal-delay": `${delay}s` } as CSSProperties}>
-      <motion.div className="scroll-reveal-content" style={{ opacity: progress, x, y, scaleX, clipPath, transformOrigin: variant === "rule" ? "left center" : undefined }}>
+    <div ref={ref} className={className} data-scroll-reveal={variant} data-reveal-mode={disabled ? "static" : undefined} onFocusCapture={show} style={{ "--reveal-delay": `${Math.min(0.18, Math.max(0, delay))}s` } as CSSProperties}>
+      <motion.div className="scroll-reveal-content" style={{ opacity: progress, x, y, scale, scaleX, clipPath, transformOrigin: variant === "rule" ? "var(--entry-origin, left center)" : undefined }}>
         {children}
       </motion.div>
     </div>

@@ -87,7 +87,8 @@ async function uploadPostImage(file: File): Promise<string> {
 
 export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
   const initiallySlugLocked = Boolean(initialPost.publishedAt);
-  const slugEditedRef = useRef(initiallySlugLocked || !initialPost.slug.startsWith("untitled-transmission-"));
+  // Older drafts keep their original URLs and retain title-derived slug editing.
+  const slugEditedRef = useRef(initiallySlugLocked || !/^(untitled-post-|untitled-transmission-)/.test(initialPost.slug));
   const [post, setPost] = useState(initialPost);
   const [fields, setFields] = useState<EditorFields>({
     title: initialPost.title,
@@ -244,7 +245,7 @@ export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
       return;
     }
     setPost(payload);
-    setMessage(action === "publish" ? "Transmission published." : "Transmission archived.");
+    setMessage(action === "publish" ? "Blog post published." : "Blog post archived.");
   };
 
   return (
@@ -252,7 +253,7 @@ export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-5 border-b border-iron pb-6 mb-7">
         <div>
           <Link href="/v1/admin?tab=posts" className="text-[10px] tracking-[0.25em] text-steel hover:text-ember">
-            ADMIN / TRANSMISSIONS / EDITOR
+            ADMIN / BLOG POSTS / EDITOR
           </Link>
           <h1 className="font-display text-4xl md:text-6xl mt-3">WRITING STUDIO</h1>
         </div>
@@ -306,7 +307,7 @@ export function PostEditorStudio({ initialPost }: { initialPost: Post }) {
           {fields.coverImage ? <EditorField label="COVER ALT TEXT" value={fields.coverAlt} onChange={(value) => updateField("coverAlt", value)} /> : null}
           <label className="flex items-center gap-3 text-[10px] tracking-[0.2em] text-ash">
             <input type="checkbox" checked={fields.featured} onChange={(event) => updateField("featured", event.target.checked)} className="accent-ember" />
-            FEATURED TRANSMISSION
+            FEATURED BLOG POST
           </label>
           <div className="border-t border-iron pt-4 text-[10px] tracking-[0.16em] text-steel space-y-2">
             <p>STATUS <span className="text-bone float-right">{post.status}</span></p>

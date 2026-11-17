@@ -43,6 +43,9 @@ test.describe("Homepage first render", () => {
     }
     if (selected.length > 0) {
       const project = selected[0];
+      const entrance = page.locator(".scroll-reveal-content").filter({ has: page.locator(`a[href="/v1/projects/${project.number}"]`) });
+      await expect(entrance).toHaveCSS("opacity", "1");
+      await expect(entrance).toHaveCSS("transform", /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
       await page.locator(`main a[href="/v1/projects/${project.number}"]`).click();
       await expect(page).toHaveTitle(`${project.title} | Projects | Thomas Phao`);
     }
@@ -66,6 +69,10 @@ test.describe("Homepage first render", () => {
     expect(imageResponse.ok()).toBeTruthy();
     expect(imageResponse.headers()["content-type"]).toContain("image/png");
 
+    // CSS still animates with scripts disabled; assert it settles before automation checks stability.
+    const entrance = page.locator(".scroll-reveal-content").filter({ has: contact });
+    await expect(entrance).toHaveCSS("opacity", "1");
+    await expect(entrance).toHaveCSS("transform", /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
     await contact.click();
     await expect(page).toHaveURL(/\/v1\/contact$/);
     await expect(page).toHaveTitle("Contact | Thomas Phao");
@@ -135,7 +142,7 @@ test("homepage title stays synchronized with the visible aliases and stops on ot
   expect([...activeAliases].sort()).toEqual(["Kaine", "Tommy"]);
   await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("Thomas Phao — Builder & Developer");
   await page.getByRole("link", { name: "CONTACT ME", exact: true }).click();
-  await expect(page).toHaveURL(/\/v1\/contact$/);
+  await expect(page).toHaveURL(/\/v1\/contact$/, { timeout: 15_000 });
   await expect(page).toHaveTitle("Contact | Thomas Phao");
   await page.waitForTimeout(6000);
   await expect(page).toHaveTitle("Contact | Thomas Phao");

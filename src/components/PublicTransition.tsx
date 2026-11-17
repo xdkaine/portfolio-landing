@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ViewTransition, type ComponentProps, type ReactNode } from "react";
+import { useLayoutEffect, useRef, ViewTransition, type ComponentProps, type ReactNode } from "react";
 import {
+  entranceDirectionForNavigation,
   isPublicTransitionPath,
   sharedElementName,
   TRANSITION_TYPES,
@@ -11,6 +12,18 @@ import {
   type PublicTransitionIntent,
   type SharedElementKind,
 } from "@/lib/publicTransition";
+
+// Apply direction before native snapshots without scheduling another React update during navigation.
+export function PublicMotionRoot({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const root = useRef<HTMLElement>(null);
+  const previousPath = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (root.current) root.current.dataset.pageEntry = entranceDirectionForNavigation(previousPath.current, pathname);
+    previousPath.current = pathname;
+  }, [pathname]);
+  return <main ref={root} id="main-content" data-portfolio-v1 data-page-entry="initial" className="flex-1 scroll-mt-20">{children}</main>;
+}
 
 const PAGE_TRANSITIONS = {
   [TRANSITION_TYPES.sectionForward]: "portfolio-page",

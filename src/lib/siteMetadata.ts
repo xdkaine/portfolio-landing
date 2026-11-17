@@ -7,7 +7,7 @@ export const DEFAULT_SOCIAL_IMAGE = {
   url: "/v1/opengraph-image",
   width: 1200,
   height: 630,
-  alt: "Portfolio preview featuring projects and transmissions.",
+  alt: "Portfolio preview featuring projects and blog posts.",
 };
 
 interface PublicPageMetadataOptions {

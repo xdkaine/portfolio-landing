@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { getPublishedPostBySlug } from "@/lib/postEditorial";
 
 export const runtime = "nodejs";
-export const alt = "Transmission article share card";
+export const alt = "Blog post share card";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -13,7 +13,7 @@ export default async function OpenGraphImage({
 }) {
   const { slug } = await params;
   const post = await getPublishedPostBySlug(slug);
-  const title = post?.title ?? "TRANSMISSIONS";
+  const title = post?.title ?? "BLOG POSTS";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://phao.dev";
   const coverUrl = post?.coverImage?.startsWith("/") ? `${siteUrl}${post.coverImage}` : post?.coverImage;
 
@@ -23,7 +23,7 @@ export default async function OpenGraphImage({
         <img src={coverUrl} alt="" style={{ position: "absolute", inset: 0, height: "100%", width: "100%", objectFit: "cover", opacity: 0.2 }} />
       ) : null}
       <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative", width: "100%" }}>
-        <div style={{ color: "#FF0066", fontSize: 18, letterSpacing: "0.32em" }}>TRANSMISSIONS //</div>
+        <div style={{ color: "#FF0066", fontSize: 18, letterSpacing: "0.32em" }}>BLOG POSTS</div>
         <div style={{ fontFamily: "sans-serif", fontWeight: 900, fontSize: title.length > 48 ? 60 : 78, lineHeight: 0.96, maxWidth: "1040px" }}>
           {title}
         </div>

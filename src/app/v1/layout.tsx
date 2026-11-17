@@ -1,4 +1,5 @@
 import { Navigation } from "@/components/Navigation";
+import { PublicMotionRoot } from "@/components/PublicTransition";
 import { Footer } from "@/components/Footer";
 import { LinkClickTracker } from "@/components/LinkClickTracker";
 import { parseIdentityAliases } from "@/lib/brandAliases";
@@ -28,9 +29,9 @@ export default async function V1Layout({
       </a>
       <LinkClickTracker />
       <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
-      <main id="main-content" data-portfolio-v1 className="flex-1 scroll-mt-20">
+      <PublicMotionRoot>
         {children}
-      </main>
+      </PublicMotionRoot>
       <Footer
         brandName={primaryBrandName}
         brandAliases={brandAliases}

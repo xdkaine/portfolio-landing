@@ -42,7 +42,7 @@ export default async function ProjectsPage() {
           </div>
         ) : projects.length === 0 ? <p className="border-y border-iron py-12 text-base text-ash">No projects have been published yet.</p> : projects.map((project, index) => (
           <ScrollReveal key={project.id} variant="row" delay={Math.min(index * 0.04, 0.16)}>
-            <PublicLink href={`/v1/projects/${project.number}`} intent="drill-in" className={`group block border-b border-iron py-8 md:py-10 ${index === 0 ? "border-t" : ""}`} aria-label={`Open ${project.title} case study`}>
+            <PublicLink href={`/v1/projects/${project.number}`} intent="drill-in" className={`group block border-b border-iron py-8 md:py-10 ${index === 0 ? "border-t" : ""}`} aria-label={`View project: ${project.title}`}>
               <article className="grid gap-4 md:grid-cols-[48px_minmax(0,1fr)_140px] md:gap-7">
                 <PublicSharedElement kind="project-marker" itemKey={project.number}><span className="block pt-1 text-xs tabular-nums text-steel">{project.number.padStart(2, "0")}</span></PublicSharedElement>
                 <div className="min-w-0">

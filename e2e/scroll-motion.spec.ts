@@ -25,13 +25,23 @@ test('Home reveals follow scroll position, pause with scrolling, and finish with
     const target = element.closest('[data-scroll-reveal]') ?? element;
     return target.getBoundingClientRect().top + scrollY;
   });
+  await renderScroll(page, top, 0.90);
+  const early = await heading.evaluate(element => {
+    const reveal = element.closest('.scroll-reveal-content')!;
+    const style = getComputedStyle(reveal);
+    return { opacity: Number(style.opacity), y: new DOMMatrix(style.transform).m42, clip: style.clipPath };
+  });
+  expect(early.opacity).toBeGreaterThan(0.1);
+  expect(early.opacity).toBeLessThan(0.22);
+  expect(early.y).toBeGreaterThan(45);
+  expect(early.clip).not.toBe('none');
   await renderScroll(page, top, 0.78);
   const partial = await opacity(heading);
   expect(partial).toBeGreaterThan(0.25);
   expect(partial).toBeLessThan(0.75);
   await page.waitForTimeout(400); // A stationary viewport must hold the reveal rather than completing it on a timer.
   expect(Math.abs(await opacity(heading) - partial)).toBeLessThan(0.015);
-  await renderScroll(page, top, 0.55);
+  await renderScroll(page, top, 0.42);
   expect(await opacity(heading)).toBeGreaterThan(0.99);
   await renderScroll(page, top, 0.78);
   expect(await opacity(heading)).toBeGreaterThan(0.99);
@@ -71,7 +81,7 @@ test('navigation from a scrolled page still runs the heading entrance after the 
   await page.goto('/v1');
   for (const [label, path, title] of [
     ['ABOUT', '/v1/about', 'ABOUT THOMAS PHAO'],
-    ['BLOG', '/v1/blog', 'Blogs'],
+    ['BLOG', '/v1/blog', 'Blog'],
     ['Home', '/v1', 'Thomas Phao — Builder & Developer'],
     ['PROJECTS', '/v1/projects', 'PROJECTS'],
   ]) {

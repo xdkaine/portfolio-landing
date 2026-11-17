@@ -34,7 +34,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteName: "Kaine",
   siteAliases: "Kaine, Tommy",
   siteDescription:
-    "Systems engineering and web development by Thomas Phao. Explore infrastructure projects, application case studies, and practical engineering notes.",
+    "Projects and blog posts by Thomas Phao, a builder and developer working across applications and infrastructure.",
   heroSubtitle: "DEVELOPER - DESIGNER - BUILDER",
   contactEmail: "hello@phao.dev",
   socialGithub: "https://github.com/xdkaine",
@@ -143,6 +143,11 @@ export function mapDbRowsToSiteSettings(
     if (!settingName) continue;
     const nextValue = typeof row.value === "string" ? row.value : "";
     settings[settingName] = nextValue || DEFAULT_SITE_SETTINGS[settingName];
+  }
+
+  // Older installs persisted the former default. Keep custom copy and stored data intact.
+  if (settings.siteDescription === "Systems engineering and web development by Thomas Phao. Explore infrastructure projects, application case studies, and practical engineering notes.") {
+    settings.siteDescription = DEFAULT_SITE_SETTINGS.siteDescription;
   }
 
   return settings;

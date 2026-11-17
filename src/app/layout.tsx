@@ -80,7 +80,7 @@ export async function generateMetadata(): Promise<Metadata> {
       canonical: "/v1",
       types: {
         "application/rss+xml": [
-          { url: "/v1/feed.xml", title: `${settings.siteName} Transmissions RSS Feed` },
+          { url: "/v1/feed.xml", title: `${settings.siteName} Blog posts RSS Feed` },
         ],
       },
     },

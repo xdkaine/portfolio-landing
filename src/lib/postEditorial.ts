@@ -163,8 +163,8 @@ export async function createDraftPost() {
   const suffix = randomUUID().slice(0, 8);
   const post = await prisma.post.create({
     data: {
-      slug: `untitled-transmission-${suffix}`,
-      title: "UNTITLED TRANSMISSION",
+      slug: `untitled-post-${suffix}`,
+      title: "UNTITLED BLOG POST",
       excerpt: "",
       content: null,
       bodyJson: { type: "doc", content: [{ type: "paragraph" }] },
