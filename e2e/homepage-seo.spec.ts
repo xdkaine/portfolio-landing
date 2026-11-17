@@ -147,6 +147,7 @@ test("homepage title stays synchronized with the visible aliases and stops on ot
   await page.waitForTimeout(6000);
   await expect(page).toHaveTitle("Contact | Thomas Phao");
   await page.getByRole("link", { name: "Home", exact: true }).click();
+  await expect(page).toHaveURL(/\/v1$/, { timeout: 15_000 });
   await expect(page).toHaveTitle(/\| Thomas Phao — Builder & Developer/);
 });
 
