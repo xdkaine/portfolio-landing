@@ -20,6 +20,14 @@ test('entrances follow menu direction and reverse for browser history', async ({
   await expect(page).toHaveURL(/\/v1\/projects$/, {timeout:15_000});
   await expect(page.locator('main')).toHaveAttribute('data-page-entry','from-right');
   expect(await headlineStart(page)).toBeGreaterThan(20);
+  const headerScales = await page.locator('main header .scroll-reveal-content').evaluateAll(elements => elements.flatMap(element =>
+    element.getAnimations().filter(animation => animation instanceof CSSAnimation && animation.animationName.startsWith('portfolio-reveal-')).map(animation => {
+      const transform = (animation.effect as KeyframeEffect).getKeyframes()[0].transform;
+      return new DOMMatrix(typeof transform === 'string' ? transform : 'none').a;
+    }),
+  ));
+  expect(headerScales.length).toBeGreaterThan(0);
+  expect(headerScales.every(scale => scale === 1)).toBe(true);
   await nav.getByRole('link',{name:'BLOG',exact:true}).click();
   await expect(page).toHaveURL(/\/v1\/blog$/, {timeout:15_000});
   await expect(page.locator('main')).toHaveAttribute('data-page-entry','from-left');

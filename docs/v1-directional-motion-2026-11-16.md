@@ -6,6 +6,8 @@ The incoming headline, rows and divider origins inherit one direction. The nativ
 
 Directional headings keep a vertical mask so short titles reveal promptly inside wide containers. Horizontal travel carries the navigation direction; it does not require a mask to sweep across the surrounding empty space.
 
+Text-bearing section headers, project counts, article metadata, tag filters and policy dates use the block treatment at their natural width. The scale-X rule treatment is reserved for standalone lines, preventing its line-draw effect from squeezing letters or controls. Browser coverage verifies that header text does not scale horizontally during the entrance.
+
 Below-screen reveal progress spans 98% to 45% of viewport height. Larger rises and masks make progress more visible. Home project cards and the featured blog post use a media variant with a 94% to 100% scale and a crop reveal. Position maps directly to progress, without a spring or timed queue: stopping holds the reveal, faster scrolling advances it, and completed content stays readable on return. Keyboard focus and reaching the document bottom complete reveals. Reduced motion removes movement and masks; CSS finishes reading entrances without JavaScript.
 
 Public labels, accessible project actions, post navigation, search and empty states, metadata, RSS and CMS labels use Projects and Blog posts. New drafts use `untitled-post-*` and `UNTITLED BLOG POST`; the editor accepts the former draft prefix too, preserving existing draft editing and published URLs. The persisted `caseStudy` field remains an API compatibility detail. Existing authored content is not rewritten. The contact acknowledgment says MESSAGE RECEIVED.

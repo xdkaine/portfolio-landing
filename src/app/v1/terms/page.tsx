@@ -35,7 +35,7 @@ export default async function TermsPage() {
           </h1>
         </ScrollReveal>
 
-        <ScrollReveal variant="rule" delay={0.1}>
+        <ScrollReveal variant="block" delay={0.1}>
           <p className="text-[10px] tracking-[0.2em] text-steel mb-10">
             EFFECTIVE DATE: {settings.legalEffectiveDate}
           </p>

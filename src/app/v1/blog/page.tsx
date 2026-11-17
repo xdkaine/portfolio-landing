@@ -82,7 +82,7 @@ export default async function BlogPage({
             </form>
           </div>
         </ScrollReveal>
-        <ScrollReveal variant="rule" delay={0.12}>
+        <ScrollReveal variant="block" delay={0.12}>
           <nav className="flex flex-wrap gap-2 border-t border-iron pt-6 mt-10" aria-label="Filter posts by tag">
           <Link transitionTypes={[TRANSITION_TYPES.skip]} href={linkForTag("")} className={`blog-filter ${!activeTag ? "border-ember text-ember" : ""}`}>ALL ({totalPosts})</Link>
           {tags.map((tag) => (

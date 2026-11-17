@@ -7,6 +7,7 @@ import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "rea
 interface ScrollRevealProps {
   children: ReactNode;
   delay?: number;
+  // Reserve rule for standalone lines; text-bearing rows keep their natural proportions.
   variant?: "headline" | "block" | "row" | "rule" | "media";
   className?: string;
   once?: boolean;

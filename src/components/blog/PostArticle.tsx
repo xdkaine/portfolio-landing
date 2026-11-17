@@ -76,7 +76,7 @@ export function PostArticle({
             <p className="article-deck mt-7 max-w-3xl">{post.excerpt}</p>
           </div>
         </ScrollReveal>
-        <ScrollReveal variant="rule" delay={0.12} disabled={preview}>
+        <ScrollReveal variant="block" delay={0.12} disabled={preview}>
           <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-iron py-5 text-[10px] tracking-[0.18em]">
             <span className="text-steel">{post.date}</span>
             <span className="text-smoke">{post.readTime}</span>

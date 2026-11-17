@@ -99,7 +99,7 @@ export default function HomePageClient({ siteSettings, projects, posts }: {
       </header>
 
       <section className="border-t border-iron px-6 py-12 md:px-12 md:py-16 lg:px-24" aria-labelledby="selected-work">
-        <ScrollReveal variant="rule" delay={0.12}>
+        <ScrollReveal variant="block" delay={0.12}>
           <div className="flex flex-wrap items-baseline justify-between gap-4 border-b-2 border-bone pb-5">
             <h2 id="selected-work" className="font-display text-4xl tracking-tight md:text-6xl">Projects</h2>
             <PublicLink href="/v1/projects" intent="section" className="inline-flex min-h-10 items-center gap-2 text-sm text-ash underline underline-offset-4 hover:text-ember">All projects <span aria-hidden="true">↗</span></PublicLink>
@@ -121,7 +121,7 @@ export default function HomePageClient({ siteSettings, projects, posts }: {
       </section>
 
       <section className="px-6 py-14 md:px-12 md:py-20 lg:px-24" aria-labelledby="recent-writing">
-        <ScrollReveal variant="rule">
+        <ScrollReveal variant="block">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-4 border-b-2 border-bone pb-5">
             <h2 id="recent-writing" className="font-display text-4xl tracking-tight md:text-5xl">FROM THE BLOG</h2>
             <PublicLink href="/v1/blog" intent="section" className="inline-flex min-h-10 items-center gap-2 text-sm text-ash underline underline-offset-4 hover:text-ember">All posts <span aria-hidden="true">↗</span></PublicLink>

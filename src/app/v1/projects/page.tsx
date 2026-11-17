@@ -25,7 +25,7 @@ export default async function ProjectsPage() {
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-ash">Applications, infrastructure, and experiments. Open a project for the context, decisions, and work behind it.</p>
         </ScrollReveal>
         {!unavailable && projects.length > 0 ? (
-          <ScrollReveal variant="rule" delay={0.12}>
+          <ScrollReveal variant="block" delay={0.12}>
             <p className="mt-9 border-y border-iron py-5 text-sm leading-relaxed text-ash">
               {projects.length} projects <span aria-hidden="true" className="mx-2 text-steel">/</span> {live} live · {inProgress} in progress · {archived} archived
             </p>
