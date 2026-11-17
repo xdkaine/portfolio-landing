@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      { source: "/v1/assets/media/:path*", destination: "/media/:path*" },
       {
         source: "/v1/assets/projects/:path*",
         destination: "/projects/:path*",

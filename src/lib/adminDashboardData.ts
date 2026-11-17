@@ -19,6 +19,7 @@ export interface Project {
   createdAt?: string;
   updatedAt?: string;
   caseStudy?: {
+    bodyJson?: PostDocument;
     subtitle?: string;
     pitch?: string;
     role?: string;
@@ -89,7 +90,7 @@ export interface AdminDashboardData {
   linkClicks: LinkClickMetric[];
 }
 
-export type EditableProject = Partial<Project> & { id?: string };
+export type EditableProject = Partial<Project> & { id?: string; expectedUpdatedAt?: string };
 
 export async function fetchAdminDashboardData(): Promise<AdminDashboardData> {
   const [

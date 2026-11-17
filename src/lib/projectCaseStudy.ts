@@ -1,4 +1,5 @@
 import { normalizeV1PublicUrl } from "@/lib/v1Path";
+import { normalizePostDocument, type PostDocument } from "@/lib/postContent";
 
 export interface ProjectCaseStudyGalleryItem {
   title: string;
@@ -8,6 +9,7 @@ export interface ProjectCaseStudyGalleryItem {
 }
 
 export interface ProjectCaseStudyViewModel {
+  bodyJson?: PostDocument;
   subtitle: string;
   role: string;
   timeline: string;
@@ -23,6 +25,7 @@ export interface ProjectCaseStudyViewModel {
 }
 
 export interface ProjectCaseStudyContent {
+  bodyJson?: PostDocument;
   subtitle?: string;
   // Backward compatibility for older records.
   pitch?: string;
@@ -116,6 +119,7 @@ export function validateProjectCaseStudyInput(value: unknown): string | null {
   }
 
   const data = value as Record<string, unknown>;
+  if (data.bodyJson !== undefined && !normalizePostDocument(data.bodyJson, isSafeProjectImage)) return "Project content must be a valid document under 100 KB";
   for (const name of [
     "subtitle",
     "pitch",
@@ -278,6 +282,7 @@ export function normalizeProjectCaseStudyInput(
   const demoUrl = normalizeString(data.demoUrl);
   const repoUrl = normalizeString(data.repoUrl);
   const normalized: ProjectCaseStudyContent = {
+    bodyJson: normalizePostDocument(data.bodyJson, isSafeProjectImage) ?? undefined,
     subtitle,
     pitch: subtitle,
     role: normalizeString(data.role),
@@ -343,6 +348,7 @@ export function mergeProjectCaseStudy(
 
   return {
     ...base,
+    bodyJson: override.bodyJson ?? base.bodyJson,
     subtitle: override.subtitle ?? override.pitch ?? base.subtitle,
     role: override.role ?? base.role,
     timeline: override.timeline ?? base.timeline,

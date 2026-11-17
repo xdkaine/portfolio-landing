@@ -9,6 +9,7 @@ import {
   type PostNode,
 } from "@/lib/postContent";
 import { normalizeV1PublicUrl } from "@/lib/v1Path";
+import { ImageCarousel } from "@/components/ImageCarousel";
 
 function markedText(text: ReactNode, marks: PostMark[] | undefined): ReactNode {
   return (marks ?? []).reduce<ReactNode>((children, mark) => {
@@ -23,7 +24,7 @@ function markedText(text: ReactNode, marks: PostMark[] | undefined): ReactNode {
   }, text);
 }
 
-export function PostDocumentBody({ document }: { document: PostDocument }) {
+export function PostDocumentBody({ document, story = false }: { document: PostDocument; story?: boolean }) {
   const headings = getPostHeadings(document);
   let headingIndex = 0;
 
@@ -32,6 +33,10 @@ export function PostDocumentBody({ document }: { document: PostDocument }) {
     if (node.type === "text") return <span key={key}>{markedText(node.text ?? "", node.marks)}</span>;
     if (node.type === "hardBreak") return <br key={key} />;
     if (node.type === "paragraph") return <p key={key}>{children}</p>;
+    if (node.type === "table") return <div key={key} className="story-table"><table><tbody>{children}</tbody></table></div>;
+    if (node.type === "tableRow") return <tr key={key}>{children}</tr>;
+    if (node.type === "tableHeader") return <th key={key}>{children}</th>;
+    if (node.type === "tableCell") return <td key={key}>{children}</td>;
     if (node.type === "heading") {
       const heading = headings[headingIndex++];
       const level = Number(node.attrs?.level);
@@ -48,12 +53,21 @@ export function PostDocumentBody({ document }: { document: PostDocument }) {
       const language = typeof node.attrs?.language === "string" ? node.attrs.language : "";
       return <pre key={key}><code className={language ? `language-${language}` : undefined}>{children}</code></pre>;
     }
+    if (node.type === "carousel") return <ImageCarousel key={key} label="Image gallery" images={(node.content ?? []).map(image => ({ src: String(image.attrs?.src ?? ""), alt: String(image.attrs?.alt ?? ""), caption: String(image.attrs?.caption ?? "") }))} />;
+    if (node.type === "mediaText") return <section key={key} className="story-split" data-image-side={node.attrs?.side === "left" ? "left" : "right"}>
+      <div className="story-split-copy">{children}</div>
+      <figure>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={String(node.attrs?.src ?? "")} alt={String(node.attrs?.alt ?? "")} width={1600} height={1000} loading="lazy" className="article-media" />
+        {node.attrs?.caption ? <figcaption>{String(node.attrs.caption)}</figcaption> : null}
+      </figure>
+    </section>;
     if (node.type === "image") {
       const src = String(node.attrs?.src ?? "");
       const alt = String(node.attrs?.alt ?? "");
       const caption = String(node.attrs?.caption ?? "");
       return (
-        <figure key={key}>
+        <figure key={key} data-layout={node.attrs?.layout === "wide" ? "wide" : "normal"}>
           <div className="article-media-frame">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt={alt} width={1600} height={1000} loading="lazy" decoding="async" className="article-media" />
@@ -65,15 +79,15 @@ export function PostDocumentBody({ document }: { document: PostDocument }) {
     return null;
   };
 
-  return <div className="article-prose">{document.content?.map((node, index) => renderNode(node, `node-${index}`))}</div>;
+  return <div className={`article-prose ${story ? "story-prose" : ""}`}>{document.content?.map((node, index) => renderNode(node, `node-${index}`))}</div>;
 }
 
-export function LegacyPostBody({ content }: { content: string }) {
+export function LegacyPostBody({ content, story = false, urlTransform = normalizeV1PublicUrl }: { content: string; story?: boolean; urlTransform?: (value: string) => string }) {
   return (
-    <div className="article-prose">
+    <div className={`article-prose ${story ? "story-prose" : ""}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        urlTransform={normalizeV1PublicUrl}
+        urlTransform={urlTransform}
         components={{
           a: ({ href, children }) => href && isSafeArticleHref(href)
             ? <a href={href} target={href.startsWith("/") || href.startsWith("#") ? undefined : "_blank"} rel="noopener noreferrer">{children}</a>

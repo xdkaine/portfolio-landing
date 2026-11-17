@@ -67,7 +67,8 @@ function ProjectCard({ project }: { project: HomeProject }) {
   );
 }
 
-export default function HomePageClient({ siteSettings, projects, posts }: {
+export default function HomePageClient({ siteSettings, projects, posts, profile = PORTFOLIO_PROFILE }: {
+  profile?: { currentRole: string; personalNote: string };
   siteSettings: PublicSiteSettings;
   projects: HomeProject[];
   posts: HomePost[];
@@ -88,7 +89,7 @@ export default function HomePageClient({ siteSettings, projects, posts }: {
           <ScrollReveal variant="block" delay={0.1} className="min-w-0">
             <div className="max-w-xl pb-3">
               <p data-home-introduction className="text-base leading-relaxed text-bone md:text-lg">I&apos;m <AliasTypewriter aliases={brandAliases} cursor="" className="align-bottom" />, a builder and developer. I build applications and the infrastructure they run on, and share my experiences here.</p>
-              <p className="mt-4 text-sm leading-relaxed text-ash">I currently work as a <a href={siteSettings.socialLinkedin || "https://linkedin.com/in/thomasphao"} target="_blank" rel="noopener noreferrer" className="text-bone underline decoration-steel underline-offset-4 transition-colors hover:text-ember">{PORTFOLIO_PROFILE.currentRole}</a>.</p>
+              <p className="mt-4 text-sm leading-relaxed text-ash">I currently work as a <a href={siteSettings.socialLinkedin || "https://linkedin.com/in/thomasphao"} target="_blank" rel="noopener noreferrer" className="text-bone underline decoration-steel underline-offset-4 transition-colors hover:text-ember">{profile.currentRole}</a>.</p>
               <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-3">
                 <PublicLink href="/v1/projects" intent="section" className="inline-flex min-h-12 items-center gap-3 border border-ember bg-ember px-5 text-xs tracking-[0.08em] text-void transition-colors hover:border-bone hover:bg-bone">VIEW PROJECTS <span aria-hidden="true">↗</span></PublicLink>
                 <PublicLink href="/v1/contact" intent="section" className="inline-flex min-h-12 items-center text-xs tracking-[0.08em] text-bone underline decoration-steel underline-offset-4 transition-colors hover:text-ember">CONTACT ME</PublicLink>
@@ -114,7 +115,7 @@ export default function HomePageClient({ siteSettings, projects, posts }: {
         </ScrollReveal>
         <ScrollReveal variant="block" delay={0.08}>
           <div className="max-w-2xl">
-            <p className="font-editorial text-xl leading-relaxed text-bone md:text-2xl">{PORTFOLIO_PROFILE.personalNote}</p>
+            <p className="font-editorial text-xl leading-relaxed text-bone md:text-2xl">{profile.personalNote}</p>
             <PublicLink href="/v1/about" intent="section" className="mt-6 inline-flex min-h-10 items-center gap-3 text-sm text-ash underline underline-offset-4 hover:text-ember">More about me <span aria-hidden="true">↗</span></PublicLink>
           </div>
         </ScrollReveal>

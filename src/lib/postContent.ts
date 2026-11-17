@@ -43,6 +43,9 @@ const ALLOWED_BLOCK_NODES = new Set([
   "horizontalRule",
   "codeBlock",
   "image",
+  "mediaText",
+  "carousel",
+  "table", "tableRow", "tableHeader", "tableCell",
 ]);
 const ALLOWED_INLINE_NODES = new Set(["text", "hardBreak", "image"]);
 const ALLOWED_MARKS = new Set(["bold", "italic", "strike", "code", "link"]);
@@ -108,7 +111,8 @@ function normalizeMarks(input: unknown): PostMark[] | undefined {
   return marks.length > 0 ? marks : undefined;
 }
 
-function normalizeNode(input: unknown, inline = false): PostNode | null {
+function normalizeNode(input: unknown, inline = false, mediaSource = isSafePostMediaSource, depth = 0): PostNode | null {
+  if (depth > 12) return null;
   const node = objectValue(input);
   const type = typeof node?.type === "string" ? node.type : "";
   const allowedNodes = inline ? ALLOWED_INLINE_NODES : ALLOWED_BLOCK_NODES;
@@ -124,10 +128,10 @@ function normalizeNode(input: unknown, inline = false): PostNode | null {
     return { type };
   }
 
-  if (type === "image") {
+  if (type === "image" || type === "mediaText") {
     const attrs = objectValue(node?.attrs);
     const src = typeof attrs?.src === "string" ? attrs.src.trim() : "";
-    if (!src || !isSafePostMediaSource(src)) return null;
+    if (!src || !mediaSource(src)) return null;
 
     return {
       type,
@@ -135,8 +139,17 @@ function normalizeNode(input: unknown, inline = false): PostNode | null {
         src: normalizeV1PublicUrl(src),
         alt: typeof attrs?.alt === "string" ? attrs.alt.trim() : "",
         caption: typeof attrs?.caption === "string" ? attrs.caption.trim() : "",
+        ...(type === "image" ? (attrs?.layout === "wide" ? { layout: "wide" } : {}) : { side: attrs?.side === "left" ? "left" : "right" }),
       },
+      ...(type === "mediaText" ? { content: (Array.isArray(node?.content) ? node.content : []).map(child => normalizeNode(child, false, mediaSource, depth + 1)).filter((child): child is PostNode => child !== null && child.type !== "mediaText" && child.type !== "carousel" && child.type !== "image") } : {}),
     };
+  }
+
+  if (type === "carousel") {
+    const images = (Array.isArray(node?.content) ? node.content : [])
+      .map(child => normalizeNode(child, false, mediaSource, depth + 1))
+      .filter((child): child is PostNode => child !== null && child.type === "image");
+    return images.length ? { type, content: images } : null;
   }
 
   const rawChildren = Array.isArray(node?.content) ? node.content : [];
@@ -144,6 +157,8 @@ function normalizeNode(input: unknown, inline = false): PostNode | null {
     .map((child) => normalizeNode(
       child,
       type === "paragraph" || type === "heading" || type === "codeBlock",
+      mediaSource,
+      depth + 1,
     ))
     .filter((child): child is PostNode => child !== null);
 
@@ -177,13 +192,23 @@ function normalizeNode(input: unknown, inline = false): PostNode | null {
   return { type, content: children };
 }
 
-export function normalizePostDocument(input: unknown): PostDocument | null {
+export function normalizePostDocument(input: unknown, mediaSource = isSafePostMediaSource): PostDocument | null {
+  try { if (JSON.stringify(input).length > 250_000) return null; } catch { return null; }
   const document = objectValue(input);
   if (document?.type !== "doc") return null;
+  let count = 0;
+  const withinBounds = (node: unknown, depth: number): boolean => {
+    if (++count > 5000 || depth > 12) return false;
+    const item = objectValue(node);
+    if (!Array.isArray(item?.content)) return true;
+    if (item.type === "carousel" && item.content.length > 30) return false;
+    return item.content.every(child => withinBounds(child, depth + 1));
+  };
+  if (!withinBounds(document, 0)) return null;
 
   const content = Array.isArray(document.content)
     ? document.content
-        .map((node) => normalizeNode(node))
+        .map((node) => normalizeNode(node, false, mediaSource))
         .filter((node): node is PostNode => node !== null)
     : [];
 
@@ -231,7 +256,7 @@ export function hasPostBody(document: PostDocument | null): boolean {
 export function missingImageAltCount(document: PostDocument | null): number {
   let count = 0;
   const visit = (node: PostNode) => {
-    if (node.type === "image" && !String(node.attrs?.alt ?? "").trim()) {
+    if ((node.type === "image" || node.type === "mediaText") && !String(node.attrs?.alt ?? "").trim()) {
       count += 1;
     }
     node.content?.forEach(visit);
@@ -243,8 +268,8 @@ export function missingImageAltCount(document: PostDocument | null): number {
 export function getPostHeadings(document: PostDocument | null): PostHeading[] {
   const used = new Map<string, number>();
 
-  return (document?.content ?? []).flatMap((node): PostHeading[] => {
-    if (node.type !== "heading") return [];
+  const visit = (node: PostNode): PostHeading[] => {
+    if (node.type !== "heading") return (node.content ?? []).flatMap(visit);
     const text = nodeText(node).trim();
     if (!text) return [];
     const baseId = createPostSlug(text) || "section";
@@ -255,7 +280,8 @@ export function getPostHeadings(document: PostDocument | null): PostHeading[] {
       level: Number(node.attrs?.level) || 2,
       text,
     }];
-  });
+  };
+  return (document?.content ?? []).flatMap(visit);
 }
 
 export function formatEditorialDate(value: Date | null | undefined): string {

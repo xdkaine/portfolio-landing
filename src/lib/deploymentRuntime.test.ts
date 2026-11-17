@@ -14,8 +14,8 @@ const standaloneSanitizer = readFileSync(
   path.join(process.cwd(), "scripts", "sanitize-standalone.mjs"),
   "utf8",
 );
-const adminDashboard = readFileSync(
-  path.join(process.cwd(), "src", "components", "AdminDashboardClient.tsx"),
+const projectEditor = readFileSync(
+  path.join(process.cwd(), "src", "components", "ProjectEditor.tsx"),
   "utf8",
 );
 const serverLauncher = readFileSync(
@@ -89,9 +89,9 @@ test("health route exposes the running app revision", () => {
 });
 
 test("project upload controls advertise only server-supported raster formats", () => {
-  assert.doesNotMatch(adminDashboard, /accept="[^"]*image\/svg\+xml/);
+  assert.doesNotMatch(projectEditor, /accept="[^"]*image\/svg\+xml/);
   assert.match(
-    adminDashboard,
+    projectEditor,
     /accept="image\/png,image\/jpeg,image\/webp,image\/gif"/,
   );
 });

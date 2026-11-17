@@ -36,7 +36,7 @@ export function PostArticle({
           PRIVATE PREVIEW // THIS BLOG POST IS NOT PUBLIC
         </div>
       ) : null}
-      <header className={`${preview ? "pt-12" : "pt-32"} pb-10 px-6 md:px-12 lg:px-24`}>
+      <header className={`${preview ? "pt-12" : "pt-28 md:pt-32"} mx-auto max-w-[1800px] pb-8 px-6 md:px-12 lg:px-24`}>
         <ScrollReveal variant="row" disabled={preview}>
           <div className="text-steel text-[10px] tracking-[0.3em] flex flex-wrap items-center gap-3 mb-8">
             {preview ? (
@@ -61,7 +61,7 @@ export function PostArticle({
           </div>
         </ScrollReveal>
         <ScrollReveal variant="headline" delay={0.05} disabled={preview}>
-          <div className="max-w-5xl">
+          <div className="max-w-[1400px]">
             {preview ? (
               <h1 className="font-display text-5xl md:text-7xl lg:text-[5.5rem] tracking-tighter leading-[0.95]">
                 {post.title}
@@ -85,10 +85,10 @@ export function PostArticle({
         </ScrollReveal>
       </header>
 
-      <section className="article-layout px-6 md:px-12 lg:px-24 pb-20 grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,760px)_260px] gap-10 lg:gap-16">
+      <section className="article-layout story-layout mx-auto max-w-[1800px] px-6 md:px-12 lg:px-24 pb-16">
         {headings.length > 0 ? <PostContents headings={headings} /> : null}
 
-        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+        <div className="min-w-0">
           {post.coverImage ? preview ? (
             <figure className="article-cover-frame mb-12">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -121,9 +121,9 @@ export function PostArticle({
 
           <article className="min-w-0">
             {post.bodyJson ? (
-              <PostDocumentBody document={post.bodyJson} />
+              <PostDocumentBody document={post.bodyJson} story />
             ) : post.content ? (
-              <LegacyPostBody content={post.content} />
+              <LegacyPostBody content={post.content} story />
             ) : (
               <div className="article-prose">
                 <p>{post.excerpt}</p>
