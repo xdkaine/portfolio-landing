@@ -15,7 +15,7 @@ const fixtureSearch = `v2-writing-fixture-${fixtureId}`;
 let fixturesCreated = false;
 
 function isDisposableCi(baseURL: string | undefined): boolean {
-  return process.env.CI === "true" && baseURL === "http://127.0.0.1:18089";
+  return process.env.CI === "true" && baseURL === "https://127.0.0.1:18089";
 }
 
 function fixtureSql(baseURL: string | undefined, query: string): string {
