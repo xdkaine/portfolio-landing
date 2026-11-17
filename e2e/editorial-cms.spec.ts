@@ -47,7 +47,7 @@ async function addLayout(page: Page, layout: "right" | "wide", count = 1) {
 }
 
 test.describe("Content authoring in the disposable stack", () => {
-  test.describe.configure({ mode: "serial" });
+  test.describe.configure({ mode: "default" });
   test.use({ contextOptions: { reducedMotion: "reduce", extraHTTPHeaders: { DNT: "1" } } });
   test.beforeAll(async ({ baseURL }) => {
     if (!authorizedFixture(baseURL)) return;

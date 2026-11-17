@@ -121,9 +121,8 @@ export function Navigation({
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`relative group text-xs tracking-[0.2em] uppercase transition-colors duration-300 ${
-                    isActive ? "text-ember" : "text-ember/60 hover:text-ember"
-                  }`}
+                  aria-current={isActive ? "page" : undefined}
+                  className="relative group inline-flex min-h-11 items-center text-xs tracking-[0.2em] uppercase text-ember transition-colors duration-300"
                 >
                   {"\u2318 ADMIN"}
                   {!isActive && (
