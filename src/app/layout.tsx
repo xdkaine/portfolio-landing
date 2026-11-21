@@ -1,26 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, DM_Mono, Literata } from "next/font/google";
+import fonts from "../../public/fonts/manifest.json";
+import "./fonts.css";
 import "./globals.css";
 
-const anton = Anton({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-anton",
-  display: "swap",
-});
-
-const dmMono = DM_Mono({
-  weight: ["300", "400", "500"],
-  subsets: ["latin"],
-  variable: "--font-dm-mono",
-  display: "swap",
-});
-
-const literata = Literata({
-  subsets: ["latin"],
-  variable: "--font-literata",
-  display: "swap",
-});
+const fontPreloads = fonts.assets.filter(font => font.preload && ["Anton", "DM Mono", "Literata"].includes(font.family));
 
 const themeInitializationScript = `
 (function () {
@@ -117,8 +100,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${anton.variable} ${dmMono.variable} ${literata.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
+        {fontPreloads.map(font => <link key={font.path} rel="preload" href={font.path} as="font" type="font/woff2" crossOrigin="anonymous" />)}
         <meta name="theme-color" content="#0A0A0A" data-site-theme-color="true" />
         <script dangerouslySetInnerHTML={{ __html: themeInitializationScript }} />
       </head>
