@@ -55,6 +55,29 @@ html[data-theme="light"] {
   }
 }
 
+[data-portfolio-v1] .home-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 0; }
+[data-portfolio-v1] .home-stat { display: flex; min-width: 0; flex-direction: column; padding-inline: 1rem; border-left: 1px solid var(--color-iron); }
+[data-portfolio-v1] .home-stat:nth-child(odd) { padding-left: 0; border-left: 0; }
+[data-portfolio-v1] .home-stat-value { order: 0; overflow: hidden; font-family: var(--font-anton), sans-serif; font-size: clamp(3.5rem, 7.5vw, 7.25rem); line-height: 1.15; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+[data-portfolio-v1] [data-stat-face] { display: inline-block; padding-block: .06em; }
+[data-portfolio-v1] .home-stat-plus { margin-left: .04em; color: var(--color-ember); font-size: .55em; }
+[data-portfolio-v1] .home-stat-label { order: 1; margin-top: .5rem; color: var(--color-steel); font-size: .75rem; line-height: 1.6; letter-spacing: .12em; text-transform: uppercase; }
+[data-portfolio-v1] .home-motion-headline { margin-top: clamp(2.5rem, 5vw, 4.5rem); font-size: clamp(2.75rem, 6.4vw, 7.5rem); line-height: 1.08; letter-spacing: -.025em; }
+[data-portfolio-v1] .home-motion-words { display: flex; flex-wrap: wrap; column-gap: .22em; row-gap: .06em; }
+[data-portfolio-v1] .home-motion-word { position: relative; display: inline-block; max-width: 100%; }
+[data-portfolio-v1] .home-motion-outline { color: transparent; -webkit-text-stroke: 1px var(--color-steel); }
+[data-portfolio-v1] .home-motion-fill { position: absolute; inset: 0; }
+@media (min-width: 768px) {
+  [data-portfolio-v1] .home-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  [data-portfolio-v1] .home-stat { padding-inline: clamp(1rem, 3vw, 3rem); }
+  [data-portfolio-v1] .home-stat:nth-child(odd) { padding-left: clamp(1rem, 3vw, 3rem); border-left: 1px solid var(--color-iron); }
+  [data-portfolio-v1] .home-stat:first-child { padding-left: 0; border-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-portfolio-v1] [data-stat-face] { transform: none !important; clip-path: none !important; filter: blur(0px) !important; }
+  [data-portfolio-v1] [data-word-fill] { clip-path: none !important; }
+}
+
 @utility font-display {
   font-family: var(--font-anton), Impact, "Arial Black", sans-serif;
 }

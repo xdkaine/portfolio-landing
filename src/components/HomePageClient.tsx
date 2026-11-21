@@ -12,6 +12,8 @@ import type { PublicSiteSettings } from "@/lib/siteSettings-schema";
 import type { DisplayProjectStatus } from "@/lib/projectPresentation";
 import { ProjectStatus } from "@/components/ProjectStatus";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import { HomeMotionBand } from "@/components/HomeMotionBand";
+import type { HomeStat } from "@/lib/homeStats";
 
 interface HomeProject {
   id: string;
@@ -67,11 +69,12 @@ function ProjectCard({ project }: { project: HomeProject }) {
   );
 }
 
-export default function HomePageClient({ siteSettings, projects, posts, profile = PORTFOLIO_PROFILE }: {
+export default function HomePageClient({ siteSettings, projects, posts, stats, profile = PORTFOLIO_PROFILE }: {
   profile?: { currentRole: string; personalNote: string };
   siteSettings: PublicSiteSettings;
   projects: HomeProject[];
   posts: HomePost[];
+  stats: HomeStat[];
 }) {
   const brandAliases = parseIdentityAliases(siteSettings.siteAliases);
 
@@ -108,6 +111,8 @@ export default function HomePageClient({ siteSettings, projects, posts, profile 
         </ScrollReveal>
         {projects.length ? projects.map((project, index) => <ScrollReveal key={project.id} variant="media" delay={Math.min(index * 0.04, 0.16)}><ProjectCard project={project} /></ScrollReveal>) : <ScrollReveal><p className="py-10 text-base leading-relaxed text-ash">New project write-ups are on the way.</p></ScrollReveal>}
       </section>
+
+      <HomeMotionBand stats={stats} />
 
       <section className="grid gap-7 border-y border-iron px-6 py-14 md:px-12 md:py-20 lg:grid-cols-[1fr_1.15fr] lg:gap-16 lg:px-24" aria-labelledby="behind-projects">
         <ScrollReveal variant="headline">
