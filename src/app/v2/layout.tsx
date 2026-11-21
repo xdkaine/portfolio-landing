@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import fonts from "../../../public/fonts/manifest.json";
 import { StudioFooter, StudioHeader } from "@/components/v2/Studio";
+import "./fonts.css";
 import "./v2.css";
 
-const sans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-v2-sans", display: "swap" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-v2-mono", display: "swap" });
+const fontPreloads = fonts.assets.filter(font => font.preload && ["IBM Plex Sans", "IBM Plex Mono"].includes(font.family));
 
 export const metadata: Metadata = {
   title: {
@@ -39,13 +39,16 @@ export const metadata: Metadata = {
 
 export default function V2Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`v2 ${sans.variable} ${mono.variable}`}>
-      <a href="#v2-main" className="v2-skip">
-        Skip to content
-      </a>
-      <StudioHeader />
-      <main id="v2-main">{children}</main>
-      <StudioFooter />
-    </div>
+    <>
+      {fontPreloads.map(font => <link key={font.path} rel="preload" href={font.path} as="font" type="font/woff2" crossOrigin="anonymous" />)}
+      <div className="v2">
+        <a href="#v2-main" className="v2-skip">
+          Skip to content
+        </a>
+        <StudioHeader />
+        <main id="v2-main">{children}</main>
+        <StudioFooter />
+      </div>
+    </>
   );
 }
