@@ -4,7 +4,8 @@ import { projectCover } from "@/lib/projectMedia";
 import HomePageClient from "@/components/HomePageClient";
 import { PublicTransitionSurface } from "@/components/PublicTransition";
 import { getProjectTeaser } from "@/lib/projectTeaser";
-import { listPublishedPosts } from "@/lib/postEditorial";
+import { countPublishedPosts, listPublishedPosts } from "@/lib/postEditorial";
+import { buildHomeStats } from "@/lib/homeStats";
 import { listProjects } from "@/lib/projectCatalog";
 import { getSiteSettings } from "@/lib/siteSettings";
 import { pickPublicSiteSettings } from "@/lib/siteSettings-schema";
@@ -13,11 +14,12 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const [settings, projects, posts, about] = await Promise.all([
+  const [settings, projects, posts, about, postCount] = await Promise.all([
     getSiteSettings(),
     listProjects(),
     listPublishedPosts({ limit: 4 }),
     getAboutContent().then(result => result.content).catch(() => DEFAULT_ABOUT_CONTENT),
+    countPublishedPosts(),
   ]);
   const featured = projects.filter((project) => project.featured);
   const selectedProjects = (featured.length > 0 ? featured : projects).slice(0, 3);
@@ -26,6 +28,7 @@ export default async function HomePage() {
     <PublicTransitionSurface>
       <HomePageClient
         siteSettings={pickPublicSiteSettings(settings)}
+        stats={buildHomeStats(projects, postCount)}
         profile={{ currentRole: about.currentRole, personalNote: about.personalNote }}
         projects={selectedProjects.map((project) => { const cover = projectCover(project.caseStudy); return ({
           id: project.id,

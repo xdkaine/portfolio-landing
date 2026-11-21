@@ -129,6 +129,10 @@ export async function listPublishedPosts(options: ListPostsOptions = {}) {
   return posts.map(toPublicPostSummary);
 }
 
+export async function countPublishedPosts() {
+  return prisma.post.count({ where: publishedWhere() });
+}
+
 export async function listPublishedTags(): Promise<{ name: string; count: number }[]> {
   const posts = await prisma.post.findMany({
     where: publishedWhere(),
