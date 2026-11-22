@@ -154,6 +154,7 @@ test('reveal content stays readable without JavaScript', async ({ browser, baseU
 test('keyboard focus makes a scroll-revealed action immediately readable', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 500 });
   await page.goto('/v1');
+  await page.evaluate(() => document.fonts.ready);
   await expect(page.locator('nav').first()).toHaveCSS('opacity', '1');
   const action = page.getByRole('link', { name: 'More about me', exact: true });
   await action.focus();
@@ -162,6 +163,12 @@ test('keyboard focus makes a scroll-revealed action immediately readable', async
   const top = await action.evaluate(element => element.closest('[data-scroll-reveal]')!.getBoundingClientRect().top + scrollY);
   await renderScroll(page, top, 1.04);
   expect(await opacity(action)).toBe(1);
-  await page.locator('nav').first().getByRole('link', { name: 'Home', exact: true }).focus();
+  const navigation = page.locator('nav').first().getByRole('link', { name: 'Home', exact: true });
+  await navigation.focus();
+  await expect(navigation).toBeFocused();
+  // Focus can start a smooth browser scroll. Reposition after it leaves the
+  // content, so this checks replay rather than assuming the old scroll offset.
+  const unfocusedTop = await action.evaluate(element => element.closest('[data-scroll-reveal]')!.getBoundingClientRect().top + scrollY);
+  await renderScroll(page, unfocusedTop, 1.04);
   await expect.poll(() => opacity(action)).toBeLessThan(0.01);
 });
