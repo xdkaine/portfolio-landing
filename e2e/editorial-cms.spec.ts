@@ -208,6 +208,20 @@ test.describe("Content authoring in the disposable stack", () => {
         expect((await page.request.delete(`/v1/api/projects/${id}`, { data: { version: record.version } })).ok()).toBeTruthy();
       }
     } finally { await page.close(); }
-    if (bootstrapped) execFileSync("docker", ["compose", "-p", "portfolio-ci", "-f", "docker-compose.test.yml", "exec", "-T", "db", "psql", "-XAtq", "-v", "ON_ERROR_STOP=1", "-U", "xtomm", "-d", "portfolio"], { input: `DELETE FROM users WHERE email='${credentials.email}';`, encoding: "utf8", timeout: 10000 });
+    if (bootstrapped) {
+      // Main's DELETE moves projects to recoverable trash. Purge only our own
+      // disposable records after exercising that API so their unique numbers
+      // do not block the later navigation fixtures. Never run in a live preview.
+      const literal = (value: string) => `'${value.replaceAll("'", "''")}'`;
+      const projectIds = createdProjects.map(literal).join(",") || "NULL";
+      execFileSync("docker", ["compose", "-p", "portfolio-ci", "-f", "docker-compose.test.yml", "exec", "-T", "db", "psql", "-XAtq", "-v", "ON_ERROR_STOP=1", "-U", "xtomm", "-d", "portfolio"], {
+        input: `BEGIN;
+          DELETE FROM site_settings WHERE key IN (SELECT 'project_case_' || number FROM projects WHERE id IN (${projectIds}));
+          DELETE FROM projects WHERE id IN (${projectIds});
+          DELETE FROM users WHERE email=${literal(credentials.email)};
+          COMMIT;`,
+        encoding: "utf8", timeout: 10000,
+      });
+    }
   });
 });
