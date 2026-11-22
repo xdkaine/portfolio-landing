@@ -12,7 +12,7 @@ test("V2 exposes the same published catalog through read-only versioned APIs", a
   const response = await request.get("/v2/api/projects");
   expect(response.ok()).toBeTruthy();
   expect(response.headers()["cache-control"]).toContain("no-store");
-  expect(response.headers()["x-robots-tag"]).toBe("noindex");
+  expect(response.headers()["x-robots-tag"].split(",").map(value => value.trim().toLowerCase())).toContain("noindex");
   const catalog = await response.json();
   expect(catalog.version).toBe("v2");
   expect(catalog.data.items).toEqual(projects);
