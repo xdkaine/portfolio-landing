@@ -9,7 +9,7 @@ test("editor reloads the saved draft after preview Back navigation and retries f
   baseURL,
 }) => {
   test.skip(
-    process.env.CI !== "true" || baseURL !== "http://127.0.0.1:18089",
+    process.env.CI !== "true" || baseURL !== "https://127.0.0.1:18089",
     "Uses only the disposable CI Compose stack",
   );
   test.setTimeout(60_000);
@@ -70,7 +70,7 @@ test("editor reloads the saved draft after preview Back navigation and retries f
       },
     ]);
     const created = await context.request.post("/v1/api/admin/posts", {
-      headers: { Origin: "https://localhost" },
+      headers: { Origin: baseURL! },
     });
     expect(created.ok()).toBeTruthy();
     const draft = await created.json();
@@ -78,11 +78,11 @@ test("editor reloads the saved draft after preview Back navigation and retries f
     expect(typeof postId).toBe("string");
     await page.goto(`/v1/admin/posts/${postId}`);
     await expect(
-      page.getByRole("textbox", { name: "TITLE", exact: true }),
-    ).toHaveValue("UNTITLED TRANSMISSION");
+      page.getByRole("textbox", { name: "Post title", exact: true }),
+    ).toHaveValue("");
     // Change the server record after this route's first payload was cached.
     const saved = await context.request.patch(`/v1/api/admin/posts/${postId}`, {
-      headers: { Origin: "https://localhost" },
+      headers: { Origin: baseURL! },
       data: {
         version: draft.version,
         title,
@@ -102,7 +102,7 @@ test("editor reloads the saved draft after preview Back navigation and retries f
     await expect(page.getByText(marker, { exact: true })).toBeVisible();
     await page.goBack();
     await expect(
-      page.getByRole("textbox", { name: "TITLE", exact: true }),
+      page.getByRole("textbox", { name: "Post title", exact: true }),
     ).toHaveValue(title);
     await expect(page.locator('[contenteditable="true"]')).toContainText(
       marker,
@@ -125,14 +125,14 @@ test("editor reloads the saved draft after preview Back navigation and retries f
         .filter({ hasText: "Saved post is temporarily unavailable" }),
     ).toHaveText("Saved post is temporarily unavailable");
     await expect(
-      page.getByRole("textbox", { name: "TITLE", exact: true }),
+      page.getByRole("textbox", { name: "Post title", exact: true }),
     ).toHaveCount(0);
     await page.unroute(apiPath);
     await page
       .getByRole("button", { name: "Retry loading post", exact: true })
       .click();
     await expect(
-      page.getByRole("textbox", { name: "TITLE", exact: true }),
+      page.getByRole("textbox", { name: "Post title", exact: true }),
     ).toHaveValue(title);
   } finally {
     sql(

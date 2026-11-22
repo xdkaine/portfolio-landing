@@ -20,8 +20,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  async redirects() {
+    // Keep shared admin, auth, API and media addresses at V1.
+    const publicPaths = ["", "/projects/:path*", "/blog/:path*", "/about", "/contact", "/privacy", "/terms", "/feed.xml", "/opengraph-image"];
+    return publicPaths.map(path => ({ source: `/v1${path}`, destination: `/v2${path}`, permanent: false }));
+  },
   async rewrites() {
     return [
+      { source: "/v1/assets/media/:path*", destination: "/media/:path*" },
       {
         source: "/v1/assets/projects/:path*",
         destination: "/projects/:path*",

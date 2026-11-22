@@ -33,12 +33,12 @@ services:
       dockerfile: Dockerfile
       target: runner
       args:
-        NEXT_PUBLIC_SITE_URL: "https://localhost"
+        NEXT_PUBLIC_SITE_URL: "https://127.0.0.1:18089"
         NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA"
     environment:
       DATABASE_URL: "postgresql://xtomm:testpassword@db:5432/portfolio?schema=public"
       JWT_SECRET: "test-jwt-secret-must-be-at-least-32-chars-long"
-      NEXT_PUBLIC_SITE_URL: "https://localhost"
+      NEXT_PUBLIC_SITE_URL: "https://127.0.0.1:18089"
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA"
       TURNSTILE_SITE_KEY: "1x00000000000000000000AA"
       TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA"
@@ -54,10 +54,11 @@ services:
     image: nginx:1.31.1-alpine
     command: ["/bin/sh", "/etc/nginx/portfolio/start-ci.sh"]
     ports:
-      - "127.0.0.1:18089:80"
+      - "127.0.0.1:18089:18089"
     volumes:
       - ./nginx/nginx.test.conf:/etc/nginx/portfolio/nginx.conf:ro
       - ./deploy/k3s/test-nginx.sh:/etc/nginx/portfolio/start-ci.sh:ro
+      - ${PORTFOLIO_CI_TLS_DIR:?Generate a disposable test certificate first}:/etc/nginx/ci-tls:ro
     depends_on:
       app:
         condition: service_started
@@ -65,13 +66,16 @@ services:
   playwright:
     image: mcr.microsoft.com/playwright:v1.63.0-noble
     profiles: ["e2e"]
+    network_mode: "service:nginx"
     working_dir: /work
     volumes:
       - .:/work
     environment:
-      - CI=true
-      - PLAYWRIGHT_TEST_BASE_URL=http://nginx
-    command: ["npx", "playwright", "test"]
+      # Public/snapshot runner. Guarded database fixtures run on the host,
+      # where the normal CI job has Docker access to its disposable database.
+      - CI=false
+      - PLAYWRIGHT_TEST_BASE_URL=https://127.0.0.1:18089
+    command: ["npx", "playwright", "test", "--update-snapshots"]
     depends_on:
       nginx:
         condition: service_started

@@ -1,4 +1,5 @@
 import { normalizeV1PublicUrl } from "@/lib/v1Path";
+import { normalizePostDocument, type PostDocument } from "@/lib/postContent";
 
 export interface ProjectCaseStudyGalleryItem {
   title: string;
@@ -8,6 +9,7 @@ export interface ProjectCaseStudyGalleryItem {
 }
 
 export interface ProjectCaseStudyViewModel {
+  bodyJson?: PostDocument;
   subtitle: string;
   role: string;
   timeline: string;
@@ -23,6 +25,7 @@ export interface ProjectCaseStudyViewModel {
 }
 
 export interface ProjectCaseStudyContent {
+  bodyJson?: PostDocument;
   subtitle?: string;
   // Backward compatibility for older records.
   pitch?: string;
@@ -102,20 +105,21 @@ export function transformProjectMarkdownUrl(value: string): string {
 export function validateProjectCaseStudyInput(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return "Project case study must be an object";
+    return "Project details must be an object";
   }
 
   let serialized: string;
   try {
     serialized = JSON.stringify(value);
   } catch {
-    return "Project case study must be serializable";
+    return "Project details must be serializable";
   }
   if (new TextEncoder().encode(serialized).byteLength > MAX_CASE_STUDY_BYTES) {
-    return "Project case study exceeds the 100 KB limit";
+    return "Project details exceed the 100 KB limit";
   }
 
   const data = value as Record<string, unknown>;
+  if (data.bodyJson !== undefined && !normalizePostDocument(data.bodyJson, isSafeProjectImage)) return "Project content must be a valid document under 100 KB";
   for (const name of [
     "subtitle",
     "pitch",
@@ -249,7 +253,7 @@ function normalizeGallery(
       const image = normalizeString(item.image);
       if (!image || !isSafeProjectImage(image)) return null;
 
-      const title = normalizeString(item.title) ?? `VISUAL NOTE ${index + 1}`;
+      const title = normalizeString(item.title) ?? `Project image ${index + 1}`;
       const caption = normalizeString(item.caption) ?? "";
       const alt = normalizeString(item.alt) ?? title;
       return {
@@ -278,6 +282,7 @@ export function normalizeProjectCaseStudyInput(
   const demoUrl = normalizeString(data.demoUrl);
   const repoUrl = normalizeString(data.repoUrl);
   const normalized: ProjectCaseStudyContent = {
+    bodyJson: normalizePostDocument(data.bodyJson, isSafeProjectImage) ?? undefined,
     subtitle,
     pitch: subtitle,
     role: normalizeString(data.role),
@@ -343,6 +348,7 @@ export function mergeProjectCaseStudy(
 
   return {
     ...base,
+    bodyJson: override.bodyJson ?? base.bodyJson,
     subtitle: override.subtitle ?? override.pitch ?? base.subtitle,
     role: override.role ?? base.role,
     timeline: override.timeline ?? base.timeline,

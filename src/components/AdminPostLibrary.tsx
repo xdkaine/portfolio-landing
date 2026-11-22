@@ -121,7 +121,7 @@ export function AdminPostLibrary({
           onClick={() => void create()}
         >
           <Plus size={16} />
-          {busy === "new" ? "Creating…" : "New post"}
+          {busy === "new" ? "Creating…" : "New blog post"}
         </button>
       </div>
       <div className="cms-toolbar">

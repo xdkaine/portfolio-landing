@@ -1,29 +1,63 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Visual Regression Testing', () => {
-  test('homepage matches visual baseline', async ({ page }) => {
-    await page.goto('/');
-    
-    // Wait for animations or dynamic content to settle
-    await page.waitForLoadState('load');
-    await page.waitForTimeout(1000);
+test.describe('Homepage design baselines', () => {
+  for (const colorScheme of ['dark', 'light'] as const) {
+    for (const width of [1280, 390]) {
+      test(`${colorScheme} homepage at ${width}px matches the reviewed introduction`, async ({ page }) => {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 720 });
+        await page.emulateMedia({ reducedMotion: 'reduce', colorScheme });
+        await page.goto('/v2');
+        await page.evaluate(() => document.fonts.ready);
+        await expect(page.locator('nav').first()).toHaveCSS('opacity', '1');
+        await expect(page.locator('body')).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(0, 0, 0)' : 'rgb(245, 241, 232)');
+        await expect(page.locator('.grain-overlay')).toHaveCount(0);
+        const nameLayout = await page.evaluate(() => {
+          const bottom = (element: Element) => {
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            return Math.max(...[...range.getClientRects()].map(rect => rect.bottom));
+          };
+          const nav = document.querySelector('nav')!;
+          const navName = nav.querySelector('a .absolute.inset-0')!;
+          const heroName = document.querySelector('h1 .absolute.inset-0')!;
+          const introduction = document.querySelector('[data-home-introduction]')!;
+          return {
+            navigationFits: bottom(navName) <= nav.getBoundingClientRect().bottom,
+            introductionClear: innerWidth >= 1024 || bottom(heroName) <= introduction.getBoundingClientRect().top,
+          };
+        });
+        expect(nameLayout).toEqual({ navigationFits: true, introductionClear: true });
+        // The introduction is independent of changing CMS project/post records.
+        await expect(page.locator('main header').first()).toHaveScreenshot(`homepage-hero-${colorScheme}-${width}.png`, {
+          animations: 'disabled', maxDiffPixelRatio: 0.01,
+        });
+      });
+    }
+  }
+});
 
-    // To account for slight rendering differences across environments (like CI vs local),
-    // we use a maxDiffPixelRatio.
-    await expect(page).toHaveScreenshot('homepage.png', { maxDiffPixelRatio: 0.05 });
+test('login page matches visual baseline', async ({ page }) => {
+  await page.goto('/v1/login');
+  await page.waitForLoadState('load');
+  await page.waitForTimeout(1000);
+  await expect(page).toHaveScreenshot('login-page.png', {
+    maxDiffPixelRatio: 0.05, mask: [page.locator('iframe')],
   });
+});
 
-  test('login page matches visual baseline', async ({ page }) => {
-    await page.goto('/v1/login');
-    await page.waitForLoadState('load');
-    await page.waitForTimeout(1000);
-
-    // Mask out the turnstile iframe since its content can change and cause flaky visual diffs
-    const turnstileLocator = page.locator('iframe');
-    
-    await expect(page).toHaveScreenshot('login-page.png', { 
-      maxDiffPixelRatio: 0.05,
-      mask: [turnstileLocator]
+test.describe('About design baselines', () => {
+  for (const colorScheme of ['dark', 'light'] as const) for (const width of [1280, 390]) {
+    test(`${colorScheme} About at ${width}px preserves the terminal identity`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+      await page.goto('/v2/about');
+      await page.evaluate(() => document.fonts.ready);
+      // The fixed navigation is covered by Home's baselines; isolate the tall About article.
+      await page.evaluate(() => scrollTo(0, 0));
+      await page.addStyleTag({ content: 'nav, a[href="#main-content"], nextjs-portal { visibility: hidden !important; }' });
+      await expect(page.locator('[data-about-page]')).toHaveScreenshot(`about-${colorScheme}-${width}.png`, {
+        animations: 'disabled', maxDiffPixelRatio: 0.01,
+      });
     });
-  });
+  }
 });

@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { verifySession } from "@/lib/auth";
 import type { Metadata } from "next";
 import { PRIVATE_ROUTE_ROBOTS } from "@/lib/siteMetadata";
 
@@ -6,10 +8,14 @@ export const metadata: Metadata = {
   robots: PRIVATE_ROUTE_ROBOTS,
 };
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return children;
+  const session = await verifySession();
+  if (!session || session.role !== "ADMIN") redirect("/v1/login");
+  return <>
+    {children}
+  </>;
 }

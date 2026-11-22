@@ -73,6 +73,9 @@
     "mysql2": "3.24.4",
     "@next/eslint-plugin-next": {
       "fast-glob": "$@portfolio/next-root-glob"
+    },
+    "@prisma/config": {
+      "effect": "3.22.1"
     }
   }
 }

@@ -102,7 +102,7 @@ export async function POST(request: Request) {
         captureVisitorEvent(
           {
             type: "contact",
-            path: "/v1/contact",
+            path: body.sourcePath === "/v2/contact" ? "/v2/contact" : "/v1/contact",
             destination: "",
             label: "",
             referrer: "",

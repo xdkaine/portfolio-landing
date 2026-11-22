@@ -138,12 +138,13 @@ function normalizeSortOrder(input: unknown): number | null {
 function parseCreateProjectInput(
   input: unknown,
   resolvedSortOrder: number,
+  generatedNumber: string,
 ): CreateProjectInput {
   const body =
     input && typeof input === "object"
       ? (input as Record<string, unknown>)
       : {};
-  const number = typeof body.number === "string" ? body.number.trim() : "";
+  const number = typeof body.number === "string" && body.number.trim() ? body.number.trim() : generatedNumber;
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const description =
     typeof body.description === "string" ? body.description.trim() : "";
@@ -284,13 +285,6 @@ function parseUpdateProjectInput(input: unknown): {
   };
 }
 
-async function nextProjectSortOrder(): Promise<number> {
-  const aggregate = await prisma.project.aggregate({
-    _max: { sortOrder: true },
-  });
-  return (aggregate._max.sortOrder ?? -1) + 1;
-}
-
 async function attachCaseStudy(
   project: Project,
 ): Promise<ProjectWithCaseStudy> {
@@ -328,8 +322,11 @@ export async function getProjectByIdOrNumber(idOrNumber: string) {
 }
 
 export async function createProject(input: unknown, actor = "Administrator") {
-  const data = parseCreateProjectInput(input, await nextProjectSortOrder());
   return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(734021)`;
+    const numbers = await tx.project.findMany({ select: { number: true, sortOrder: true } });
+    const generatedNumber = String(Math.max(0, ...numbers.map(row => /^\d+$/.test(row.number) ? Number(row.number) : 0)) + 1);
+    const data = parseCreateProjectInput(input, Math.max(-1, ...numbers.map(row => row.sortOrder)) + 1, generatedNumber);
     const project = await tx.project.create({
       data: {
         number: data.number,

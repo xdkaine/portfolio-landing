@@ -21,6 +21,7 @@ export interface Project {
   createdAt?: string;
   updatedAt?: string;
   caseStudy?: {
+    bodyJson?: PostDocument;
     subtitle?: string;
     pitch?: string;
     role?: string;
@@ -99,7 +100,7 @@ export interface AdminDashboardData {
   activeMessages: number;
 }
 
-export type EditableProject = Partial<Project> & { id?: string };
+export type EditableProject = Partial<Project> & { id?: string; expectedUpdatedAt?: string };
 
 export async function fetchAdminDashboardData(): Promise<AdminDashboardData> {
   const [
@@ -189,6 +190,7 @@ export async function saveProjectRecord(project: EditableProject): Promise<{
     body: JSON.stringify(project),
   });
   if (response.ok) {
+    await response.json();
     return { ok: true };
   }
 

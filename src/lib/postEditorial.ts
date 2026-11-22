@@ -6,6 +6,8 @@ import { PostStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import {
   calculatePostReadTime,
+  markdownText,
+  postDocumentText,
   createPostSlug,
   formatEditorialDate,
   hasPostBody,
@@ -207,8 +209,8 @@ export async function createDraftPost(actor = "Administrator") {
   return prisma.$transaction(async (tx) => {
     const post = await tx.post.create({
       data: {
-        slug: `untitled-transmission-${suffix}`,
-        title: "UNTITLED TRANSMISSION",
+        slug: `untitled-post-${suffix}`,
+        title: "UNTITLED BLOG POST",
         excerpt: "",
         content: null,
         bodyJson: { type: "doc", content: [{ type: "paragraph" }] },
@@ -334,7 +336,7 @@ export async function updateAdminPost(
     };
     if (changes.title !== undefined) nextContent.title = changes.title;
     if (changes.slug !== undefined) nextContent.slug = changes.slug;
-    if (changes.excerpt !== undefined) nextContent.excerpt = changes.excerpt;
+    if (changes.excerpt !== undefined) nextContent.excerpt = changes.excerpt || (postDocumentText(document) || markdownText(current.content)).slice(0, MAX_EXCERPT_LENGTH);
     if (changes.tags !== undefined) nextContent.tags = changes.tags;
     if (changes.coverImage !== undefined)
       nextContent.coverImage = changes.coverImage;
@@ -633,4 +635,8 @@ export async function getPostConnections(postId: string, tags: string[]) {
       currentIndex > 0 ? toPublicPostSummary(posts[currentIndex - 1]) : null,
     related,
   };
+}
+
+export async function countPublishedPosts(): Promise<number> {
+  return prisma.post.count({ where: publishedWhere() });
 }
