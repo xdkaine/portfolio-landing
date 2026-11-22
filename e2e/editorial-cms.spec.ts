@@ -84,7 +84,7 @@ test.describe("Content authoring in the disposable stack", () => {
     const project = (await catalog.json()).find((item: { title: string }) => item.title === title);
     expect(project).toBeTruthy(); createdProjects.push(project.id);
     expect(project.number).toMatch(/^\d+$/);
-    await page.goto(`/v1/projects/${project.number}`);
+    await page.goto(`/v2/projects/${project.number}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
     await expect(page.locator(".story-split")).toHaveAttribute("data-image-side", "right");
     await expect(page.locator(".story-split-copy")).toContainText("belongs beside");
@@ -114,14 +114,14 @@ test.describe("Content authoring in the disposable stack", () => {
     await expect(page.getByText("Project saved.", { exact: true })).toBeVisible();
     const unchanged = await (await page.request.get(`/v1/api/projects/${project.number}`)).json();
     expect(unchanged.caseStudy.bodyJson).toBeUndefined();
-    await page.goto(`/v1/projects/${project.number}`);
+    await page.goto(`/v2/projects/${project.number}`);
     await expect(page.getByRole("cell", { name: "One", exact: true })).toBeVisible();
     await page.goto("/v1/admin?tab=projects");
     await page.locator("div.group").filter({ has: page.getByText(title + " edited", { exact: true }) }).getByRole("button", { name: /EDIT/ }).click();
     await page.getByRole("textbox", { name: "Page content", exact: true }).press("Control+End"); await page.keyboard.type(" Added in the visual editor.");
     await page.getByRole("button", { name: "Save project", exact: true }).click();
     await expect(page.getByText("Project saved.", { exact: true })).toBeVisible();
-    await page.goto(`/v1/projects/${project.number}`);
+    await page.goto(`/v2/projects/${project.number}`);
     await expect(page.getByRole("cell", { name: "One", exact: true })).toBeVisible();
     await expect(page.locator(".article-prose")).toContainText("Added in the visual editor");
   });
@@ -145,12 +145,13 @@ test.describe("Content authoring in the disposable stack", () => {
     await expect(page.locator('figure[data-layout="wide"] img')).toHaveAttribute("alt", "Synthetic editorial image 1");
     await expect(page.locator('[data-story-reveal]')).toHaveCount(0);
     expect((await page.request.get(`/v1/api/posts/${draft.slug}`)).status()).toBe(404);
+    expect((await page.request.get(`/v1/api/posts/${draft.slug}`)).status()).toBe(404);
     await page.goto(`/v1/admin/posts/${id}`);
     await page.getByRole("button", { name: "PUBLISH", exact: true }).click();
     await expect(page.getByText("Blog post published.", { exact: true })).toBeVisible();
     const published = await (await page.request.get(`/v1/api/posts/${draft.slug}`)).json();
     expect(published.excerpt).toContain("opening text");
-    await page.goto(`/v1/blog/${draft.slug}`);
+    await page.goto(`/v2/blog/${draft.slug}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
     await page.setViewportSize({ width: 1280, height: 500 });
     await page.emulateMedia({ reducedMotion: "no-preference" });
@@ -160,6 +161,7 @@ test.describe("Content authoring in the disposable stack", () => {
     await page.goto(`/v1/admin/posts/${id}`);
     await page.getByRole("button", { name: "ARCHIVE", exact: true }).click();
     await expect(page.getByText("Blog post archived.", { exact: true })).toBeVisible();
+    expect((await page.request.get(`/v1/api/posts/${draft.slug}`)).status()).toBe(404);
     expect((await page.request.get(`/v1/api/posts/${draft.slug}`)).status()).toBe(404);
   });
 
@@ -181,8 +183,8 @@ test.describe("Content authoring in the disposable stack", () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
       const scan = await new AxeBuilder({ page }).analyze(); expect(scan.violations).toEqual([]);
-      await page.goto("/v1/about"); await expect(page.getByRole("heading", { level: 1 })).toHaveText("ABOUT EDITORIAL QA");
-      await page.goto("/v1"); await expect(page.getByText("Builder and developer", { exact: true })).toBeVisible();
+      await page.goto("/v2/about"); await expect(page.getByRole("heading", { level: 1 })).toHaveText("ABOUT EDITORIAL QA");
+      await page.goto("/v2"); await expect(page.getByText("Builder and developer", { exact: true })).toBeVisible();
     } finally {
       const latest = await (await page.request.get("/v1/api/about")).json();
       expect((await page.request.put("/v1/api/about", { data: { content: original.content, version: latest.version } })).ok()).toBeTruthy();

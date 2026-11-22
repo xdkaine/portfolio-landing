@@ -6,7 +6,7 @@ test.describe('Homepage design baselines', () => {
       test(`${colorScheme} homepage at ${width}px matches the reviewed introduction`, async ({ page }) => {
         await page.setViewportSize({ width, height: width === 390 ? 844 : 720 });
         await page.emulateMedia({ reducedMotion: 'reduce', colorScheme });
-        await page.goto('/v1');
+        await page.goto('/v2');
         await page.evaluate(() => document.fonts.ready);
         await expect(page.locator('nav').first()).toHaveCSS('opacity', '1');
         await expect(page.locator('body')).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(0, 0, 0)' : 'rgb(245, 241, 232)');
@@ -50,7 +50,7 @@ test.describe('About design baselines', () => {
     test(`${colorScheme} About at ${width}px preserves the terminal identity`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
-      await page.goto('/v1/about');
+      await page.goto('/v2/about');
       await page.evaluate(() => document.fonts.ready);
       // The fixed navigation is covered by Home's baselines; isolate the tall About article.
       await page.evaluate(() => scrollTo(0, 0));

@@ -20,18 +20,18 @@ test.describe("Homepage first render", () => {
     const featured = projects.filter((project) => project.featured);
     const selected = (featured.length > 0 ? featured : projects).slice(0, 3);
 
-    const response = await page.goto("/v1");
+    const response = await page.goto("/v2");
     expect(response?.ok()).toBeTruthy();
-    await expect(page.locator('main a[href^="/v1/projects/"]')).toHaveCount(selected.length);
-    await expect(page.locator('main a[href^="/v1/blog/"]')).toHaveCount(Math.min(posts.length, 4));
+    await expect(page.locator('main a[href^="/v2/projects/"]')).toHaveCount(selected.length);
+    await expect(page.locator('main a[href^="/v2/blog/"]')).toHaveCount(Math.min(posts.length, 4));
 
     for (const project of selected) {
-      const link = page.locator(`main a[href="/v1/projects/${project.number}"]`);
+      const link = page.locator(`main a[href="/v2/projects/${project.number}"]`);
       await expect(link).toBeVisible();
       await expect(link).toContainText(project.title);
     }
     for (const post of posts.slice(0, 4)) {
-      const link = page.locator(`main a[href="/v1/blog/${post.slug}"]`);
+      const link = page.locator(`main a[href="/v2/blog/${post.slug}"]`);
       await expect(link).toBeVisible();
       await expect(link).toContainText(post.title);
     }
@@ -43,29 +43,29 @@ test.describe("Homepage first render", () => {
     }
     if (selected.length > 0) {
       const project = selected[0];
-      const entrance = page.locator(".scroll-reveal-content").filter({ has: page.locator(`a[href="/v1/projects/${project.number}"]`) });
+      const entrance = page.locator(".scroll-reveal-content").filter({ has: page.locator(`a[href="/v2/projects/${project.number}"]`) });
       await expect(entrance).toHaveCSS("opacity", "1");
       await expect(entrance).toHaveCSS("transform", /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
-      await page.locator(`main a[href="/v1/projects/${project.number}"]`).click();
+      await page.locator(`main a[href="/v2/projects/${project.number}"]`).click();
       await expect(page).toHaveTitle(`${project.title} | Projects | Thomas Phao`);
     }
   });
 
   test("provides an introduction, working actions, and social metadata", async ({ page, request }) => {
-    await page.goto("/v1");
+    await page.goto("/v2");
     await expect(page).toHaveTitle("Thomas Phao — Builder & Developer");
     await expect(page.locator("main h1 .absolute.inset-0")).toContainText("Tommy");
     await expect(page.locator("[data-home-introduction] .absolute.inset-0")).toContainText("Tommy");
     await expect(page.locator("[data-home-introduction]")).toContainText("a builder and developer");
 
     const projects = page.getByRole("link", { name: "VIEW PROJECTS", exact: true });
-    await expect(projects).toHaveAttribute("href", "/v1/projects");
+    await expect(projects).toHaveAttribute("href", "/v2/projects");
     const contact = page.getByRole("link", { name: "CONTACT ME", exact: true });
-    await expect(contact).toHaveAttribute("href", "/v1/contact");
+    await expect(contact).toHaveAttribute("href", "/v2/contact");
 
     const socialImage = page.locator('meta[property="og:image"]').first();
     await expect(socialImage).toHaveAttribute("content", /\/v1\/opengraph-image/);
-    const imageResponse = await request.get("/v1/opengraph-image");
+    const imageResponse = await request.get("/v2/opengraph-image");
     expect(imageResponse.ok()).toBeTruthy();
     expect(imageResponse.headers()["content-type"]).toContain("image/png");
 
@@ -92,7 +92,7 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
           contentRequests.push(request.url());
         }
       });
-      await page.goto("/v1");
+      await page.goto("/v2");
       await expect(page.locator("nav").first()).toHaveCSS("opacity", "1");
       await expect(page).toHaveTitle(reducedMotion === "reduce"
         ? "Thomas Phao — Builder & Developer"
@@ -113,7 +113,7 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
 }
 
 test("homepage title stays synchronized with the visible aliases and stops on other routes", async ({ page }) => {
-  await page.goto("/v1");
+  await page.goto("/v2");
   await expect(page).toHaveTitle(/\| Thomas Phao — Builder & Developer/);
   const samples: string[] = [];
   const activeAliases = new Set<string>();
@@ -154,7 +154,7 @@ test("homepage title stays synchronized with the visible aliases and stops on ot
 test("profile context and compact summaries remain readable on mobile", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/v1");
+  await page.goto("/v2");
   await expect(page.locator("[data-home-introduction]")).toContainText("a builder and developer");
   const summaries = await page.locator("[data-project-teaser]").allTextContents();
   for (const summary of summaries) expect(summary.trim().length).toBeLessThanOrEqual(220);
@@ -163,7 +163,7 @@ test("profile context and compact summaries remain readable on mobile", async ({
   await expect(page.locator("main header")).not.toContainText("LOS ANGELES, CA");
   await expect(page.locator("main")).not.toContainText("48.8566");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
-  await page.goto("/v1/about");
+  await page.goto("/v2/about");
   await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("ABOUT THOMAS PHAO");
   await expect(page.getByText("LOS ANGELES, CA", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
