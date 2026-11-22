@@ -449,7 +449,7 @@ export default function AdminDashboardClient() {
     <section data-admin-ui className="cms-shell">
       {confirmation}
       <aside className="cms-sidebar">
-        <a href="/v1" className="cms-brand">
+        <a href="/v2" className="cms-brand">
           {settings.siteName}
           <span>CONTENT WORKSPACE</span>
         </a>
@@ -476,7 +476,7 @@ export default function AdminDashboardClient() {
           <span className="cms-status">
             {activeMessagesCount} active conversations
           </span>
-          <a href="/v1" target="_blank" rel="noreferrer">
+          <a href="/v2" target="_blank" rel="noreferrer">
             View website
             <ExternalLink size={15} />
           </a>
