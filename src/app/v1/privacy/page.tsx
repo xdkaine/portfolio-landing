@@ -1,3 +1,4 @@
+import { AnalyticsPreferences } from "@/components/AnalyticsPreferences";
 import type { Metadata } from "next";
 import { PublicLink, PublicTransitionSurface } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
@@ -63,6 +64,7 @@ export default async function PrivacyPage() {
           </div>
         </ScrollReveal>
       </section>
+    <AnalyticsPreferences />
     </PublicTransitionSurface>
   );
 }

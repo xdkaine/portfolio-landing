@@ -1,3 +1,4 @@
+import { CmsError, requireVersion } from "./cmsRules";
 import "server-only";
 
 import type { Project } from "@/generated/prisma/client";
@@ -6,13 +7,12 @@ import {
   listProjectCaseStudiesByNumber,
   moveProjectCaseStudy,
   saveProjectCaseStudy,
-  deleteProjectCaseStudy,
 } from "@/lib/projectCaseStudyStore";
 import {
   normalizeProjectStatus,
   type DisplayProjectStatus,
 } from "@/lib/projectPresentation";
-import { validateProjectCaseStudyInput, projectCaseStudySettingKey, parseProjectCaseStudy } from "@/lib/projectCaseStudy";
+import { validateProjectCaseStudyInput } from "@/lib/projectCaseStudy";
 import { prisma } from "@/lib/prisma";
 
 type StoredProjectStatus = "LIVE" | "IN_PROGRESS" | "ARCHIVED";
@@ -66,7 +66,9 @@ interface UpdateProjectInput {
   sortOrder?: number;
 }
 
-function toStoredProjectStatus(status: unknown): StoredProjectStatus | undefined {
+function toStoredProjectStatus(
+  status: unknown,
+): StoredProjectStatus | undefined {
   const normalized = status === "IN PROGRESS" ? "IN_PROGRESS" : status;
   if (
     normalized === "LIVE" ||
@@ -81,26 +83,28 @@ function toStoredProjectStatus(status: unknown): StoredProjectStatus | undefined
 function parseTags(input: unknown, fallback: string[] = []): string[] {
   if (input === undefined) return fallback;
   if (!Array.isArray(input) || input.length > MAX_TAGS) {
-    throw new ProjectCatalogError(`tags must contain at most ${MAX_TAGS} strings`, 400);
+    throw new ProjectCatalogError(
+      `tags must contain at most ${MAX_TAGS} strings`,
+      400,
+    );
   }
 
-  const tags = input.map((tag) => {
-    if (typeof tag !== "string" || tag.trim().length > MAX_TAG_LENGTH) {
-      throw new ProjectCatalogError(
-        `each tag must be a string of at most ${MAX_TAG_LENGTH} characters`,
-        400,
-      );
-    }
-    return tag.trim();
-  }).filter(Boolean);
+  const tags = input
+    .map((tag) => {
+      if (typeof tag !== "string" || tag.trim().length > MAX_TAG_LENGTH) {
+        throw new ProjectCatalogError(
+          `each tag must be a string of at most ${MAX_TAG_LENGTH} characters`,
+          400,
+        );
+      }
+      return tag.trim();
+    })
+    .filter(Boolean);
 
   return Array.from(new Set(tags));
 }
 
-function parseHttpUrl(
-  input: unknown,
-  fieldName: string,
-): string | undefined {
+function parseHttpUrl(input: unknown, fieldName: string): string | undefined {
   if (input === undefined || input === null || input === "") return undefined;
   if (typeof input !== "string" || input.length > MAX_URL_LENGTH) {
     throw new ProjectCatalogError(`${fieldName} is invalid`, 400);
@@ -136,15 +140,18 @@ function parseCreateProjectInput(
   resolvedSortOrder: number,
   generatedNumber: string,
 ): CreateProjectInput {
-  const body = input && typeof input === "object" ? input as Record<string, unknown> : {};
+  const body =
+    input && typeof input === "object"
+      ? (input as Record<string, unknown>)
+      : {};
   const number = typeof body.number === "string" && body.number.trim() ? body.number.trim() : generatedNumber;
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const description =
     typeof body.description === "string" ? body.description.trim() : "";
 
-  if (!title || !description) {
+  if (!number || !title || !description) {
     throw new ProjectCatalogError(
-      "A project title and summary are required",
+      "number, title, and description are required",
       400,
     );
   }
@@ -155,7 +162,10 @@ function parseCreateProjectInput(
     );
   }
   if (title.length > MAX_TITLE_LENGTH) {
-    throw new ProjectCatalogError(`title exceeds ${MAX_TITLE_LENGTH} characters`, 400);
+    throw new ProjectCatalogError(
+      `title exceeds ${MAX_TITLE_LENGTH} characters`,
+      400,
+    );
   }
   if (description.length > MAX_DESCRIPTION_LENGTH) {
     throw new ProjectCatalogError(
@@ -169,7 +179,10 @@ function parseCreateProjectInput(
       ? body.year.trim()
       : new Date().getFullYear().toString();
   if (year.length > MAX_YEAR_LENGTH) {
-    throw new ProjectCatalogError(`year exceeds ${MAX_YEAR_LENGTH} characters`, 400);
+    throw new ProjectCatalogError(
+      `year exceeds ${MAX_YEAR_LENGTH} characters`,
+      400,
+    );
   }
   assertCaseStudy(body.caseStudy);
 
@@ -193,20 +206,29 @@ function parseUpdateProjectInput(input: unknown): {
   caseStudyProvided: boolean;
   caseStudy: unknown;
 } {
-  const body = input && typeof input === "object" ? input as Record<string, unknown> : {};
+  const body =
+    input && typeof input === "object"
+      ? (input as Record<string, unknown>)
+      : {};
   const data: UpdateProjectInput = {};
 
   if (typeof body.number === "string" && body.number.trim()) {
     const number = body.number.trim();
     if (!PROJECT_NUMBER_REGEX.test(number)) {
-      throw new ProjectCatalogError("number contains unsupported characters", 400);
+      throw new ProjectCatalogError(
+        "number contains unsupported characters",
+        400,
+      );
     }
     data.number = number;
   }
   if (typeof body.title === "string" && body.title.trim()) {
     const title = body.title.trim();
     if (title.length > MAX_TITLE_LENGTH) {
-      throw new ProjectCatalogError(`title exceeds ${MAX_TITLE_LENGTH} characters`, 400);
+      throw new ProjectCatalogError(
+        `title exceeds ${MAX_TITLE_LENGTH} characters`,
+        400,
+      );
     }
     data.title = title;
   }
@@ -226,7 +248,10 @@ function parseUpdateProjectInput(input: unknown): {
   if (typeof body.year === "string" && body.year.trim()) {
     const year = body.year.trim();
     if (year.length > MAX_YEAR_LENGTH) {
-      throw new ProjectCatalogError(`year exceeds ${MAX_YEAR_LENGTH} characters`, 400);
+      throw new ProjectCatalogError(
+        `year exceeds ${MAX_YEAR_LENGTH} characters`,
+        400,
+      );
     }
     data.year = year;
   }
@@ -260,7 +285,9 @@ function parseUpdateProjectInput(input: unknown): {
   };
 }
 
-async function attachCaseStudy(project: Project): Promise<ProjectWithCaseStudy> {
+async function attachCaseStudy(
+  project: Project,
+): Promise<ProjectWithCaseStudy> {
   return {
     ...project,
     status: normalizeProjectStatus(project.status),
@@ -268,8 +295,11 @@ async function attachCaseStudy(project: Project): Promise<ProjectWithCaseStudy> 
   };
 }
 
-export async function listProjects(): Promise<ProjectWithCaseStudy[]> {
+export async function listProjects(
+  includeDeleted = false,
+): Promise<ProjectWithCaseStudy[]> {
   const projects = await prisma.project.findMany({
+    where: includeDeleted ? {} : { deletedAt: null },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { number: "asc" }],
   });
   const caseStudies = await listProjectCaseStudiesByNumber(
@@ -288,54 +318,170 @@ export async function getProjectByIdOrNumber(idOrNumber: string) {
     (await prisma.project.findUnique({ where: { id: idOrNumber } })) ??
     (await prisma.project.findUnique({ where: { number: idOrNumber } }));
 
-  return project ? attachCaseStudy(project) : null;
+  return project && !project.deletedAt ? attachCaseStudy(project) : null;
 }
 
-export async function createProject(input: unknown) {
-  return prisma.$transaction(async tx => {
-    // Serialize automatic numbering without changing any existing project URLs.
+export async function createProject(input: unknown, actor = "Administrator") {
+  return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(734021)`;
     const numbers = await tx.project.findMany({ select: { number: true, sortOrder: true } });
     const generatedNumber = String(Math.max(0, ...numbers.map(row => /^\d+$/.test(row.number) ? Number(row.number) : 0)) + 1);
     const data = parseCreateProjectInput(input, Math.max(-1, ...numbers.map(row => row.sortOrder)) + 1, generatedNumber);
-    const { caseStudy: details, ...metadata } = data;
-    const project = await tx.project.create({ data: metadata });
-    const caseStudy = details ? await saveProjectCaseStudy(project.number, details, tx) : null;
-    return { ...project, status: normalizeProjectStatus(project.status), caseStudy };
+    const project = await tx.project.create({
+      data: {
+        number: data.number,
+        title: data.title,
+        description: data.description,
+        tags: data.tags,
+        year: data.year,
+        url: data.url,
+        github: data.github,
+        status: data.status,
+        featured: data.featured,
+        sortOrder: data.sortOrder,
+      },
+    });
+
+    const caseStudy = data.caseStudy
+      ? await saveProjectCaseStudy(project.number, data.caseStudy, tx)
+      : null;
+
+    await tx.cmsAuditEvent.create({
+      data: {
+        actor,
+        action: "created",
+        entity: "project",
+        entityId: project.id,
+        summary: project.title,
+      },
+    });
+    return {
+      ...project,
+      status: normalizeProjectStatus(project.status),
+      caseStudy,
+    };
   });
 }
 
-export async function updateProject(id: string, input: unknown) {
+export async function updateProject(
+  id: string,
+  input: unknown,
+  actor = "Administrator",
+) {
+  const version = requireVersion(input);
   const { data, caseStudyProvided, caseStudy } = parseUpdateProjectInput(input);
-  return prisma.$transaction(async tx => {
-    const existing = await tx.project.findUnique({ where: { id }, select: { number: true, updatedAt: true } });
-    if (!existing) return null;
-    const expected = (input as Record<string, unknown>).expectedUpdatedAt;
-    if (expected !== undefined && expected !== existing.updatedAt.toISOString()) throw new ProjectCatalogError("This project was edited elsewhere. Reload before saving to preserve those changes.", 409);
-    const result = await tx.project.updateMany({ where: { id, ...(expected !== undefined ? { updatedAt: existing.updatedAt } : {}) }, data });
-    if (!result.count) throw new ProjectCatalogError("This project was edited elsewhere. Reload before saving.", 409);
+  const project = await prisma.$transaction(async (tx) => {
+    const existing = await tx.project.findUnique({ where: { id } });
+    if (!existing || existing.deletedAt)
+      throw new CmsError("Project not found", 404);
+    const updated = await tx.project.updateMany({
+      where: { id, version },
+      data: { ...data, version: { increment: 1 } },
+    });
+    if (updated.count !== 1)
+      throw new CmsError(
+        "This project changed in another session. Reload before saving.",
+        409,
+      );
     const project = await tx.project.findUniqueOrThrow({ where: { id } });
-    if (caseStudyProvided) {
+    if (existing.number !== project.number)
+      await moveProjectCaseStudy(existing.number, project.number, tx);
+    if (caseStudyProvided)
       await saveProjectCaseStudy(project.number, caseStudy, tx);
-      if (existing.number !== project.number) await deleteProjectCaseStudy(existing.number, tx);
-    } else await moveProjectCaseStudy(existing.number, project.number, tx);
-    const setting = await tx.siteSetting.findUnique({ where: { key: projectCaseStudySettingKey(project.number) }, select: { value: true } });
-    return { ...project, status: normalizeProjectStatus(project.status), caseStudy: parseProjectCaseStudy(setting?.value) };
+    await tx.cmsAuditEvent.create({
+      data: {
+        actor,
+        action: "updated",
+        entity: "project",
+        entityId: id,
+        summary: project.title,
+      },
+    });
+    return project;
   });
+  return attachCaseStudy(project);
 }
-
-export async function deleteProject(id: string): Promise<boolean> {
-  return prisma.$transaction(async tx => {
-    const existing = await tx.project.findUnique({ where: { id }, select: { number: true } });
-    if (!existing) return false;
-    await tx.project.delete({ where: { id } });
-    await deleteProjectCaseStudy(existing.number, tx);
-    return true;
+export async function deleteProject(
+  id: string,
+  version: number,
+  actor = "Administrator",
+  restore = false,
+) {
+  await prisma.$transaction(async (tx) => {
+    const result = await tx.project.updateMany({
+      where: { id, version },
+      data: {
+        deletedAt: restore ? null : new Date(),
+        version: { increment: 1 },
+      },
+    });
+    if (result.count !== 1)
+      throw new CmsError(
+        "This project changed in another session. Reload before trying again.",
+        409,
+      );
+    await tx.cmsAuditEvent.create({
+      data: {
+        actor,
+        action: restore ? "restored" : "trashed",
+        entity: "project",
+        entityId: id,
+        summary: "Project catalog update",
+      },
+    });
+  });
+  return true;
+}
+export async function reorderProjects(
+  records: { id: string; version: number }[],
+  actor: string,
+) {
+  if (
+    !Array.isArray(records) ||
+    records.length > 1000 ||
+    records.some(
+      (item) => !item || typeof item.id !== "string" || item.id.length > 100,
+    ) ||
+    new Set(records.map((item) => item.id)).size !== records.length
+  )
+    throw new CmsError("Invalid project order");
+  await prisma.$transaction(async (tx) => {
+    if (
+      records.length !==
+      (await tx.project.count({ where: { deletedAt: null } }))
+    )
+      throw new CmsError(
+        "The project catalog changed. Refresh before reordering.",
+        409,
+      );
+    for (let index = 0; index < records.length; index++) {
+      const item = records[index];
+      requireVersion(item);
+      const result = await tx.project.updateMany({
+        where: { id: item.id, version: item.version, deletedAt: null },
+        data: { sortOrder: index, version: { increment: 1 } },
+      });
+      if (result.count !== 1)
+        throw new CmsError(
+          "A project changed in another session. No ordering changes were applied.",
+          409,
+        );
+    }
+    await tx.cmsAuditEvent.create({
+      data: {
+        actor,
+        action: "reordered",
+        entity: "projects",
+        entityId: "catalog",
+        summary: "Updated catalog display order",
+      },
+    });
   });
 }
 
 export async function listProjectNavigation() {
   return prisma.project.findMany({
+    where: { deletedAt: null },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { number: "asc" }],
     select: { number: true },
   });

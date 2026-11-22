@@ -58,7 +58,7 @@ test("CSP permits Cloudflare verification and analytics endpoints", () => {
 });
 
 test("nginx prevents stale dynamic responses from browser or edge caches", () => {
-  for (const location of ["/v1/api/", "/"]) {
+  for (const location of ["= /v1/api/auth/session", "/v1/api/", "/"]) {
     const block = locationBlock(location);
 
     assert.match(block, /proxy_hide_header\s+Cache-Control;/);
@@ -72,6 +72,7 @@ test("nginx applies security headers in locations with local cache headers", () 
   assert.match(nginxConfig, /add_header_inherit\s+merge;/);
 
   for (const location of [
+    "= /v1/api/auth/session",
     "/v1/api/auth/",
     "/v1/api/contact",
     "/v1/api/uploads/",
@@ -100,6 +101,7 @@ test("nginx hides application security headers where locations override proxy he
   ];
 
   for (const location of [
+    "= /v1/api/auth/session",
     "/v1/api/auth/",
     "/v1/api/contact",
     "/v1/api/uploads/",
@@ -119,6 +121,29 @@ test("large request bodies are limited to upload routes", () => {
   assert.match(nginxConfig, /client_max_body_size\s+1m;/);
   assert.match(locationBlock("/v1/api/uploads/"), /client_max_body_size\s+55m;/);
   assert.doesNotMatch(locationBlock("/v1/api/auth/"), /client_max_body_size\s+55m;/);
+});
+
+test("navigation session checks cannot exhaust the strict sign-in allowance", () => {
+  const resources = JSON.parse(readFileSync(path.join(process.cwd(), "deploy/k3s/resources.json"), "utf8"));
+  const deployedConfig = resources.items.find((item: { kind: string; metadata: { name: string } }) =>
+    item.kind === "ConfigMap" && item.metadata.name === "nginx-config",
+  ).data["nginx.conf"] as string;
+  const testConfig = readFileSync(path.join(process.cwd(), "nginx/nginx.test.conf"), "utf8");
+
+  for (const config of [nginxConfig, testConfig, deployedConfig]) {
+    const session = config.match(/location = \/v1\/api\/auth\/session \{([\s\S]*?)\n\s*\}/)?.[1];
+    const auth = config.match(/location \/v1\/api\/auth\/ \{([\s\S]*?)\n\s*\}/)?.[1];
+    assert.ok(session);
+    assert.ok(auth);
+    assert.match(session, /limit_req zone=api burst=20 nodelay;/);
+    assert.doesNotMatch(session, /zone=auth/);
+    assert.match(session, /proxy_set_header X-Forwarded-For \$trusted_client_ip;/);
+    assert.match(session, /Cache-Control "no-store, no-cache, max-age=0, must-revalidate"/);
+    assert.match(auth, /limit_req zone=auth burst=5 nodelay;/);
+  }
+  for (const config of [nginxConfig, deployedConfig]) {
+    assert.match(config, /zone=auth:10m rate=3r\/m;/);
+  }
 });
 
 

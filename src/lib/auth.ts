@@ -48,7 +48,9 @@ async function verifyOwnerSession(token: string | undefined): Promise<Authentica
 
     if (isAdminSsoEnabled()) {
       const config = adminOidcConfig();
-      if (!claims.oidc || claims.role !== "ADMIN" || mappedAdminId(config, claims.oidc.subject) !== claims.userId
+      if (!claims.oidc || claims.role !== "ADMIN"
+        || (config.linkMode === "idp" ? claims.oidc.appUserId !== claims.userId || claims.oidc.clientId !== config.clientId
+          : mappedAdminId(config, claims.oidc.subject) !== claims.userId)
         || !await isAdminProviderSessionLive(config, claims.oidc)) return null;
     } else if (claims.oidc) {
       return null;

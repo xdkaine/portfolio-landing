@@ -1,22 +1,8 @@
 import "server-only";
-
-import { createHash } from "node:crypto";
-import { prisma } from "@/lib/prisma";
-
+import { prisma } from "./prisma";
+import { normalizeAnalyticsEvent } from "./analytics";
+import { recordAnalytics } from "./analyticsStore";
 const CLICK_KEY_PREFIX = "analytics_link::";
-const MAX_DESTINATION_LENGTH = 2048;
-const MAX_LABEL_LENGTH = 140;
-const MAX_SOURCE_PATH_LENGTH = 300;
-const MAX_STORED_METRICS = 2_000;
-
-interface LinkClickPayload {
-  href: string;
-  destination: string;
-  sourcePath: string;
-  label: string;
-  external: boolean;
-}
-
 export interface StoredLinkClickMetric {
   destination: string;
   sourcePath: string;
@@ -26,55 +12,9 @@ export interface StoredLinkClickMetric {
   firstClickedAt: string;
   lastClickedAt: string;
 }
-
-function sanitizePath(value: unknown): string {
-  if (typeof value !== "string") return "/";
-  const trimmed = value.trim().slice(0, MAX_SOURCE_PATH_LENGTH);
-  return trimmed || "/";
-}
-
-function sanitizeDestination(value: unknown): string {
-  if (typeof value !== "string") return "";
-  return value.trim().slice(0, MAX_DESTINATION_LENGTH);
-}
-
-function sanitizeLabel(value: unknown): string {
-  if (typeof value !== "string") return "LINK";
-  const normalized = value.replace(/\s+/g, " ").trim().slice(0, MAX_LABEL_LENGTH);
-  return normalized || "LINK";
-}
-
-function classifyDestination(value: string): boolean | null {
-  if (value.startsWith("/") && !value.startsWith("//")) return false;
-  if (value.startsWith("mailto:") || value.startsWith("tel:")) return true;
-
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:" ? true : null;
-  } catch {
-    return null;
-  }
-}
-
-function isSafeRawHref(value: string): boolean {
-  if (value.startsWith("/") && !value.startsWith("//")) return true;
-  if (value.startsWith("mailto:") || value.startsWith("tel:")) return true;
-
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:";
-  } catch {
-    return false;
-  }
-}
-
-function createMetricKey(payload: LinkClickPayload): string {
-  const signature = `${payload.destination}|${payload.sourcePath}|${payload.label}`;
-  const hash = createHash("sha256").update(signature).digest("hex").slice(0, 24);
-  return `${CLICK_KEY_PREFIX}${hash}`;
-}
-
-export function parseStoredLinkClickMetric(raw: string): StoredLinkClickMetric | null {
+export function parseStoredLinkClickMetric(
+  raw: string,
+): StoredLinkClickMetric | null {
   try {
     const parsed = JSON.parse(raw) as Partial<StoredLinkClickMetric>;
     if (
@@ -103,72 +43,13 @@ export function parseStoredLinkClickMetric(raw: string): StoredLinkClickMetric |
   }
 }
 
-function buildPayload(input: unknown): LinkClickPayload | null {
-  if (!input || typeof input !== "object") return null;
-  const body = input as Record<string, unknown>;
-
-  const href = sanitizeDestination(body.href);
-  const destination = sanitizeDestination(body.destination);
-  const sourcePath = sanitizePath(body.sourcePath);
-  const label = sanitizeLabel(body.label);
-  const external = body.external === true;
-
-  if (!href || !destination) return null;
-  if (!isSafeRawHref(href)) return null;
-  if (classifyDestination(destination) !== external) return null;
-  if (!sourcePath.startsWith("/")) return null;
-  if (
-    sourcePath.startsWith("/v1/admin") ||
-    sourcePath.startsWith("/v1/api")
-  ) return null;
-
-  return { href, destination, sourcePath, label, external };
-}
-
 export async function recordLinkClick(input: unknown): Promise<boolean> {
-  const payload = buildPayload(input);
-  if (!payload) {
-    return false;
-  }
-
-  const now = new Date().toISOString();
-  const key = createMetricKey(payload);
-  const existing = await prisma.siteSetting.findUnique({
-    where: { key },
-    select: { value: true },
-  });
-  const parsedExisting = existing?.value
-    ? parseStoredLinkClickMetric(existing.value)
-    : null;
-
-  if (!existing) {
-    const storedMetricCount = await prisma.siteSetting.count({
-      where: { key: { startsWith: CLICK_KEY_PREFIX } },
-    });
-    if (storedMetricCount >= MAX_STORED_METRICS) {
-      return false;
-    }
-  }
-
-  const nextMetric: StoredLinkClickMetric = {
-    destination: payload.destination,
-    sourcePath: payload.sourcePath,
-    label: payload.label,
-    external: payload.external,
-    count: (parsedExisting?.count ?? 0) + 1,
-    firstClickedAt: parsedExisting?.firstClickedAt ?? now,
-    lastClickedAt: now,
-  };
-
-  await prisma.siteSetting.upsert({
-    where: { key },
-    update: { value: JSON.stringify(nextMetric) },
-    create: { key, value: JSON.stringify(nextMetric) },
-  });
-
+  if (!input || typeof input !== "object") return false;
+  const event = normalizeAnalyticsEvent({ ...input, type: "click" });
+  if (!event) return false;
+  await recordAnalytics(event);
   return true;
 }
-
 export async function getLinkClickMetrics() {
   const settings = await prisma.siteSetting.findMany({
     where: { key: { startsWith: CLICK_KEY_PREFIX } },

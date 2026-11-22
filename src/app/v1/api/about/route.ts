@@ -3,6 +3,7 @@ import { requireAdminMutation } from "@/lib/requestSecurity";
 import { prisma } from "@/lib/prisma";
 import { ABOUT_SETTING_KEY, getAboutContent } from "@/lib/aboutStore";
 import { parseAboutContent } from "@/lib/aboutContent";
+import { cmsActor, cmsErrorResponse, readJson } from "@/lib/cmsServer";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -12,19 +13,27 @@ export async function GET() {
 export async function PUT(request: Request) {
   const denied = await requireAdminMutation(request); if (denied) return denied;
   let body;
-  try { body = await request.json(); } catch { return NextResponse.json({ error: "Send valid About content." }, { status: 400 }); }
+  try { body = await readJson(request); } catch (error) { return cmsErrorResponse(error); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ error: "Send valid About content." }, { status: 400 });
+  const input = body as { content?: unknown; version?: unknown };
   let content;
-  try { content = parseAboutContent(body.content); } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid About content." }, { status: 400 }); }
+  try { content = parseAboutContent(input.content); } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid About content." }, { status: 400 }); }
   try {
+    const actor = await cmsActor();
     const saved = await prisma.$transaction(async tx => {
-      if (body.version === null) {
+      let row;
+      if (input.version === null) {
         const existing = await tx.siteSetting.findUnique({ where: { key: ABOUT_SETTING_KEY } });
         if (existing) return false;
-        return tx.siteSetting.create({ data: { key: ABOUT_SETTING_KEY, value: JSON.stringify(content) } });
+        row = await tx.siteSetting.create({ data: { key: ABOUT_SETTING_KEY, value: JSON.stringify(content) } });
+      } else {
+        if (typeof input.version !== "string" || !Number.isFinite(Date.parse(input.version))) return false;
+        const result = await tx.siteSetting.updateMany({ where: { key: ABOUT_SETTING_KEY, updatedAt: new Date(input.version) }, data: { value: JSON.stringify(content) } });
+        if (result.count !== 1) return false;
+        row = await tx.siteSetting.findUniqueOrThrow({ where: { key: ABOUT_SETTING_KEY } });
       }
-      if (typeof body.version !== "string" || !Number.isFinite(Date.parse(body.version))) return false;
-      const result = await tx.siteSetting.updateMany({ where: { key: ABOUT_SETTING_KEY, updatedAt: new Date(body.version) }, data: { value: JSON.stringify(content) } });
-      return result.count === 1 ? tx.siteSetting.findUniqueOrThrow({ where: { key: ABOUT_SETTING_KEY } }) : false;
+      await tx.cmsAuditEvent.create({ data: { actor, action: "saved", entity: "about", entityId: ABOUT_SETTING_KEY, summary: content.title.slice(0, 180) } });
+      return row;
     });
     if (!saved) return NextResponse.json({ error: "About was edited elsewhere. Reload before saving to preserve those changes." }, { status: 409 });
     return NextResponse.json({ content, version: saved.updatedAt.toISOString() });

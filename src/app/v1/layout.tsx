@@ -1,3 +1,4 @@
+import { PublicChrome } from "@/components/PublicChrome";
 import { Navigation } from "@/components/Navigation";
 import { PublicMotionRoot } from "@/components/PublicTransition";
 import { Footer } from "@/components/Footer";
@@ -21,6 +22,7 @@ export default async function V1Layout({
 
   return (
     <>
+      <PublicChrome>
       <a
         href="#main-content"
         className="fixed left-4 top-4 z-[10001] -translate-y-24 border-2 border-ember bg-void px-4 py-2 text-xs tracking-[0.2em] text-bone transition-transform focus-visible:translate-y-0"
@@ -29,15 +31,16 @@ export default async function V1Layout({
       </a>
       <LinkClickTracker />
       <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
+      </PublicChrome>
       <PublicMotionRoot>
         {children}
       </PublicMotionRoot>
-      <Footer
+      <PublicChrome><Footer
         brandName={primaryBrandName}
         brandAliases={brandAliases}
         socials={footerSocials}
         chucklesGifUrl={settings.footerChucklesGifUrl}
-      />
+      /></PublicChrome>
     </>
   );
 }

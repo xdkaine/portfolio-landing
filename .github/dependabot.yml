@@ -26,6 +26,11 @@ updates:
 
   - package-ecosystem: docker
     directory: /
+    ignore:
+      # Runtime major upgrades need a matching types update and compatibility tests.
+      - dependency-name: node
+        update-types:
+          - version-update:semver-major
     schedule:
       interval: weekly
     labels:

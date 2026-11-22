@@ -1,4 +1,3 @@
-import { isRequestingBrowser } from "@/lib/testAccess";
 import { cookies } from "next/headers";
 import { isGrantId } from "@/lib/testAccessPolicy";
 import { NextResponse } from "next/server";
@@ -20,7 +19,10 @@ export async function GET(request: Request) {
       if (approvalId) canonical.searchParams.set("approval", approvalId);
       return NextResponse.redirect(canonical, 303);
     }
-    if (approvalId && await isRequestingBrowser(approvalId)) return NextResponse.redirect(new URL(`/v1/test-access/approve/${approvalId}`, config.origin), 303);
+    if (approvalId) {
+      const { isRequestingBrowser } = await import("@/lib/testAccess");
+      if (await isRequestingBrowser(approvalId)) return NextResponse.redirect(new URL(`/v1/test-access/approve/${approvalId}`, config.origin), 303);
+    }
     const flow = await beginAdminLogin(config, undefined, approvalId);
     const jar = await cookies();
     jar.set(OIDC_TRANSACTION_COOKIE, flow.cookie, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: OIDC_TRANSACTION_SECONDS });

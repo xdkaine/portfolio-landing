@@ -5,6 +5,8 @@ import {
 import type { PostDocument } from "@/lib/postContent";
 
 export interface Project {
+  version: number;
+  deletedAt?: string | null;
   id: string;
   number: string;
   title: string;
@@ -57,12 +59,18 @@ export interface Post {
   coverImage?: string | null;
   coverAlt?: string | null;
   featured: boolean;
+  version: number;
+  deletedAt?: string | null;
+  hasUnpublishedChanges?: boolean;
   needsContent?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface ContactMsg {
+  status: "NEW" | "OPEN" | "RESOLVED" | "ARCHIVED";
+  version: number;
+  note: string;
   id: string;
   name: string;
   email: string;
@@ -88,6 +96,8 @@ export interface AdminDashboardData {
   messages: ContactMsg[];
   settings: SiteSettings;
   linkClicks: LinkClickMetric[];
+  unreadMessages: number;
+  activeMessages: number;
 }
 
 export type EditableProject = Partial<Project> & { id?: string; expectedUpdatedAt?: string };
@@ -100,13 +110,34 @@ export async function fetchAdminDashboardData(): Promise<AdminDashboardData> {
     settingsResponse,
     linkClicksResponse,
   ] = await Promise.all([
-    fetch("/v1/api/projects"),
+    fetch("/v1/api/projects?admin=true"),
     fetch("/v1/api/admin/posts"),
-    fetch("/v1/api/contact"),
+    fetch("/v1/api/admin/messages"),
     fetch("/v1/api/settings?all=true"),
     fetch("/v1/api/analytics/link-click"),
   ]);
 
+  const responses = [
+    projectsResponse,
+    postsResponse,
+    messagesResponse,
+    settingsResponse,
+    linkClicksResponse,
+  ];
+  const names = [
+    "projects",
+    "posts",
+    "inbox",
+    "settings",
+    "historical metrics",
+  ];
+  const failed = responses.findIndex((response) => !response.ok);
+  if (failed >= 0)
+    throw new Error(
+      responses[failed].status === 401
+        ? "Your session expired. Sign in again."
+        : `Could not load ${names[failed]}. Refresh to retry.`,
+    );
   const [
     projectsPayload,
     postsPayload,
@@ -122,12 +153,19 @@ export async function fetchAdminDashboardData(): Promise<AdminDashboardData> {
   ]);
 
   return {
-    projects: Array.isArray(projectsPayload) ? projectsPayload as Project[] : [],
-    posts: Array.isArray(postsPayload) ? postsPayload as Post[] : [],
-    messages: Array.isArray(messagesPayload) ? messagesPayload as ContactMsg[] : [],
+    projects: Array.isArray(projectsPayload)
+      ? (projectsPayload as Project[])
+      : [],
+    posts: Array.isArray(postsPayload) ? (postsPayload as Post[]) : [],
+    messages: messagesPayload?.items ?? [],
+    unreadMessages: messagesPayload?.unread ?? 0,
+    activeMessages: messagesPayload?.active ?? 0,
     settings:
       settingsPayload && typeof settingsPayload === "object"
-        ? { ...DEFAULT_SITE_SETTINGS, ...(settingsPayload as Partial<SiteSettings>) }
+        ? {
+            ...DEFAULT_SITE_SETTINGS,
+            ...(settingsPayload as Partial<SiteSettings>),
+          }
         : DEFAULT_SITE_SETTINGS,
     linkClicks:
       linkClicksPayload && typeof linkClicksPayload === "object"
@@ -143,7 +181,9 @@ export async function saveProjectRecord(project: EditableProject): Promise<{
   error?: string;
 }> {
   const method = project.id ? "PUT" : "POST";
-  const url = project.id ? `/v1/api/projects/${project.id}` : "/v1/api/projects";
+  const url = project.id
+    ? `/v1/api/projects/${project.id}`
+    : "/v1/api/projects";
   const response = await fetch(url, {
     method,
     headers: { "Content-Type": "application/json" },
@@ -154,7 +194,7 @@ export async function saveProjectRecord(project: EditableProject): Promise<{
     return { ok: true };
   }
 
-  const payload = await response.json().catch(() => ({})) as {
+  const payload = (await response.json().catch(() => ({}))) as {
     error?: string;
   };
   return {
@@ -163,12 +203,21 @@ export async function saveProjectRecord(project: EditableProject): Promise<{
   };
 }
 
-export async function deleteProjectRecord(id: string): Promise<boolean> {
-  const response = await fetch(`/v1/api/projects/${id}`, { method: "DELETE" });
+export async function deleteProjectRecord(
+  id: string,
+  version: number,
+): Promise<boolean> {
+  const response = await fetch(`/v1/api/projects/${id}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ version }),
+  });
   return response.ok;
 }
 
-export async function saveSiteSettings(settings: SiteSettings): Promise<{
+export async function saveSiteSettings(
+  settings: SiteSettings & { _version?: number },
+): Promise<{
   ok: boolean;
   settings?: SiteSettings;
   error?: string;
@@ -176,11 +225,11 @@ export async function saveSiteSettings(settings: SiteSettings): Promise<{
   const response = await fetch("/v1/api/settings", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(settings),
+    body: JSON.stringify({ ...settings, version: settings._version }),
   });
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({})) as {
+    const payload = (await response.json().catch(() => ({}))) as {
       error?: string;
     };
     return {
@@ -191,6 +240,6 @@ export async function saveSiteSettings(settings: SiteSettings): Promise<{
 
   return {
     ok: true,
-    settings: await response.json() as SiteSettings,
+    settings: (await response.json()) as SiteSettings,
   };
 }

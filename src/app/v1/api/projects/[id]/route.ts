@@ -1,8 +1,9 @@
+import { cmsActor, cmsErrorResponse, readJson } from "@/lib/cmsServer";
+import { requireVersion } from "@/lib/cmsRules";
 import { NextResponse } from "next/server";
 import {
   deleteProject,
   getProjectByIdOrNumber,
-  ProjectCatalogError,
   updateProject,
 } from "@/lib/projectCatalog";
 import { requireAdminMutation } from "@/lib/requestSecurity";
@@ -22,7 +23,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
     return NextResponse.json(project);
   } catch {
-    return NextResponse.json({ error: "Failed to fetch project" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch project" },
+      { status: 500 },
+    );
   }
 }
 
@@ -33,17 +37,18 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (denied) return denied;
 
     const { id } = await params;
-    const project = await updateProject(id, await request.json());
+    const project = await updateProject(
+      id,
+      await readJson(request),
+      await cmsActor(),
+    );
     if (!project) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     return NextResponse.json(project);
   } catch (error) {
-    if (error instanceof ProjectCatalogError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
+    return cmsErrorResponse(error);
   }
 }
 
@@ -54,10 +59,14 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     if (denied) return denied;
 
     const { id } = await params;
-    await deleteProject(id);
+    await deleteProject(
+      id,
+      requireVersion(await readJson(request)),
+      await cmsActor(),
+    );
 
     return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Failed to delete project" }, { status: 500 });
+  } catch (error) {
+    return cmsErrorResponse(error);
   }
 }

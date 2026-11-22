@@ -48,7 +48,7 @@ export function ProjectEditor({ project, defaultSortOrder, onSave, onCancel }: {
     if (!fields.title.trim()) { setMessage("Give the project a title."); return; }
     setBusy(true); setMessage("");
     try {
-      await onSave({ ...(project?.id ? { id: project.id, expectedUpdatedAt: project.updatedAt } : {}), ...fields,
+      await onSave({ ...(project?.id ? { id: project.id, version: project.version } : {}), ...fields,
         description: fields.description.trim() || postDocumentText(body ?? null).slice(0, 400) || fields.title.trim(),
         tags: fields.tags.split(",").map(tag => tag.trim()).filter(Boolean),
         caseStudy: { ...original, bodyJson: body, subtitle: fields.description.trim() || undefined, pitch: fields.description.trim() || undefined,

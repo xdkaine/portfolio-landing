@@ -18,7 +18,7 @@ async function login(page: Page) {
   if (sessionCookies.length) {
     await page.context().addCookies(sessionCookies);
     await page.goto("/v1/admin");
-    await expect(page.getByRole("heading", { name: "DASHBOARD", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Analytics", exact: true })).toBeVisible();
     return;
   }
   await page.goto("/v1/login");
@@ -32,7 +32,7 @@ async function login(page: Page) {
   expect((await authenticated).ok()).toBeTruthy();
   sessionCookies = await page.context().cookies();
   await page.waitForURL(/\/v1\/admin/);
-  await expect(page.getByRole("heading", { name: "DASHBOARD", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Analytics", exact: true })).toBeVisible();
 }
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=", "base64");
 async function addLayout(page: Page, layout: "right" | "wide", count = 1) {
@@ -64,7 +64,7 @@ test.describe("Content authoring in the disposable stack", () => {
     test.skip(!authorizedFixture(baseURL), "CMS writes are limited to the guarded disposable stack.");
     test.setTimeout(180000);
     await login(page);
-    await page.getByRole("tab", { name: /^PROJECTS/ }).click();
+    await page.getByRole("button", { name: /^Projects(?:\s|$)/ }).click();
     await page.getByRole("button", { name: /NEW PROJECT/ }).click();
     const title = `Editorial project ${randomUUID().slice(0, 8)}`;
     await page.getByLabel("Project title", { exact: true }).fill(title);
@@ -94,9 +94,9 @@ test.describe("Content authoring in the disposable stack", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.setViewportSize({ width: 1440, height: 1000 });
-    const stale = await page.request.put(`/v1/api/projects/${project.id}`, { data: { title: title + " first", expectedUpdatedAt: project.updatedAt } });
+    const stale = await page.request.put(`/v1/api/projects/${project.id}`, { data: { title: title + " first", version: project.version } });
     expect(stale.ok()).toBeTruthy();
-    const conflict = await page.request.put(`/v1/api/projects/${project.id}`, { data: { title: "stale overwrite", expectedUpdatedAt: project.updatedAt } });
+    const conflict = await page.request.put(`/v1/api/projects/${project.id}`, { data: { title: "stale overwrite", version: project.version } });
     expect(conflict.status()).toBe(409);
   });
 
@@ -108,7 +108,7 @@ test.describe("Content authoring in the disposable stack", () => {
     expect(result.ok()).toBeTruthy(); const project = await result.json(); createdProjects.push(project.id);
     await page.goto("/v1/admin?tab=projects");
     const row = page.locator("div.group").filter({ has: page.getByText(title, { exact: true }) });
-    await row.getByRole("button", { name: /EDIT/ }).click();
+    await row.getByRole("button", { name: /edit/i }).click();
     await page.getByLabel("Project title", { exact: true }).fill(title + " edited");
     await page.getByRole("button", { name: "Save project", exact: true }).click();
     await expect(page.getByText("Project saved.", { exact: true })).toBeVisible();
@@ -117,7 +117,7 @@ test.describe("Content authoring in the disposable stack", () => {
     await page.goto(`/v1/projects/${project.number}`);
     await expect(page.getByRole("cell", { name: "One", exact: true })).toBeVisible();
     await page.goto("/v1/admin?tab=projects");
-    await page.locator("div.group").filter({ has: page.getByText(title + " edited", { exact: true }) }).getByRole("button", { name: /EDIT/ }).click();
+    await page.locator("div.group").filter({ has: page.getByText(title + " edited", { exact: true }) }).getByRole("button", { name: /edit/i }).click();
     await page.getByRole("textbox", { name: "Page content", exact: true }).press("Control+End"); await page.keyboard.type(" Added in the visual editor.");
     await page.getByRole("button", { name: "Save project", exact: true }).click();
     await expect(page.getByText("Project saved.", { exact: true })).toBeVisible();
@@ -129,8 +129,8 @@ test.describe("Content authoring in the disposable stack", () => {
   test("write, preview, publish and archive a post without filling technical metadata", async ({ page, baseURL }) => {
     test.skip(!authorizedFixture(baseURL), "CMS writes are limited to the guarded disposable stack.");
     test.setTimeout(180000); await login(page);
-    await page.getByRole("tab", { name: /^BLOG POSTS/ }).click();
-    await page.getByRole("button", { name: /NEW BLOG POST/ }).click();
+    await page.getByRole("button", { name: /^Posts(?:\s|$)/ }).click();
+    await page.getByRole("button", { name: /New blog post/ }).click();
     await expect(page.getByRole("heading", { name: "Write a blog post" })).toBeVisible();
     const id = page.url().split("/").at(-1)!; createdPosts.push(id);
     const title = `Editorial post ${randomUUID().slice(0, 8)}`;
@@ -168,14 +168,16 @@ test.describe("Content authoring in the disposable stack", () => {
     test.setTimeout(120000); await login(page);
     const original = await (await page.request.get("/v1/api/about")).json();
     try {
-      await page.getByRole("tab", { name: /^ABOUT/ }).click();
+      await page.getByRole("button", { name: /^About(?:\s|$)/ }).click();
       await page.getByRole("textbox", { name: "Page title", exact: true }).fill("ABOUT EDITORIAL QA");
       await page.getByRole("textbox", { name: /Current role/ }).fill("Builder and developer");
       page.once("dialog", dialog => dialog.dismiss());
-      await page.getByRole("tab", { name: /^PROJECTS/ }).click();
+      await page.getByRole("button", { name: /^Projects(?:\s|$)/ }).click();
       await expect(page.getByRole("heading", { name: "Edit About", exact: true })).toBeVisible();
       await page.getByRole("button", { name: "Save About", exact: true }).click();
       await expect(page.getByRole("status")).toContainText("About saved");
+      const activity = await (await page.request.get("/v1/api/admin/activity")).json();
+      expect(activity.some((item: { entity: string; summary: string }) => item.entity === "about" && item.summary === "ABOUT EDITORIAL QA")).toBe(true);
       const conflict = await page.request.put("/v1/api/about", { data: { ...original, content: { ...original.content, title: "STALE ABOUT" } } });
       expect(conflict.status()).toBe(409);
       await page.setViewportSize({ width: 390, height: 844 });
@@ -195,8 +197,14 @@ test.describe("Content authoring in the disposable stack", () => {
     try {
       if (sessionCookies.length) await page.context().addCookies(sessionCookies);
       else if (createdPosts.length || createdProjects.length) await login(page);
-      for (const id of createdPosts) await page.request.delete(`/v1/api/admin/posts/${id}`);
-      for (const id of createdProjects) await page.request.delete(`/v1/api/projects/${id}`);
+      for (const id of createdPosts) {
+        const record = await (await page.request.get(`/v1/api/admin/posts/${id}`)).json();
+        expect((await page.request.delete(`/v1/api/admin/posts/${id}`, { data: { version: record.version } })).ok()).toBeTruthy();
+      }
+      for (const id of createdProjects) {
+        const record = await (await page.request.get(`/v1/api/projects/${id}`)).json();
+        expect((await page.request.delete(`/v1/api/projects/${id}`, { data: { version: record.version } })).ok()).toBeTruthy();
+      }
     } finally { await page.close(); }
     if (bootstrapped) execFileSync("docker", ["compose", "-p", "portfolio-ci", "-f", "docker-compose.test.yml", "exec", "-T", "db", "psql", "-XAtq", "-v", "ON_ERROR_STOP=1", "-U", "xtomm", "-d", "portfolio"], { input: `DELETE FROM users WHERE email='${credentials.email}';`, encoding: "utf8", timeout: 10000 });
   });
