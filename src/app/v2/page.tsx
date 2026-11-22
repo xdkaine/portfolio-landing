@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { PORTFOLIO_TITLE } from "@/lib/v2/siteMetadata";
 import { getAboutContent } from "@/lib/aboutStore";
 import { DEFAULT_ABOUT_CONTENT } from "@/lib/aboutContent";
 import { projectCover } from "@/lib/projectMedia";
@@ -9,6 +11,8 @@ import { buildHomeStats } from "@/lib/homeStats";
 import { listProjects } from "@/lib/projectCatalog";
 import { getSiteSettings } from "@/lib/siteSettings";
 import { pickPublicSiteSettings } from "@/lib/siteSettings-schema";
+
+export const metadata: Metadata = { title: { absolute: PORTFOLIO_TITLE } };
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
