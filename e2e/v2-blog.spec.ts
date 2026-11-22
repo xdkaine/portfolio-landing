@@ -79,6 +79,12 @@ test.describe("V2 published blog content", () => {
       await page.goto("/v2/projects");
       const project = page.getByRole("link", { name: /^View project:/ }).first();
       await expect(project).toHaveAttribute("href", /^\/v2\/projects\//);
+      // With page scripts disabled, Chromium can stall its actionability RAF
+      // after observing the CSS entrance mid-flight. Wait for that finite
+      // entrance to finish, then exercise the same native pointer navigation.
+      await expect.poll(() => project.evaluate(element =>
+        element.closest(".scroll-reveal-content")?.getAnimations().every(animation => animation.playState === "finished") ?? true,
+      )).toBe(true);
       await project.click();
       await expect(page).toHaveURL(/\/v2\/projects\//);
       await expect(page.locator("main h1")).toBeVisible();
