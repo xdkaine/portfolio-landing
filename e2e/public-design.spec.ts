@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { test, expect } from "@playwright/test";
+import { expectBlockReplay } from "./scroll-helpers";
 
 const fixtureId = `public-design-${randomUUID()}`;
 // Keep the catalog marker short; the title is the intentional long-content fixture.
@@ -44,6 +45,17 @@ test.describe("Public portfolio interactions", () => {
   test.afterAll(async ({ baseURL }) => {
     if (!fixturesCreated) return;
     disposableSql(baseURL, `DELETE FROM site_settings WHERE key=${literal(`project_case_${fixtureNumber}`)}; DELETE FROM projects WHERE id=${literal(fixtureId)};`);
+  });
+
+  test("project write-up blocks replay their scroll reveal", async ({ page, request }) => {
+    await page.setViewportSize({ width: 1280, height: 500 });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    const projects = await (await request.get("/v1/api/projects")).json() as PublicProject[];
+    const project = projects.find(item => item.number === fixtureNumber) ?? projects[0];
+    expect(project).toBeTruthy();
+    await page.goto(`/v1/projects/${project.number}`);
+    await page.evaluate(() => document.fonts.ready);
+    await expectBlockReplay(page, page.locator('[aria-label="Project story"] .article-prose > [data-story-reveal]').first());
   });
 
   test("mobile navigation closes with Escape and returns focus", async ({ page }) => {

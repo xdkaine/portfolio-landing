@@ -103,7 +103,7 @@ export function PostArticle({
               />
             </figure>
           ) : (
-            <PublicSharedElement kind="post-cover" itemKey={post.slug}>
+            <ScrollReveal variant="media"><PublicSharedElement kind="post-cover" itemKey={post.slug}>
               <figure className="article-cover-frame mb-12">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -116,17 +116,17 @@ export function PostArticle({
                   decoding="async"
                 />
               </figure>
-            </PublicSharedElement>
+            </PublicSharedElement></ScrollReveal>
           ) : null}
 
           <article className="min-w-0">
             {post.bodyJson ? (
-              <PostDocumentBody document={post.bodyJson} story />
+              <PostDocumentBody document={post.bodyJson} story reveal={!preview} />
             ) : post.content ? (
-              <LegacyPostBody content={post.content} story />
+              <LegacyPostBody content={post.content} story reveal={!preview} />
             ) : (
               <div className="article-prose">
-                <p>{post.excerpt}</p>
+                <ScrollReveal disabled={preview}><p>{post.excerpt}</p></ScrollReveal>
                 <p className="border border-iron bg-surface/40 p-6 text-smoke">
                   This blog post has not yet been expanded into a full article.
                 </p>
@@ -140,18 +140,18 @@ export function PostArticle({
         <footer className="px-6 md:px-12 lg:px-24 py-12 border-t border-iron">
           {related.length > 0 ? (
             <div className="mb-12">
-              <p className="text-[10px] tracking-[0.3em] text-steel mb-5">RELATED BLOG POSTS</p>
+              <ScrollReveal><p className="text-[10px] tracking-[0.3em] text-steel mb-5">RELATED BLOG POSTS</p></ScrollReveal>
               <div className="grid md:grid-cols-3 gap-4">
                 {related.map((item) => (
-                  <PublicLink key={item.slug} href={`/v1/blog/${item.slug}`} intent="sibling-next" className="border border-iron p-4 hover:border-ember transition-colors">
+                  <ScrollReveal key={item.slug} variant="row"><PublicLink href={`/v1/blog/${item.slug}`} intent="sibling-next" className="block border border-iron p-4 hover:border-ember transition-colors">
                     <span className="text-[9px] tracking-[0.18em] text-steel">{item.date}</span>
                     <p className="font-display text-lg mt-3 hover:text-ember">{item.title}</p>
-                  </PublicLink>
+                  </PublicLink></ScrollReveal>
                 ))}
               </div>
             </div>
           ) : null}
-          <div className="flex flex-col md:flex-row justify-between gap-6 text-[10px] tracking-[0.2em]">
+          <ScrollReveal variant="row"><div className="flex flex-col md:flex-row justify-between gap-6 text-[10px] tracking-[0.2em]">
             <PublicLink
               href="/v1/blog"
               intent="drill-out"
@@ -163,7 +163,7 @@ export function PostArticle({
               {previous ? <PublicLink href={`/v1/blog/${previous.slug}`} intent="sibling-prev" className="text-ash hover:text-ember">PREV: {previous.title}</PublicLink> : null}
               {next ? <PublicLink href={`/v1/blog/${next.slug}`} intent="sibling-next" className="text-ash hover:text-ember">NEXT: {next.title}</PublicLink> : null}
             </div>
-          </div>
+          </div></ScrollReveal>
         </footer>
       ) : null}
     </>

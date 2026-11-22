@@ -3,6 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test, expect, type Page, type Cookie } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { expectBlockReplay } from "./scroll-helpers";
 
 const credentials = { email: `editorial-${randomUUID()}@example.invalid`, password: randomBytes(24).toString("hex") };
 const createdProjects: string[] = [];
@@ -142,6 +143,7 @@ test.describe("Content authoring in the disposable stack", () => {
     await page.goto(`/v1/admin/posts/${id}/preview`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
     await expect(page.locator('figure[data-layout="wide"] img')).toHaveAttribute("alt", "Synthetic editorial image 1");
+    await expect(page.locator('[data-story-reveal]')).toHaveCount(0);
     expect((await page.request.get(`/v1/api/posts/${draft.slug}`)).status()).toBe(404);
     await page.goto(`/v1/admin/posts/${id}`);
     await page.getByRole("button", { name: "PUBLISH", exact: true }).click();
@@ -150,6 +152,10 @@ test.describe("Content authoring in the disposable stack", () => {
     expect(published.excerpt).toContain("opening text");
     await page.goto(`/v1/blog/${draft.slug}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+    await page.setViewportSize({ width: 1280, height: 500 });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await expectBlockReplay(page, page.locator('article .article-prose > [data-story-reveal]').first());
+    await page.emulateMedia({ reducedMotion: "reduce" });
     const scan = await new AxeBuilder({ page }).analyze(); expect(scan.violations).toEqual([]);
     await page.goto(`/v1/admin/posts/${id}`);
     await page.getByRole("button", { name: "ARCHIVE", exact: true }).click();

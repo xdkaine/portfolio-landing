@@ -44,7 +44,47 @@ test('Home reveals follow scroll position, pause with scrolling, and finish with
   await renderScroll(page, top, 0.42);
   expect(await opacity(heading)).toBeGreaterThan(0.99);
   await renderScroll(page, top, 0.78);
+  expect(Math.abs(await opacity(heading) - partial)).toBeLessThan(0.015);
+  await renderScroll(page, top, 1.04);
+  expect(await opacity(heading)).toBeLessThan(0.01);
+  await renderScroll(page, top, 0.42);
   expect(await opacity(heading)).toBeGreaterThan(0.99);
+});
+
+test('About story blocks rewind without changing document layout or mounting new content', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 500 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/v1/about');
+  await page.evaluate(() => document.fonts.ready);
+  const block = page.locator('[aria-label="About me"] .article-prose > [data-story-reveal]').first();
+  await expect(block).toBeAttached();
+  const before = await block.evaluate(element => ({ top: element.getBoundingClientRect().top + scrollY, height: element.getBoundingClientRect().height, text: element.textContent }));
+  await renderScroll(page, before.top, 0.78);
+  const partial = await opacity(block);
+  expect(partial).toBeGreaterThan(0.2);
+  expect(partial).toBeLessThan(0.8);
+  await page.waitForTimeout(150);
+  expect(await opacity(block)).toBeCloseTo(partial, 2);
+  await renderScroll(page, before.top, 0.42);
+  expect(await opacity(block)).toBe(1);
+  await renderScroll(page, before.top, 1.04);
+  expect(await opacity(block)).toBe(0);
+  await renderScroll(page, before.top, 0.78);
+  expect(await opacity(block)).toBeCloseTo(partial, 2);
+  expect(await block.evaluate(element => ({ top: element.getBoundingClientRect().top + scrollY, height: element.getBoundingClientRect().height, text: element.textContent }))).toEqual(before);
+});
+
+test('the last reveal finishes smoothly with the remaining document scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1200 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/v1');
+  await page.evaluate(() => document.fonts.ready);
+  const last = page.locator('[data-scroll-reveal]').last();
+  await page.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight - innerHeight - 8, behavior: 'instant' }));
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))));
+  expect(await opacity(last)).toBeGreaterThan(0.9);
+  await page.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
+  await expect.poll(() => opacity(last)).toBe(1);
 });
 
 test('public page headings use the Blog entrance treatment on initial loading', async ({ page }) => {
@@ -119,4 +159,9 @@ test('keyboard focus makes a scroll-revealed action immediately readable', async
   await action.focus();
   await expect(action).toBeFocused();
   await expect.poll(() => opacity(action)).toBe(1);
+  const top = await action.evaluate(element => element.closest('[data-scroll-reveal]')!.getBoundingClientRect().top + scrollY);
+  await renderScroll(page, top, 1.04);
+  expect(await opacity(action)).toBe(1);
+  await page.locator('nav').first().getByRole('link', { name: 'Home', exact: true }).focus();
+  await expect.poll(() => opacity(action)).toBeLessThan(0.01);
 });
