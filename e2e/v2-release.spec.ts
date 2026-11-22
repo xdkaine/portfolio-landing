@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { ensureProjectFixture, removeProjectFixture } from "./fixture-project";
 import { resolve } from "node:path";
+
+let fixture: string | null = null;
+test.beforeAll(({ baseURL }) => { fixture = ensureProjectFixture(baseURL); });
+test.afterAll(({ baseURL }) => removeProjectFixture(baseURL, fixture));
 
 test("V2 exposes the same published catalog through read-only versioned APIs", async ({ request }) => {
   const projects = await (await request.get("/v1/api/projects")).json();

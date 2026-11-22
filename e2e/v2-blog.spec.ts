@@ -1,12 +1,14 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { test, expect } from "@playwright/test";
+import { ensureProjectFixture, removeProjectFixture } from "./fixture-project";
 import { expectBlockReplay } from "./scroll-helpers";
 
 const id = randomUUID();
 const marker = `v2-blog-${id}`;
 const slugs = { published: `${marker}-published`, draft: `${marker}-draft`, archived: `${marker}-archived` };
 let seeded = false;
+let projectFixture: string | null = null;
 const literal = (value: string) => `'${value.replaceAll("'", "''")}'`;
 const disposable = (baseURL?: string) => process.env.CI === "true" && baseURL === "https://127.0.0.1:18089";
 function sql(baseURL: string | undefined, statement: string) {
@@ -17,6 +19,7 @@ function sql(baseURL: string | undefined, statement: string) {
 test.describe("V2 published blog content", () => {
   test.beforeAll(async ({ baseURL }) => {
     if (!disposable(baseURL)) return;
+    projectFixture = ensureProjectFixture(baseURL);
     const body = JSON.stringify({ type: "doc", content: [
       { type: "paragraph", content: [{ type: "text", text: `Published body ${marker}` }] },
       { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "A published section" }] },
@@ -30,6 +33,7 @@ test.describe("V2 published blog content", () => {
     seeded = true;
   });
   test.afterAll(async ({ baseURL }) => {
+    removeProjectFixture(baseURL, projectFixture);
     if (seeded) sql(baseURL, `DELETE FROM posts WHERE id IN (${Object.values(slugs).map(literal).join(",")});`);
   });
 
