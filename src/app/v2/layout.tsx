@@ -8,6 +8,9 @@ import { LinkClickTracker } from "@/components/LinkClickTracker";
 import { parseIdentityAliases } from "@/lib/brandAliases";
 import { getSiteSettings } from "@/lib/siteSettings";
 
+// Public settings and legal copy must come from the current production CMS.
+export const revalidate = 0;
+
 export default async function V2Layout({
   children,
 }: {
