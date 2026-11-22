@@ -119,3 +119,14 @@ test("reports fill empty days and keep page views distinct from clicks and submi
   assert.equal(report.pages[0].count, 6);
   assert.equal(report.totals.clicks, 2);
 });
+
+
+test("V2 public events retain privacy filtering and reject private destinations", () => {
+  assert.equal(normalizeAnalyticsEvent({ type: "pageview", path: "/v2?email=private#section" })?.path, "/v2");
+  assert.equal(normalizeAnalyticsEvent({ type: "pageview", path: "/v2/blog/project-notes?token=private" })?.path, "/v2/blog/project-notes");
+  assert.equal(normalizeAnalyticsEvent({ type: "click", path: "/v2", destination: "/v2/projects/1?private=yes#section" })?.destination, "/v2/projects/1");
+  for (const path of ["/v2/admin", "/v2/api/projects", "/v2/login", "/v2/%61dmin", "/v2/blog/../admin"]) {
+    assert.equal(normalizeAnalyticsEvent({ type: "pageview", path }), null, path);
+    assert.equal(normalizeAnalyticsEvent({ type: "click", path: "/v2", destination: path }), null, path);
+  }
+});

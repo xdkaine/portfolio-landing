@@ -7,7 +7,7 @@ Observed 21 November 2026. The user requested replacing DEV V2 with the reviewed
 - V2 now uses the reviewed portfolio design: project imagery and modular stories, editable About content, simplified authoring, GIF/build footer, directional page entrances, metric/headline animations and reversible scroll reveals. Its components and styles are isolated under V2. Existing studio work/writing bookmarks redirect to the matching current pages.
 - Preserve main's existing public V1 design. The production root redirects to V2; DEV's root remains V1. V2 has its own canonical metadata, feed, open-graph images, sitemap entries and read-only API adapters over the shared published CMS catalog.
 - Retain production sign-in and central account-link behavior exactly. The unrelated DEV admin approval-session feature, routes and two grant migrations are excluded. Prisma schema and production migrations match main; this release adds no database migration.
-- Keep main's analytics preferences and visitor analytics, inbox, activity, explicit optimistic versions, recoverable trash, post revisions, working drafts and canonical no-store editor loader. Modern project/post/About editors use those existing contracts. Private previews render the V2 article without public chrome or scroll reveals.
+- Keep main's analytics preferences and extend its existing public analytics path rules to V2, including contact opt-out/context and version-correct contact attribution. Preserve visitor analytics, inbox, activity, explicit optimistic versions, recoverable trash, post revisions, working drafts and canonical no-store editor loader. Modern project/post/About editors use those existing contracts. Private previews render the V2 article without public chrome or scroll reveals.
 - About saves use the bounded JSON reader and create an activity event in the same transaction. Project creation serializes automatic numbering. Legacy documents/media/URLs remain supported. The existing public asset and admin URLs stay under V1.
 - Preserve main's dependency/tooling versions with the scoped Effect 3.22.1 override. Fonts are the exact bundled DEV assets. No additional framework upgrade is included.
 
@@ -19,7 +19,7 @@ Production uses `ADMIN_AUTH_MODE=oidc` and `OIDC_ACCOUNT_LINK_MODE=idp`. Existin
 
 ## Validation and delivery
 
-Local preparation currently passes TypeScript, lint (two existing/copy image warnings) 98 Windows unit tests, a normal production build, and the dependency gate (zero high/critical, eight existing moderate advisories). Exact-candidate Linux CMS integration, browser, visual, dependency and production build checks remain pending. Existing V1-approved visual baselines are reused for V2 without rewriting them.
+Local preparation currently passes TypeScript, lint (two existing/copy image warnings) 99 Windows unit tests, a normal production build, and the dependency gate (zero high/critical, eight existing moderate advisories). Exact-candidate Linux CMS integration, browser, visual, dependency and production build checks remain pending. Existing V1-approved visual baselines are reused for V2 without rewriting them.
 
 Use the normal manually dispatched Local CI/CD workflow on `codex/prepare-portfolio-main`. Manual branches validate and package without deploying. Keep shared CI queue order. Preserve the isolated test DB's main-only loopback port 18090 required by the retained CMS integration gate.
 

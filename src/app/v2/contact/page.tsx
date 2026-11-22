@@ -1,4 +1,6 @@
 "use client";
+import { clientVisitorContext } from "@/lib/visitorClient";
+import { trackingAllowed } from "@/lib/trackLinkClick";
 
 import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -84,6 +86,8 @@ export default function ContactPage() {
         body: JSON.stringify({
           ...formData,
           consent,
+          sourcePath: "/v2/contact",
+          analytics: trackingAllowed() ? clientVisitorContext() : false,
           turnstileToken,
           company: honeypot,
         }),

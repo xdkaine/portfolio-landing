@@ -29,8 +29,8 @@ export function publicAnalyticsPath(value: unknown): string | null {
         new URL(value, "https://local.invalid").pathname,
       ).replace(/\/+$/, "") || "/";
     if (
-      path !== "/v1" &&
-      !/^\/v1\/(blog|projects|about|contact|privacy|terms)(\/|$)/.test(path)
+      !/^\/v[12]$/.test(path) &&
+      !/^\/v[12]\/(blog|projects|about|contact|privacy|terms)(\/|$)/.test(path)
     )
       return null;
     if (path.length > 300 || /[?#\\\x00-\x1f]/.test(path)) return null;
@@ -75,7 +75,7 @@ export function normalizeAnalyticsEvent(input: unknown): AnalyticsEvent | null {
             ? url.pathname
             : url.origin + url.pathname;
         if (destination.length > 500) return null;
-        if (destination.startsWith("/v1/") && !publicAnalyticsPath(destination))
+        if (/^\/v[12]\//.test(destination) && !publicAnalyticsPath(destination))
           return null;
       } catch {
         return null;
