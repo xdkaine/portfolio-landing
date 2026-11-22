@@ -1,36 +1,12 @@
 "use client";
 
-import { motion, useMotionValue, useTransform, type MotionValue } from "motion/react";
-import { useLayoutEffect, useRef, type RefObject } from "react";
-import { useReducedMotion } from "@/lib/useReducedMotion";
+import { motion, useTransform, type MotionValue } from "motion/react";
+import { useRef } from "react";
+import { useViewportProgress } from "@/lib/useViewportProgress";
 import type { HomeStat } from "@/lib/homeStats";
 
 const HEADLINE = "BUILDING ANYTHING & EVERYTHING.";
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
-
-// Keep SSR/no-JS readable. Enhance only after measuring the real viewport.
-// Scroll changes schedule one frame; a stationary page never advances on a timer.
-function useViewportProgress(ref: RefObject<HTMLElement | null>, start: number, end: number) {
-  const progress = useMotionValue(1);
-  const reduced = useReducedMotion();
-  useLayoutEffect(() => {
-    if (reduced || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { progress.set(1); return; }
-    let frame = 0;
-    let active = true;
-    const measure = () => {
-      frame = 0;
-      const element = ref.current;
-      if (active && element) progress.set(clamp((innerHeight * start - element.getBoundingClientRect().top) / (innerHeight * (start - end))));
-    };
-    const schedule = () => { if (!frame && active) frame = requestAnimationFrame(measure); };
-    schedule();
-    void document.fonts.ready.then(schedule);
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
-    return () => { active = false; cancelAnimationFrame(frame); window.removeEventListener("scroll", schedule); window.removeEventListener("resize", schedule); };
-  }, [end, progress, reduced, ref, start]);
-  return progress;
-}
 
 function Stat({ stat, index }: { stat: HomeStat; index: number }) {
   const ref = useRef<HTMLDivElement>(null);

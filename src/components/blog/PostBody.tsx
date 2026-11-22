@@ -10,6 +10,7 @@ import {
 } from "@/lib/postContent";
 import { normalizeV1PublicUrl } from "@/lib/v1Path";
 import { ImageCarousel } from "@/components/ImageCarousel";
+import { ScrollRevealGroup } from "@/components/ScrollRevealGroup";
 
 function markedText(text: ReactNode, marks: PostMark[] | undefined): ReactNode {
   return (marks ?? []).reduce<ReactNode>((children, mark) => {
@@ -24,7 +25,7 @@ function markedText(text: ReactNode, marks: PostMark[] | undefined): ReactNode {
   }, text);
 }
 
-export function PostDocumentBody({ document, story = false }: { document: PostDocument; story?: boolean }) {
+export function PostDocumentBody({ document, story = false, reveal = false }: { document: PostDocument; story?: boolean; reveal?: boolean }) {
   const headings = getPostHeadings(document);
   let headingIndex = 0;
 
@@ -79,27 +80,29 @@ export function PostDocumentBody({ document, story = false }: { document: PostDo
     return null;
   };
 
-  return <div className={`article-prose ${story ? "story-prose" : ""}`}>{document.content?.map((node, index) => renderNode(node, `node-${index}`))}</div>;
+  const children = document.content?.map((node, index) => renderNode(node, `node-${index}`));
+  const className = `article-prose ${story ? "story-prose" : ""}`;
+  return reveal ? <ScrollRevealGroup className={className}>{children}</ScrollRevealGroup> : <div className={className}>{children}</div>;
 }
 
-export function LegacyPostBody({ content, story = false, urlTransform = normalizeV1PublicUrl }: { content: string; story?: boolean; urlTransform?: (value: string) => string }) {
-  return (
-    <div className={`article-prose ${story ? "story-prose" : ""}`}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        urlTransform={urlTransform}
-        components={{
-          a: ({ href, children }) => href && isSafeArticleHref(href)
-            ? <a href={href} target={href.startsWith("/") || href.startsWith("#") ? undefined : "_blank"} rel="noopener noreferrer">{children}</a>
-            : <span>{children}</span>,
-          img: ({ src, alt }) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={src ?? ""} alt={alt ?? ""} width={1600} height={1000} loading="lazy" decoding="async" className="article-media article-media-legacy" />
-          ),
-        }}
-      >
-        {content}
-      </ReactMarkdown>
-    </div>
+export function LegacyPostBody({ content, story = false, reveal = false, urlTransform = normalizeV1PublicUrl }: { content: string; story?: boolean; reveal?: boolean; urlTransform?: (value: string) => string }) {
+  const children = (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      urlTransform={urlTransform}
+      components={{
+        a: ({ href, children }) => href && isSafeArticleHref(href)
+          ? <a href={href} target={href.startsWith("/") || href.startsWith("#") ? undefined : "_blank"} rel="noopener noreferrer">{children}</a>
+          : <span>{children}</span>,
+        img: ({ src, alt }) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src ?? ""} alt={alt ?? ""} width={1600} height={1000} loading="lazy" decoding="async" className="article-media article-media-legacy" />
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
   );
+  const className = `article-prose ${story ? "story-prose" : ""}`;
+  return reveal ? <ScrollRevealGroup className={className}>{children}</ScrollRevealGroup> : <div className={className}>{children}</div>;
 }
