@@ -13,6 +13,7 @@ interface FooterProps {
   brandName?: string;
   brandAliases?: string[];
   socials?: { label: string; href: string }[];
+  legalEffectiveDate?: string;
   chucklesGifUrl?: string;
 }
 
@@ -20,10 +21,11 @@ export function Footer({
   brandName = "Kaine",
   brandAliases = [],
   socials = DEFAULT_SOCIALS,
+  legalEffectiveDate,
   chucklesGifUrl,
 }: FooterProps) {
-  const revision = process.env.APP_REVISION?.trim();
-  const deployedRevision = revision && /^[0-9a-f]{40}$/i.test(revision) ? revision : null;
+  const legalDateText = legalEffectiveDate ? ` - UPDATED ${legalEffectiveDate}` : "";
+  const currentYear = new Date().getFullYear();
 
   return (
     <footer className="border-t-2 border-iron px-6 md:px-12 lg:px-24 py-12">
@@ -48,6 +50,9 @@ export function Footer({
               />
             )}
           </PublicLink>
+          <p className="text-ash text-[10px] mt-2 tracking-[0.2em] uppercase">
+            &copy; {currentYear} &mdash; ALL RIGHTS RESERVED{legalDateText}
+          </p>
           <div className="mt-4 flex items-center gap-4 text-[10px] tracking-[0.2em]">
             <PublicLink
               href="/v1/privacy"
@@ -81,14 +86,8 @@ export function Footer({
         </div>
       </div>
 
-      <div className="mt-12 flex flex-wrap items-center gap-x-5 gap-y-4 border-t border-iron pt-8">
+      <div className="mt-12 pt-8 border-t border-iron">
         <FooterChuckles gifUrl={chucklesGifUrl} />
-        {deployedRevision ? (
-          <a href={`https://github.com/xdkaine/portfolio-landing/commit/${deployedRevision}`} target="_blank" rel="noopener noreferrer" aria-label={`View build ${deployedRevision.slice(0, 8)} on GitHub`} className="group inline-flex min-h-8 items-center gap-2 text-xs text-ash transition-colors hover:text-bone" data-build-link>
-            <span aria-hidden="true" className="text-xs leading-none text-ember">●</span>
-            <strong className="font-semibold">Build <span className="underline decoration-iron underline-offset-4 group-hover:decoration-ember">{deployedRevision.slice(0, 8)}</span></strong>
-          </a>
-        ) : null}
       </div>
     </footer>
   );

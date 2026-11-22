@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useLayoutEffect, useRef, ViewTransition, type ComponentProps, type ReactNode } from "react";
+import { ViewTransition, type ComponentProps, type ReactNode } from "react";
 import {
-  entranceDirectionForNavigation,
   isPublicTransitionPath,
   sharedElementName,
   TRANSITION_TYPES,
@@ -13,28 +12,16 @@ import {
   type SharedElementKind,
 } from "@/lib/publicTransition";
 
-// Apply direction before native snapshots without scheduling another React update during navigation.
-export function PublicMotionRoot({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const root = useRef<HTMLElement>(null);
-  const previousPath = useRef<string | null>(null);
-  useLayoutEffect(() => {
-    if (root.current) root.current.dataset.pageEntry = entranceDirectionForNavigation(previousPath.current, pathname);
-    previousPath.current = pathname;
-  }, [pathname]);
-  return <main ref={root} id="main-content" data-portfolio-v1 data-page-entry="initial" className="flex-1 scroll-mt-20">{children}</main>;
-}
-
 const PAGE_TRANSITIONS = {
-  [TRANSITION_TYPES.sectionForward]: "portfolio-page",
-  [TRANSITION_TYPES.sectionBack]: "portfolio-page",
-  [TRANSITION_TYPES.drillIn]: "portfolio-page",
-  [TRANSITION_TYPES.drillOut]: "portfolio-page",
-  [TRANSITION_TYPES.siblingNext]: "portfolio-page",
-  [TRANSITION_TYPES.siblingPrev]: "portfolio-page",
-  [TRANSITION_TYPES.utility]: "portfolio-page",
+  [TRANSITION_TYPES.sectionForward]: "editorial-page-forward",
+  [TRANSITION_TYPES.sectionBack]: "editorial-page-back",
+  [TRANSITION_TYPES.drillIn]: "editorial-page-drill-in",
+  [TRANSITION_TYPES.drillOut]: "editorial-page-drill-out",
+  [TRANSITION_TYPES.siblingNext]: "editorial-page-next",
+  [TRANSITION_TYPES.siblingPrev]: "editorial-page-prev",
+  [TRANSITION_TYPES.utility]: "editorial-page-utility",
   [TRANSITION_TYPES.skip]: "none",
-  default: "portfolio-page",
+  default: "editorial-page-history",
 } as const;
 
 const SHARED_TRANSITIONS = {
@@ -44,7 +31,6 @@ const SHARED_TRANSITIONS = {
   "post-cover": "editorial-shared-media",
 } as const;
 
-// Place inside each page: the router owns its mount/unmount lifecycle, while the shell persists.
 export function PublicTransitionSurface({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
@@ -53,8 +39,8 @@ export function PublicTransitionSurface({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ViewTransition default="none" enter={PAGE_TRANSITIONS} exit={PAGE_TRANSITIONS} update="none">
-      <div className="public-transition-surface" data-public-page={pathname}>{children}</div>
+    <ViewTransition default="none" enter="none" exit="none" update={PAGE_TRANSITIONS}>
+      <div className="public-transition-surface">{children}</div>
     </ViewTransition>
   );
 }

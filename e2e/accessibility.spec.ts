@@ -4,10 +4,10 @@ import AxeBuilder from '@axe-core/playwright';
 const ROUTES_TO_TEST = [
   '/',
   '/v1/login',
-  '/v1/about',
-  '/v1/projects',
-  '/v1/blog',
-  '/v1/contact',
+  '/v2/about',
+  '/v2/projects',
+  '/v2/blog',
+  '/v2/contact',
 ];
 
 test.describe('Accessibility (a11y) Scans', () => {

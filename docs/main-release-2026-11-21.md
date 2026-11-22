@@ -1,35 +1,34 @@
-# Portfolio main release preparation
+# Portfolio V2 production release preparation
 
-Observed 21 November 2026. This candidate integrates DEV `4aa3c4970f1675e801d3ba730a349f75d13b1b3b` with main `ea98728eaeb9977b198824fefe146d5c19a5627c`. Production currently serves `f6fc355be24db27a62780e5ed79e0958c6def20f`.
+Observed 21 November 2026. The user requested replacing DEV V2 with the reviewed DEV V1 design and promoting that V2 to main. This candidate combines main `ea98728eaeb9977b198824fefe146d5c19a5627c` and DEV `f496939dce991dafda48ad5d1c02b5593631ee14`. Production still serves `f6fc355be24db27a62780e5ed79e0958c6def20f` at the preparation baseline.
 
 ## Release contents
 
-- V1 stays the default homepage. Bring across the DEV identity, project previews and stories, modular media editor, editable About page, footer GIF/build link, directional page transitions and reversible scroll reveals.
-- Keep the separately routed V2 pages. They do not replace V1.
-- Preserve main's central account links, client/mapping-version liveness checks, analytics opt-out, visitor analytics, inbox, activity, optimistic versions, recoverable trash, post revisions and working drafts. Integrate the new visual editors with those existing contracts.
-- Retain main's current dependency/tooling versions and DEV's scoped Effect override. Fonts remain the exact bundled DEV assets. The audit currently reports zero high/critical and eight existing moderate dependency findings. Next.js remains 16.4.2; no additional framework upgrade is included.
-- About saves use the CMS bounded JSON reader and create an activity event in the same transaction. Project creation keeps DEV's serialized automatic numbering. Existing project URLs remain intact.
+- V2 now uses the reviewed portfolio design: project imagery and modular stories, editable About content, simplified authoring, GIF/build footer, directional page entrances, metric/headline animations and reversible scroll reveals. Its components and styles are isolated under V2. Existing studio work/writing bookmarks redirect to the matching current pages.
+- Preserve main's existing public V1 design. Root routing remains V1 in this draft, pending the user's requested routing choice. V2 has its own canonical metadata, feed, open-graph images, sitemap entries and read-only API adapters over the shared published CMS catalog.
+- Retain production sign-in and central account-link behavior exactly. The unrelated DEV admin approval-session feature, routes and two grant migrations are excluded. Prisma schema and production migrations match main; this release adds no database migration.
+- Keep main's analytics preferences and visitor analytics, inbox, activity, explicit optimistic versions, recoverable trash, post revisions, working drafts and canonical no-store editor loader. Modern project/post/About editors use those existing contracts. Private previews render the V2 article without public chrome or scroll reveals.
+- About saves use the bounded JSON reader and create an activity event in the same transaction. Project creation serializes automatic numbering. Legacy documents/media/URLs remain supported. The existing public asset and admin URLs stay under V1.
+- Preserve main's dependency/tooling versions with the scoped Effect 3.22.1 override. Fonts are the exact bundled DEV assets. No additional framework upgrade is included.
 
 ## Production data and configuration
 
-The fresh public baseline contains eight projects and six published posts. DEV contains eight projects and two published posts. This is a code release: retain production data, media, settings, identities and runtime Secrets. Do not copy the DEV database or run demo/admin seeds against production.
+The fresh public baseline contains eight projects and six published posts; DEV has eight projects and two posts. Retain production database, media, settings, identities and runtime Secrets. Do not clone DEV data or run demo/admin seeds against production.
 
-Production uses `ADMIN_AUTH_MODE=oidc` and `OIDC_ACCOUNT_LINK_MODE=idp`; the candidate preserves that owner sign-in path. Both approval-session activation flags are absent in production. The new approval-session code remains disabled by default; this release does not activate it.
+Production uses `ADMIN_AUTH_MODE=oidc` and `OIDC_ACCOUNT_LINK_MODE=idp`. Existing callback URLs and authorization contracts remain unchanged. No test-access feature is included or activated.
 
-The two added migrations only create `test_access_grants` and add its legacy-safe scope column. Main's existing CMS/visitor migrations and schema models are retained. No destructive schema operation or content migration is planned.
+## Validation and delivery
 
-## Gates and delivery
+Local preparation currently passes TypeScript, lint (two existing/copy image warnings) 98 Windows unit tests, a normal production build, and the dependency gate (zero high/critical, eight existing moderate advisories). Exact-candidate Linux CMS integration, browser, visual, dependency and production build checks remain pending. Existing V1-approved visual baselines are reused for V2 without rewriting them.
 
-Validate the exact candidate through the normal manually dispatched Local CI/CD workflow on `codex/prepare-portfolio-main`. Manual branches run source, unit, CMS database integration, dependency, Linux build and browser checks, then package images; they do not submit a deployment. Preserve shared queue order.
+Use the normal manually dispatched Local CI/CD workflow on `codex/prepare-portfolio-main`. Manual branches validate and package without deploying. Keep shared CI queue order. Preserve the isolated test DB's main-only loopback port 18090 required by the retained CMS integration gate.
 
-Local preparation passes TypeScript, lint (one existing image warning), 124 unit tests and the high-severity audit gate. A normal production build completed after the existing Next.js upgrade reminder and its documented identical retry. Full exact-commit Linux/CMS/browser validation remains required. Existing public visual baselines must pass; do not accept new baselines just to hide a merge regression.
+Merging main triggers production deployment. Acceptance requires the exact applied receipt, retained image checksums, pre-migration backup, completed migration job, app readiness, actual public V2 behavior and intended V1/root routing. Compare the full production public catalog before/after. Validate canonical URLs, rendered media, scroll replay, reduced-motion/no-JavaScript reading, analytics opt-out, canonical SSO redirects and anonymous CMS protection. Protocol/guard checks do not establish an actual owner MFA sign-in.
 
-Merging to main automatically starts production CI/deployment. After the release decision, verify the exact main revision, retained-image checksums, target database backup, completed migration job, app readiness and `/var/lib/k3s-local-ci/portfolio-main.json` applied receipt. Check public rendering, images, counts, blog/project reading, reduced motion and replay on the real production hostname. Check canonical SSO redirects and anonymous CMS protection; distinguish protocol tests from an actual owner MFA sign-in.
+## Recovery and evidence
 
-## Recovery
+The preparation baseline production image is `docker.io/library/portfolio-local@sha256:20dd0667eeb82d5c1af9151eb16dce9c923ac23a01a328044b7f90ffd9c53b5a`. Retain its normal release package and the deploy backup under `/var/backups/portfolio-deploy`. Use the established root-owned deployment helper and retained image for application rollback. Do not replace helpers or automatically restore the database.
 
-The current production app digest is `sha256:20dd0667eeb82d5c1af9151eb16dce9c923ac23a01a328044b7f90ffd9c53b5a`. Retain its normal release package and the deployment's database backup under `/var/backups/portfolio-deploy`. Use the established root-owned deployment helper and previous image for application rollback. Do not replace helpers or restore a database automatically.
+No schema migration is added. Preserve rich story JSON; an older editor may strip unfamiliar nodes. An application rollback is not a database restore or restore-drill acceptance.
 
-The added grant table can remain when rolling the application back. New rich story JSON must be preserved; older editors may strip unfamiliar media nodes, so avoid editing those documents through an older editor. An application rollback is not a database restore or restore-drill acceptance.
-
-Public baseline, safe runtime-configuration inventory and final validation evidence belong in `artifacts/portfolio-main-prep-20261121` in the homelab workspace and its dated BookStack release note. Credentials and private content do not belong in release artifacts.
+Evidence belongs in the homelab workspace `artifacts/portfolio-main-prep-20261121` and its dated agent-owned BookStack release note. The user's original dirty checkout is untouched. No extra preview server or database was started outside the standard CI stack.

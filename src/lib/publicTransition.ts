@@ -23,14 +23,7 @@ export const TRANSITION_TYPES = {
   skip: "editorial-skip",
 } as const;
 
-export const PUBLIC_NAVIGATION = [
-  { href: "/v1", label: "Home" },
-  { href: "/v1/projects", label: "PROJECTS" },
-  { href: "/v1/blog", label: "BLOG" },
-  { href: "/v1/about", label: "ABOUT" },
-  { href: "/v1/contact", label: "CONTACT" },
-] as const;
-const PUBLIC_SECTIONS = PUBLIC_NAVIGATION.map(item => item.href);
+const PUBLIC_SECTIONS = ["/v1", "/v1/projects", "/v1/blog", "/v1/about", "/v1/contact"] as const;
 const PUBLIC_UTILITY_PATHS = new Set(["/v1/privacy", "/v1/terms"]);
 
 function pathOnly(value: string): string {
@@ -53,20 +46,6 @@ export function publicSectionForPath(value: string): string | null {
 
 export function isPublicTransitionPath(value: string): boolean {
   return publicSectionForPath(value) !== null;
-}
-
-export type PublicEntranceDirection = "initial" | "from-left" | "from-right";
-
-export function entranceDirectionForNavigation(fromPath: string | null, toPath: string): PublicEntranceDirection {
-  if (!fromPath || pathOnly(fromPath) === pathOnly(toPath)) return "initial";
-  const from = publicSectionForPath(fromPath);
-  const to = publicSectionForPath(toPath);
-  if (!from || !to) return "initial";
-  const fromIndex = PUBLIC_SECTIONS.indexOf(from as (typeof PUBLIC_SECTIONS)[number]);
-  const toIndex = PUBLIC_SECTIONS.indexOf(to as (typeof PUBLIC_SECTIONS)[number]);
-  if (fromIndex < 0 || toIndex < 0) return "initial";
-  if (fromIndex === toIndex) return pathOnly(toPath) === to ? "from-right" : "from-left";
-  return toIndex < fromIndex ? "from-right" : "from-left";
 }
 
 export function transitionTypesForNavigation({

@@ -50,8 +50,6 @@ test("alias hosts enter SSO on the canonical host before setting a transaction c
   assert.equal(response.status,303);
   assert.equal(response.headers.get("location"),config.origin+"/v1/api/auth/oidc/start");
   assert.equal(response.headers.get("set-cookie"),null);
-  const disabledApproval = await startSso(new Request(config.origin+"/v1/api/auth/oidc/start?approval=00000000-0000-4000-8000-000000000000", { headers: { host: new URL(config.origin).host } }));
-  assert.equal(disabledApproval.status,404);
 });
 
 test("authorization requests use PKCE S256 and encrypted, expiring, origin-bound transactions", async () => {

@@ -1,54 +1,57 @@
 import type { Metadata } from "next";
-import fonts from "../../../public/fonts/manifest.json";
-import { StudioFooter, StudioHeader } from "@/components/v2/Studio";
-import "./fonts.css";
+import { PORTFOLIO_NAME, PORTFOLIO_TITLE, DEFAULT_SOCIAL_IMAGE } from "@/lib/v2/siteMetadata";
 import "./v2.css";
+import { Navigation } from "@/components/v2/Navigation";
+import { PublicMotionRoot } from "@/components/v2/PublicTransition";
+import { Footer } from "@/components/v2/Footer";
+import { LinkClickTracker } from "@/components/LinkClickTracker";
+import { parseIdentityAliases } from "@/lib/brandAliases";
+import { getSiteSettings } from "@/lib/siteSettings";
 
-const fontPreloads = fonts.assets.filter(font => font.preload && ["IBM Plex Sans", "IBM Plex Mono"].includes(font.family));
+export default async function V2Layout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const settings = await getSiteSettings();
+  const brandAliases = parseIdentityAliases(settings.siteAliases);
+  const primaryBrandName = brandAliases[0] ?? settings.siteName;
+  const footerSocials = [
+    { label: "GITHUB", href: settings.socialGithub },
+    { label: "TWITTER", href: settings.socialTwitter },
+    { label: "LINKEDIN", href: settings.socialLinkedin },
+  ].filter((social) => Boolean(social.href));
 
-export const metadata: Metadata = {
-  title: {
-    default: "Thomas Phao | Infrastructure & applications",
-    template: "%s | Thomas Phao",
-  },
-  description:
-    "Infrastructure and applications by Thomas Phao. Proxmox management, directory access, on-prem deployment, and smaller experiments.",
-  alternates: { canonical: "/v2", types: {} },
-  robots: { index: false, follow: false },
-  openGraph: {
-    title: "Thomas Phao | Infrastructure & applications",
-    description:
-      "Project interfaces, implementation notes, and public source.",
-    url: "/v2",
-    images: [
-      {
-        url: "/v2/uma-workspace.png",
-        width: 2560,
-        height: 1392,
-        alt: "Uma infrastructure workspace by Thomas Phao",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Thomas Phao | Infrastructure & applications",
-    description: "Project interfaces, implementation notes, and public source.",
-    images: ["/v2/uma-workspace.png"],
-  },
-};
-
-export default function V2Layout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      {fontPreloads.map(font => <link key={font.path} rel="preload" href={font.path} as="font" type="font/woff2" crossOrigin="anonymous" />)}
-      <div className="v2">
-        <a href="#v2-main" className="v2-skip">
-          Skip to content
-        </a>
-        <StudioHeader />
-        <main id="v2-main">{children}</main>
-        <StudioFooter />
-      </div>
-    </>
+    <div data-portfolio-v2 className="flex min-h-screen flex-col">
+      <a
+        href="#main-content"
+        className="fixed left-4 top-4 z-[10001] -translate-y-24 border-2 border-ember bg-void px-4 py-2 text-xs tracking-[0.2em] text-bone transition-transform focus-visible:translate-y-0"
+      >
+        SKIP TO MAIN CONTENT
+      </a>
+      <LinkClickTracker />
+      <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
+      <PublicMotionRoot>
+        {children}
+      </PublicMotionRoot>
+      <Footer
+        brandName={primaryBrandName}
+        brandAliases={brandAliases}
+        socials={footerSocials}
+        chucklesGifUrl={settings.footerChucklesGifUrl}
+      />
+    </div>
   );
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  return {
+    title: { default: PORTFOLIO_TITLE, template: `%s | ${PORTFOLIO_NAME}` },
+    description: settings.siteDescription,
+    alternates: { canonical: "/v2", types: { "application/rss+xml": [{ url: "/v2/feed.xml", title: `${settings.siteName} Blog posts RSS Feed` }] } },
+    openGraph: { type: "website", title: PORTFOLIO_TITLE, description: settings.siteDescription, url: "/v2", images: [DEFAULT_SOCIAL_IMAGE] },
+    twitter: { card: "summary_large_image", title: PORTFOLIO_TITLE, description: settings.siteDescription, images: [DEFAULT_SOCIAL_IMAGE] },
+  };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import {
   DEFAULT_ALIAS_TYPEWRITER_TIMING,
@@ -33,38 +33,6 @@ function getStaticAliasFrame(aliases: string[]): AliasTypewriterFrame {
   };
 }
 
-function createAliasStore(aliases: string[], timing: AliasTypewriterTiming) {
-  const staticFrame = getStaticAliasFrame(aliases);
-  let frame = staticFrame;
-  let timeoutId: number | null = null;
-  const listeners = new Set<() => void>();
-
-  const step = () => {
-    frame = getAliasTypewriterFrame(aliases, timing, Date.now() - getSharedTypewriterEpochMs());
-    listeners.forEach((listener) => listener());
-    if (listeners.size) timeoutId = window.setTimeout(step, frame.nextChangeInMs);
-  };
-
-  return {
-    getSnapshot: () => frame,
-    getServerSnapshot: () => staticFrame,
-    subscribe: (listener: () => void) => {
-      listeners.add(listener);
-      if (listeners.size === 1) step();
-      return () => {
-        listeners.delete(listener);
-        if (!listeners.size && timeoutId !== null) {
-          window.clearTimeout(timeoutId);
-          timeoutId = null;
-        }
-      };
-    },
-  };
-}
-
-const sharedStores = new Map<string, ReturnType<typeof createAliasStore>>();
-const noSubscription = () => () => {};
-
 export function useSyncedAliasTypewriter(
   aliases: string[],
   timing: AliasTypewriterTiming = DEFAULT_ALIAS_TYPEWRITER_TIMING,
@@ -89,20 +57,52 @@ export function useSyncedAliasTypewriter(
     () => safeAliases.join("\u001f"),
     [safeAliases],
   );
-  const store = useMemo(() => {
-    const key = JSON.stringify([aliasSignature, resolvedTiming]);
-    let shared = sharedStores.get(key);
-    if (!shared) {
-      shared = createAliasStore(safeAliases, resolvedTiming);
-      sharedStores.set(key, shared);
-    }
-    return shared;
-  }, [aliasSignature, resolvedTiming, safeAliases]);
-  const frame = useSyncExternalStore(
-    shouldReduceMotion ? noSubscription : store.subscribe,
-    store.getSnapshot,
-    store.getServerSnapshot,
+  const staticFrame = useMemo(
+    () => getStaticAliasFrame(safeAliases),
+    [safeAliases],
   );
 
-  return shouldReduceMotion ? store.getServerSnapshot() : frame;
+  const [frame, setFrame] = useState<AliasTypewriterFrame>(() =>
+    getAliasTypewriterFrame(safeAliases, resolvedTiming, 0),
+  );
+
+  useEffect(() => {
+    let timeoutId: number | null = null;
+    let cancelled = false;
+
+    if (shouldReduceMotion) {
+      return;
+    }
+
+    const epochMs = getSharedTypewriterEpochMs();
+
+    const step = () => {
+      const nextFrame = getAliasTypewriterFrame(
+        safeAliases,
+        resolvedTiming,
+        Date.now() - epochMs,
+      );
+      setFrame(nextFrame);
+
+      if (!cancelled) {
+        timeoutId = window.setTimeout(step, nextFrame.nextChangeInMs);
+      }
+    };
+
+    step();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [
+    aliasSignature,
+    safeAliases,
+    resolvedTiming,
+    shouldReduceMotion,
+  ]);
+
+  return shouldReduceMotion ? staticFrame : frame;
 }

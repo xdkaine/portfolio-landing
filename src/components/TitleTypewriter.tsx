@@ -1,41 +1,49 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef } from "react";
-import { PORTFOLIO_TITLE } from "@/lib/siteMetadata";
-import { useReducedMotion } from "@/lib/useReducedMotion";
+import { useEffect, useMemo } from "react";
+import {
+  DEFAULT_ALIAS_TYPEWRITER_TIMING,
+  type AliasTypewriterTiming,
+} from "@/lib/aliasTypewriter";
 import { useSyncedAliasTypewriter } from "@/components/useSyncedAliasTypewriter";
 
 interface TitleTypewriterProps {
   brandName: string;
   brandAliases?: string[];
+  titleSuffix?: string;
+  timing?: AliasTypewriterTiming;
 }
 
-// Homepage only: keep server metadata descriptive and other route titles intact.
-export function TitleTypewriter({ brandName, brandAliases }: TitleTypewriterProps) {
+export function TitleTypewriter({
+  brandName,
+  brandAliases,
+  titleSuffix = " - Developer",
+  timing = DEFAULT_ALIAS_TYPEWRITER_TIMING,
+}: TitleTypewriterProps) {
   const aliases = useMemo(
-    () => brandAliases?.length ? brandAliases : [brandName],
+    () => (brandAliases && brandAliases.length > 0 ? brandAliases : [brandName]),
     [brandAliases, brandName],
   );
-  const frame = useSyncedAliasTypewriter(aliases);
-  const reducedMotion = useReducedMotion();
-  const lastWrittenTitle = useRef<string | null>(null);
+  const frame = useSyncedAliasTypewriter(aliases, timing);
+  const defaultTitle = useMemo(
+    () => `${brandName}${titleSuffix}`,
+    [brandName, titleSuffix],
+  );
 
-  useLayoutEffect(() => {
-    const initialTitle = document.title;
-    return () => {
-      // Navigation may already have installed the destination's metadata.
-      if (document.title === lastWrittenTitle.current) document.title = initialTitle;
-    };
-  }, []);
-
-  // Commit the tab title with the visible alias, before a frame can show mismatched names.
-  useLayoutEffect(() => {
+  useEffect(() => {
     const cursor = frame.isDeleting ? "" : " |";
-    const title = reducedMotion ? PORTFOLIO_TITLE
-      : `${frame.typedAlias || frame.activeAlias} | ${PORTFOLIO_TITLE}${cursor}`;
-    lastWrittenTitle.current = title;
-    document.title = title;
-  }, [frame.activeAlias, frame.isDeleting, frame.typedAlias, reducedMotion]);
+    document.title = `${frame.typedAlias}${titleSuffix}${cursor}`;
+  }, [
+    frame.isDeleting,
+    frame.typedAlias,
+    titleSuffix,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      document.title = defaultTitle;
+    };
+  }, [defaultTitle]);
 
   return null;
 }

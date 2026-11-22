@@ -1,9 +1,10 @@
 import { PublicChrome } from "@/components/PublicChrome";
 import { Navigation } from "@/components/Navigation";
-import { PublicMotionRoot } from "@/components/PublicTransition";
 import { Footer } from "@/components/Footer";
 import { LinkClickTracker } from "@/components/LinkClickTracker";
-import { parseIdentityAliases } from "@/lib/brandAliases";
+import { BackgroundContextMenu } from "@/components/BackgroundContextMenu";
+import { PublicTransitionSurface } from "@/components/PublicTransition";
+import { parseBrandAliases } from "@/lib/brandAliases";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export default async function V1Layout({
@@ -12,7 +13,7 @@ export default async function V1Layout({
   children: React.ReactNode;
 }) {
   const settings = await getSiteSettings();
-  const brandAliases = parseIdentityAliases(settings.siteAliases);
+  const brandAliases = parseBrandAliases(settings.siteAliases);
   const primaryBrandName = brandAliases[0] ?? settings.siteName;
   const footerSocials = [
     { label: "GITHUB", href: settings.socialGithub },
@@ -22,7 +23,6 @@ export default async function V1Layout({
 
   return (
     <>
-      <PublicChrome>
       <a
         href="#main-content"
         className="fixed left-4 top-4 z-[10001] -translate-y-24 border-2 border-ember bg-void px-4 py-2 text-xs tracking-[0.2em] text-bone transition-transform focus-visible:translate-y-0"
@@ -30,17 +30,23 @@ export default async function V1Layout({
         SKIP TO MAIN CONTENT
       </a>
       <LinkClickTracker />
-      <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
+      <PublicChrome>
+        <BackgroundContextMenu />
+        <Navigation brandName={primaryBrandName} brandAliases={brandAliases} />
       </PublicChrome>
-      <PublicMotionRoot>
-        {children}
-      </PublicMotionRoot>
-      <PublicChrome><Footer
-        brandName={primaryBrandName}
-        brandAliases={brandAliases}
-        socials={footerSocials}
-        chucklesGifUrl={settings.footerChucklesGifUrl}
-      /></PublicChrome>
+      <main id="main-content" className="flex-1 scroll-mt-20">
+        <PublicTransitionSurface>{children}</PublicTransitionSurface>
+      </main>
+      <PublicChrome>
+        <Footer
+          brandName={primaryBrandName}
+          brandAliases={brandAliases}
+          socials={footerSocials}
+          legalEffectiveDate={settings.legalEffectiveDate}
+          chucklesGifUrl={settings.footerChucklesGifUrl}
+        />
+        <div className="grain-overlay" aria-hidden="true" />
+      </PublicChrome>
     </>
   );
 }

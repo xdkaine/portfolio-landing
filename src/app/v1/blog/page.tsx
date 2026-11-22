@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PublicLink, PublicSharedElement, PublicTransitionSurface } from "@/components/PublicTransition";
+import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { listPublishedPosts, listPublishedTags } from "@/lib/postEditorial";
 import { TRANSITION_TYPES } from "@/lib/publicTransition";
@@ -16,13 +16,13 @@ export const metadata: Metadata = {
     description:
       "Notes from the build on systems, interfaces, experiments, engineering, and the decisions behind them.",
     path: "/v1/blog",
-    imageAlt: "Blog posts about engineering and interfaces.",
+    imageAlt: "Transmissions journal of engineering and interface notes.",
   }),
   alternates: {
     canonical: "/v1/blog",
     types: {
       "application/rss+xml": [
-        { url: "/v1/feed.xml", title: "Blog posts RSS Feed" },
+        { url: "/v1/feed.xml", title: "Transmissions RSS Feed" },
       ],
     },
   },
@@ -54,17 +54,17 @@ export default async function BlogPage({
   };
 
   return (
-    <PublicTransitionSurface>
+    <>
       <header className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
         <ScrollReveal variant="row">
           <div className="text-steel text-[10px] tracking-[0.3em] flex gap-3 mb-7">
-            <span>{settings.siteName}</span><span>/</span><span className="text-ember">BLOG</span>
+            <span>{settings.siteName}</span><span>/</span><span className="text-ember">TRANSMISSIONS</span>
           </div>
         </ScrollReveal>
         <ScrollReveal variant="headline" delay={0.05}>
           <div className="grid lg:grid-cols-[1fr_370px] gap-10 items-end">
             <div>
-              <h1 className="font-display text-6xl md:text-8xl lg:text-9xl tracking-tighter">Blog</h1>
+              <h1 className="font-display text-6xl md:text-8xl lg:text-9xl tracking-tighter">Blogs</h1>
               <p className="article-deck mt-5 max-w-2xl">
                 Notes from the build: systems, interfaces, experiments and the decisions behind them.
               </p>
@@ -74,7 +74,7 @@ export default async function BlogPage({
                 type="search"
                 name="q"
                 defaultValue={query}
-                placeholder="SEARCH BLOG POSTS"
+                placeholder="SEARCH TRANSMISSIONS"
                 className="bg-transparent flex-1 min-w-0 text-xs tracking-widest text-bone px-2"
               />
               {activeTag ? <input type="hidden" name="tag" value={activeTag} /> : null}
@@ -82,7 +82,7 @@ export default async function BlogPage({
             </form>
           </div>
         </ScrollReveal>
-        <ScrollReveal variant="block" delay={0.12}>
+        <ScrollReveal variant="rule" delay={0.12}>
           <nav className="flex flex-wrap gap-2 border-t border-iron pt-6 mt-10" aria-label="Filter posts by tag">
           <Link transitionTypes={[TRANSITION_TYPES.skip]} href={linkForTag("")} className={`blog-filter ${!activeTag ? "border-ember text-ember" : ""}`}>ALL ({totalPosts})</Link>
           {tags.map((tag) => (
@@ -96,7 +96,6 @@ export default async function BlogPage({
 
       {featured ? (
         <section className="px-6 md:px-12 lg:px-24 pb-12">
-          <ScrollReveal variant="media">
           <PublicLink
             href={`/v1/blog/${featured.slug}`}
             intent="drill-in"
@@ -122,7 +121,7 @@ export default async function BlogPage({
               </div>
             )}
             <article className="p-6 md:p-10 flex flex-col justify-between">
-              <span className="text-[10px] tracking-[0.3em] text-ember">FEATURED BLOG POST</span>
+              <span className="text-[10px] tracking-[0.3em] text-ember">FEATURED TRANSMISSION //</span>
               <div className="my-8">
                 <PublicSharedElement kind="post-title" itemKey={featured.slug}>
                   <h2 className="font-display text-3xl md:text-5xl tracking-tight group-hover:text-ember transition-colors">{featured.title}</h2>
@@ -132,7 +131,6 @@ export default async function BlogPage({
               <span className="text-[10px] tracking-[0.2em] text-steel">{featured.date} / {featured.readTime}</span>
             </article>
           </PublicLink>
-          </ScrollReveal>
         </section>
       ) : null}
 
@@ -167,11 +165,11 @@ export default async function BlogPage({
         </div>
         {posts.length === 0 ? (
           <div className="border border-iron p-16 text-center text-[11px] tracking-[0.25em] text-steel">
-            NO BLOG POSTS MATCH YOUR SEARCH
+            NO TRANSMISSIONS MATCH THIS SIGNAL
             <div className="mt-5"><Link transitionTypes={[TRANSITION_TYPES.skip]} href="/v1/blog" className="text-ember">CLEAR FILTERS</Link></div>
           </div>
         ) : null}
       </section>
-    </PublicTransitionSurface>
+    </>
   );
 }

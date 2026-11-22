@@ -1,11 +1,11 @@
 import { createPublicPageMetadata } from "@/lib/siteMetadata";
 
 export const metadata = createPublicPageMetadata({
-  title: "About",
+  title: "About — Systems Engineering & Development",
   description:
-    "Meet Thomas Phao, a builder and developer working across applications and the infrastructure behind them.",
+    "Meet Thomas Phao, a systems engineer and developer building reliable infrastructure and thoughtful web applications.",
   path: "/v1/about",
-  imageAlt: "About Thomas Phao, builder and developer.",
+  imageAlt: "About the systems engineer behind this portfolio.",
 });
 
 export default function AboutLayout({

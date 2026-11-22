@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { verifySession } from "@/lib/auth";
-import ApprovedAdminSessionNotice from "@/components/ApprovedAdminSessionNotice";
 import type { Metadata } from "next";
 import { PRIVATE_ROUTE_ROBOTS } from "@/lib/siteMetadata";
 
@@ -17,7 +16,6 @@ export default async function AdminLayout({
   const session = await verifySession();
   if (!session || session.role !== "ADMIN") redirect("/v1/login");
   return <>
-    {session.approvedTestSession ? <ApprovedAdminSessionNotice expiresAt={session.approvedTestSession.expiresAt} /> : null}
     {children}
   </>;
 }

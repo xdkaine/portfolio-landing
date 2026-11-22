@@ -1,9 +1,11 @@
 "use client";
+import { clientVisitorContext } from "@/lib/visitorClient";
+import { trackingAllowed } from "@/lib/trackLinkClick";
 
 import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { PublicLink, PublicTransitionSurface } from "@/components/PublicTransition";
+import { PublicLink } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import {
   TurnstileWidget,
@@ -84,6 +86,7 @@ export default function ContactPage() {
         body: JSON.stringify({
           ...formData,
           consent,
+          analytics: trackingAllowed() ? clientVisitorContext() : false,
           turnstileToken,
           company: honeypot,
         }),
@@ -126,7 +129,7 @@ export default function ContactPage() {
   const contactEmail = settings.contactEmail || "hello@phao.dev";
 
   return (
-    <PublicTransitionSurface>
+    <>
       {/* Header */}
       <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
         <ScrollReveal variant="row">
@@ -290,11 +293,19 @@ export default function ContactPage() {
                   <span className="text-[10px] tracking-widest text-ash leading-relaxed">
                     I consent to this site storing my submitted details to
                     respond to my inquiry. Read{" "}
-                    <PublicLink href="/v1/privacy" intent="utility" className="text-ember underline underline-offset-2">
+                    <PublicLink
+                      href="/v1/privacy"
+                      intent="utility"
+                      className="text-ember hover:underline"
+                    >
                       Privacy Policy
                     </PublicLink>{" "}
                     and{" "}
-                    <PublicLink href="/v1/terms" intent="utility" className="text-ember underline underline-offset-2">
+                    <PublicLink
+                      href="/v1/terms"
+                      intent="utility"
+                      className="text-ember hover:underline"
+                    >
                       Terms
                     </PublicLink>
                     .
@@ -377,16 +388,16 @@ export default function ContactPage() {
                 <div className="flex items-center gap-3 mb-6">
                   <span className="w-2 h-2 bg-ember" />
                   <span className="text-[10px] tracking-[0.3em] text-ember">
-                    MESSAGE RECEIVED
+                    TRANSMISSION RECEIVED
                   </span>
                 </div>
                 <p className="font-display text-3xl md:text-4xl text-bone mb-4">
                   MESSAGE SENT.
                 </p>
                 <p className="text-ash text-xs leading-relaxed mb-8">
-                  Your message has been logged. I&apos;ll get back to you
-                  within 24 hours. In the meantime, feel free to explore
-                  the rest of the site.
+                  Your message has been logged. I&apos;ll get back to you within
+                  24 hours. In the meantime, feel free to explore the rest of
+                  the site.
                 </p>
                 <button
                   onClick={() => {
@@ -445,6 +456,6 @@ export default function ContactPage() {
           </div>
         </ScrollReveal>
       </section>
-    </PublicTransitionSurface>
+    </>
   );
 }

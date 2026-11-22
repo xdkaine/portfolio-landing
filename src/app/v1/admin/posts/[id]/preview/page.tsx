@@ -1,6 +1,7 @@
+import "@/app/v2/v2.css";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { PostArticle } from "@/components/blog/PostArticle";
+import { PostArticle } from "@/components/v2/blog/PostArticle";
 import { verifySession } from "@/lib/auth";
 import { getAdminPostById } from "@/lib/postEditorial";
 import { PRIVATE_ROUTE_ROBOTS } from "@/lib/siteMetadata";
@@ -23,5 +24,5 @@ export default async function PreviewPostPage({
   const [post, settings] = await Promise.all([getAdminPostById(id), getSiteSettings()]);
   if (!post) notFound();
 
-  return <PostArticle post={post} siteName={settings.siteName} preview />;
+  return <div data-portfolio-v2><PostArticle post={post} siteName={settings.siteName} preview /></div>;
 }

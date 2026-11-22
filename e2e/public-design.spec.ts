@@ -53,14 +53,14 @@ test.describe("Public portfolio interactions", () => {
     const projects = await (await request.get("/v1/api/projects")).json() as PublicProject[];
     const project = projects.find(item => item.number === fixtureNumber) ?? projects[0];
     expect(project).toBeTruthy();
-    await page.goto(`/v1/projects/${project.number}`);
+    await page.goto(`/v2/projects/${project.number}`);
     await page.evaluate(() => document.fonts.ready);
     await expectBlockReplay(page, page.locator('[aria-label="Project story"] .article-prose > [data-story-reveal]').first());
   });
 
   test("mobile navigation closes with Escape and returns focus", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/v1/projects");
+    await page.goto("/v2/projects");
     await expect(page.locator("nav").first()).toHaveCSS("opacity", "1");
     const toggle = page.locator('button[aria-label="Toggle navigation menu"]');
     await toggle.click();
@@ -88,7 +88,7 @@ test.describe("Public portfolio interactions", () => {
     expect(project, "A long-domain project must be available for the layout check").toBeTruthy();
     for (const width of [360, 390]) {
       await page.setViewportSize({ width, height: 844 });
-      await page.goto(`/v1/projects/${project!.number}`);
+      await page.goto(`/v2/projects/${project!.number}`);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
       const heading = await page.locator("main h1").evaluate(el => {
@@ -113,7 +113,7 @@ test.describe("Public portfolio interactions", () => {
       contentType: "image/svg+xml",
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500"><rect width="800" height="500" fill="#ddd"/></svg>',
     }));
-    await page.goto(`/v1/projects/${project!.number}`);
+    await page.goto(`/v2/projects/${project!.number}`);
     await expect(page.locator("nav").first()).toHaveCSS("opacity", "1");
     const thumbnail = page.getByRole("button", { name: /^Enlarge image:/ }).first();
     await thumbnail.click();
@@ -138,7 +138,7 @@ test.describe("Public portfolio interactions", () => {
   });
 
   test("ordinary links retain the native browser context menu", async ({ page }) => {
-    await page.goto("/v1");
+    await page.goto("/v2");
     await expect(page.locator("nav").first()).toHaveCSS("opacity", "1");
     const prevented = await page.getByRole("link", { name: "VIEW PROJECTS", exact: true }).evaluate(el => {
       const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });

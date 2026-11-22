@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { PostArticle } from "@/components/blog/PostArticle";
-import { PublicTransitionSurface } from "@/components/PublicTransition";
 import { getPostConnections, getPublishedPostBySlug } from "@/lib/postEditorial";
 import { DEFAULT_SOCIAL_IMAGE } from "@/lib/siteMetadata";
 import { getSiteSettings } from "@/lib/siteSettings";
@@ -30,7 +29,7 @@ export async function generateMetadata({
     : DEFAULT_SOCIAL_IMAGE;
 
   return {
-    title: `${post.title} | Blog`,
+    title: `${post.title} | Transmissions`,
     description: post.excerpt,
     authors: [{ name: settings.siteName }],
     alternates: { canonical: `/v1/blog/${post.slug}` },
@@ -43,7 +42,7 @@ export async function generateMetadata({
       publishedTime: post.publishedAt ?? undefined,
       modifiedTime: post.updatedAt,
       authors: [settings.siteName],
-      section: "Blog",
+      section: "Transmissions",
       tags: post.tags,
       images: [socialImage],
     },
@@ -83,7 +82,7 @@ export default async function BlogPostPage({
   };
 
   return (
-    <PublicTransitionSurface>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -97,6 +96,6 @@ export default async function BlogPostPage({
         next={connections.next}
         related={connections.related}
       />
-    </PublicTransitionSurface>
+    </>
   );
 }

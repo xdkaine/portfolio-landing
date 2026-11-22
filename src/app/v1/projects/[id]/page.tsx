@@ -1,11 +1,10 @@
-import { projectCover, projectGalleryImages } from "@/lib/projectMedia";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache, Fragment } from "react";
-import { PublicLink, PublicSharedElement, PublicTransitionSurface } from "@/components/PublicTransition";
+import { cache } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { PublicLink, PublicSharedElement } from "@/components/PublicTransition";
 import { ScrollReveal } from "@/components/ScrollReveal";
-import { PostDocumentBody, LegacyPostBody } from "@/components/blog/PostBody";
-import { ImageCarousel } from "@/components/ImageCarousel";
 import { ZoomableImage } from "@/components/ui/ZoomableImage";
 import {
   isSafeProjectExternalUrl,
@@ -19,7 +18,6 @@ import {
 } from "@/lib/projectCatalog";
 import {
   normalizeProjectStatus,
-  getProjectActions,
   type DisplayProjectStatus,
 } from "@/lib/projectPresentation";
 import { DEFAULT_SOCIAL_IMAGE, PORTFOLIO_NAME } from "@/lib/siteMetadata";
@@ -118,7 +116,7 @@ export async function generateMetadata({
   const title = `${normalizedProject.title} | Projects | ${PORTFOLIO_NAME}`;
   const description = caseStudy.subtitle || normalizedProject.description;
   const canonical = `/v1/projects/${normalizedProject.number}`;
-  const previewImage = projectCover(caseStudy);
+  const previewImage = caseStudy.gallery[0];
   const socialImage = previewImage
     ? { url: previewImage.image, alt: previewImage.alt }
     : DEFAULT_SOCIAL_IMAGE;
@@ -173,8 +171,7 @@ export default async function ProjectDetailPage({
 
   const demoUrl = normalizedProject.url ?? mergedDeepDive.demoUrl;
   const repoUrl = normalizedProject.github ?? mergedDeepDive.repoUrl;
-  const projectActions = getProjectActions(demoUrl, repoUrl);
-  const hasDemoSection = Boolean(mergedDeepDive.demoSummary);
+  const hasDemoSection = Boolean(mergedDeepDive.demoSummary || demoUrl || repoUrl);
 
   let projectOrder: { number: string }[] = [];
   try {
@@ -192,38 +189,352 @@ export default async function ProjectDetailPage({
       ? projectOrder[currentIndex + 1]
       : null;
 
-  const images = projectGalleryImages(mergedDeepDive).map(image => ({ src: image.image, alt: image.alt || image.title || normalizedProject.title, caption: image.caption || image.title }));
-  const coverImage = projectCover(mergedDeepDive);
-  const cover = coverImage ? { src: coverImage.image, alt: coverImage.alt || normalizedProject.title, caption: coverImage.caption || coverImage.title } : undefined;
   return (
-    <PublicTransitionSurface>
-      <div className="project-detail mx-auto max-w-[1800px] px-6 md:px-12 lg:px-24">
-        <header className="pt-28 pb-9 md:pt-32">
-          <ScrollReveal variant="row"><div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-steel"><PublicLink href="/v1" intent="section">{settings.siteName}</PublicLink><span>/</span><PublicLink href="/v1/projects" intent="drill-out">Projects</PublicLink><span>/</span><PublicSharedElement kind="project-marker" itemKey={normalizedProject.number}><span className="text-ember">{normalizedProject.number}</span></PublicSharedElement></div></ScrollReveal>
-          <div className={`grid items-center gap-8 lg:gap-12 ${cover ? "lg:grid-cols-2" : ""}`}>
-            <div className="min-w-0">
-              <ScrollReveal variant="block"><div className="mb-5 flex flex-wrap items-center gap-4"><span className={`border px-3 py-1 text-xs ${getStatusClass(normalizedProject.status)}`}>{normalizedProject.status}</span><span className="text-xs text-steel">{normalizedProject.year}</span>{mergedDeepDive.role ? <span className="text-xs text-ash">{mergedDeepDive.role}</span> : null}{mergedDeepDive.timeline ? <span className="text-xs text-ash">{mergedDeepDive.timeline}</span> : null}</div></ScrollReveal>
-              <ScrollReveal delay={0.05} variant="headline"><PublicSharedElement kind="project-title" itemKey={normalizedProject.number}><h1 className="font-display text-[clamp(2.75rem,4.3vw,5.6rem)] leading-[1.06] tracking-tighter [overflow-wrap:anywhere]" tabIndex={-1}>{normalizedProject.title.split(/(?=\.)/).map((part, index) => <Fragment key={index}><span className="inline-block max-w-full align-baseline">{part}</span><wbr /></Fragment>)}</h1></PublicSharedElement></ScrollReveal>
-              <ScrollReveal delay={0.1}><p className="mt-5 max-w-3xl text-base leading-relaxed text-ash">{mergedDeepDive.subtitle || normalizedProject.description}</p>
-                {projectActions.length ? <div className="mt-5 flex flex-wrap gap-3">{projectActions.map(action => <a key={action.href} href={action.href} target="_blank" rel="noopener noreferrer" className="post-action">{action.label} ↗</a>)}</div> : null}
-                <div className="mt-5 flex flex-wrap gap-2">{normalizedProject.tags.map(tag => <span key={tag} className="border border-iron px-2 py-1 text-xs text-ash">{tag}</span>)}</div>
-              </ScrollReveal>
-            </div>
-            {cover ? <ScrollReveal variant="media" delay={0.1}><figure><div className="overflow-hidden border border-iron bg-surface"><ZoomableImage src={cover.src} alt={cover.alt} gallery={images.map(image => ({ image: image.src, alt: image.alt }))} /></div>{cover.caption ? <figcaption className="mt-3 text-xs leading-relaxed text-steel">{cover.caption}</figcaption> : null}</figure></ScrollReveal> : null}
+    <>
+      <section className="pt-32 pb-12 px-6 md:px-12 lg:px-24">
+        <ScrollReveal variant="row">
+          <div className="flex items-center gap-3 text-steel text-[10px] tracking-[0.3em] mb-6">
+            <PublicLink href="/v1" intent="section" className="hover:text-bone transition-colors">
+              {settings.siteName}
+            </PublicLink>
+            <span>/</span>
+            <PublicLink
+              href="/v1/projects"
+              intent="drill-out"
+              className="hover:text-bone transition-colors"
+            >
+              PROJECTS
+            </PublicLink>
+            <span>/</span>
+            <PublicSharedElement kind="project-marker" itemKey={normalizedProject.number}>
+              <span className="text-ember">{normalizedProject.number}</span>
+            </PublicSharedElement>
           </div>
-        </header>
-        <section className="border-t border-iron py-10 md:py-14" aria-label="Project story">
-          {mergedDeepDive.bodyJson ? <PostDocumentBody document={mergedDeepDive.bodyJson} story reveal /> : <div className={`grid items-start gap-8 lg:gap-12 ${images.length > 1 ? "lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]" : ""}`}>
-            <div className="min-w-0"><LegacyPostBody content={writeupMarkdown} story reveal urlTransform={transformProjectMarkdownUrl} /></div>
-            {images.length > 1 ? <div className="min-w-0 lg:sticky lg:top-24"><ScrollReveal variant="media"><ImageCarousel images={images.slice(1)} /></ScrollReveal></div> : null}
-          </div>}
-          {mergedDeepDive.highlights.length ? <ScrollReveal><div className="mt-10 border-y border-iron py-6"><h2 className="mb-4 font-display text-3xl">Highlights</h2><ul className="grid gap-3 text-sm leading-relaxed text-ash md:grid-cols-2">{mergedDeepDive.highlights.map(item => <li key={item}>— {item}</li>)}</ul></div></ScrollReveal> : null}
-          {(mergedDeepDive.challenge || mergedDeepDive.concept) ? <div className="mt-10 grid gap-8 md:grid-cols-2">{[["Challenge", mergedDeepDive.challenge], ["Concept", mergedDeepDive.concept]].map(([label, text]) => text ? <ScrollReveal key={label}><section><h2 className="mb-4 font-display text-3xl">{label}</h2><p className="text-base leading-relaxed text-ash">{text}</p></section></ScrollReveal> : null)}</div> : null}
-          {hasDemoSection ? <ScrollReveal><section className="mt-10 border-t border-iron pt-8"><h2 className="mb-4 font-display text-3xl">Demo</h2><p className="max-w-3xl text-base leading-relaxed text-ash">{mergedDeepDive.demoSummary}</p></section></ScrollReveal> : null}
+        </ScrollReveal>
+
+        <ScrollReveal delay={0.05} variant="headline">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 mb-10">
+            <div className="max-w-4xl">
+              <PublicSharedElement kind="project-title" itemKey={normalizedProject.number}>
+                <h1
+                  className="font-display text-5xl md:text-7xl lg:text-8xl tracking-tighter"
+                  tabIndex={-1}
+                >
+                  {normalizedProject.title}
+                </h1>
+              </PublicSharedElement>
+              <p className="text-bone/80 text-sm md:text-base leading-relaxed mt-6 max-w-3xl">
+                {mergedDeepDive.subtitle || normalizedProject.description}
+              </p>
+            </div>
+            <span
+              className={`text-[10px] tracking-[0.15em] px-3 py-1 border shrink-0 mt-2 lg:mt-4 ${getStatusClass(normalizedProject.status)}`}
+            >
+              {normalizedProject.status}
+            </span>
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal delay={0.1} variant="row">
+          <div className="flex flex-wrap gap-3 mb-8">
+            {normalizedProject.tags.map((tag) => (
+              <span
+                key={tag}
+                className="text-[10px] tracking-[0.12em] text-smoke border border-iron px-2 py-1"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-10 lg:gap-14">
+          <ScrollReveal>
+            <div className="max-w-3xl">
+              <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
+                WRITE-UP//
+              </span>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                urlTransform={transformProjectMarkdownUrl}
+                components={{
+                  p: ({ children }) => (
+                    <p className="text-sm md:text-base leading-relaxed text-ash mb-5 last:mb-0">
+                      {children}
+                    </p>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="font-display text-2xl md:text-3xl tracking-tight text-bone mt-8 mb-4">
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="font-display text-xl md:text-2xl tracking-tight text-bone mt-7 mb-3">
+                      {children}
+                    </h3>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="space-y-2 mb-5 pl-5 list-disc text-ash text-sm md:text-base">
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="space-y-2 mb-5 pl-5 list-decimal text-ash text-sm md:text-base">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  code: ({ children }) => (
+                    <code className="text-xs bg-surface px-1.5 py-0.5 border border-iron text-smoke">
+                      {children}
+                    </code>
+                  ),
+                  pre: ({ children }) => (
+                    <pre className="text-xs bg-surface/60 border border-iron p-4 mb-5 overflow-x-auto text-smoke">
+                      {children}
+                    </pre>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-2 border-ember pl-4 italic text-ash/90 mb-5">
+                      {children}
+                    </blockquote>
+                  ),
+                  img: ({ src, alt }) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={src ?? ""}
+                      alt={alt ?? ""}
+                      width={1600}
+                      height={1000}
+                      loading="lazy"
+                      className="w-full h-auto border border-iron mb-5"
+                    />
+                  ),
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-ember underline underline-offset-2 hover:text-bone transition-colors"
+                    >
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {writeupMarkdown}
+              </ReactMarkdown>
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={0.08}>
+            <aside className="border border-iron bg-surface/40 p-6 h-fit">
+              <span className="text-[10px] tracking-[0.3em] text-steel block mb-6">
+                SNAPSHOT//
+              </span>
+              <div className="space-y-4 text-xs">
+                {mergedDeepDive.role ? (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-steel tracking-[0.12em]">ROLE</span>
+                    <span className="text-bone text-right">{mergedDeepDive.role}</span>
+                  </div>
+                ) : null}
+                {mergedDeepDive.timeline ? (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-steel tracking-[0.12em]">TIMELINE</span>
+                    <span className="text-bone text-right">
+                      {mergedDeepDive.timeline}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex justify-between gap-4">
+                  <span className="text-steel tracking-[0.12em]">YEAR</span>
+                  <span className="text-bone text-right">
+                    {normalizedProject.year}
+                  </span>
+                </div>
+              </div>
+
+              {mergedDeepDive.highlights.length > 0 ? (
+                <div className="border-t border-iron mt-6 pt-6">
+                  <span className="text-[10px] tracking-[0.25em] text-steel block mb-4">
+                    HIGHLIGHTS
+                  </span>
+                  <ul className="space-y-2">
+                    {mergedDeepDive.highlights.map((highlight) => (
+                      <li
+                        key={highlight}
+                        className="text-xs text-ash leading-relaxed flex gap-2"
+                      >
+                        <span className="text-ember mt-0.5">&#8226;</span>
+                        <span>{highlight}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </aside>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {mergedDeepDive.challenge || mergedDeepDive.concept ? (
+        <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
+          <div className="grid md:grid-cols-2 gap-8">
+            {mergedDeepDive.challenge ? (
+              <ScrollReveal>
+                <article className="border border-iron p-6 md:p-8 h-full">
+                  <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
+                    CHALLENGE//
+                  </span>
+                  <p className="text-sm leading-relaxed text-ash">
+                    {mergedDeepDive.challenge}
+                  </p>
+                </article>
+              </ScrollReveal>
+            ) : null}
+            {mergedDeepDive.concept ? (
+              <ScrollReveal delay={mergedDeepDive.challenge ? 0.06 : 0}>
+                <article className="border border-iron p-6 md:p-8 h-full">
+                  <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
+                    CONCEPT//
+                  </span>
+                  <p className="text-sm leading-relaxed text-ash">
+                    {mergedDeepDive.concept}
+                  </p>
+                </article>
+              </ScrollReveal>
+            ) : null}
+          </div>
         </section>
-        {mergedDeepDive.bodyJson && images.length > 1 ? <section className="border-t border-iron py-10"><ScrollReveal variant="headline"><h2 className="mb-5 font-display text-4xl">Project images</h2></ScrollReveal><ScrollReveal variant="media"><ImageCarousel images={images.slice(1)} /></ScrollReveal></section> : null}
-        <ScrollReveal variant="row"><nav aria-label="Project navigation" className="flex flex-wrap items-center justify-between gap-5 border-t border-iron py-10 text-sm text-ash"><PublicLink href="/v1/projects" intent="drill-out">← All projects</PublicLink><div className="flex flex-wrap gap-6">{previousProject ? <PublicLink href={`/v1/projects/${previousProject.number}`} intent="sibling-prev">← Previous project</PublicLink> : null}{nextProject ? <PublicLink href={`/v1/projects/${nextProject.number}`} intent="sibling-next">Next project →</PublicLink> : null}</div></nav></ScrollReveal>
-      </div>
-    </PublicTransitionSurface>
+      ) : null}
+
+      {mergedDeepDive.gallery.length > 0 ? (
+        <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
+          <ScrollReveal>
+            <div className="border-b border-iron pb-4 mb-8 flex flex-col md:flex-row md:items-baseline md:justify-between gap-4">
+              <h2 className="font-display text-4xl md:text-5xl tracking-tight">
+                VISUAL NOTES
+              </h2>
+              <span className="text-steel text-[10px] tracking-[0.2em]">
+                {"// CLICK AN IMAGE TO ENLARGE & ZOOM"}
+              </span>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {mergedDeepDive.gallery.map((item, index) => (
+              <ScrollReveal
+                key={`${normalizedProject.number}-gallery-${item.title}-${index}`}
+                delay={index * 0.05}
+              >
+                <article className="border border-iron bg-surface/30 h-full">
+                  <div className="overflow-hidden border-b border-iron">
+                    <ZoomableImage
+                      src={item.image}
+                      alt={item.alt}
+                      gallery={mergedDeepDive.gallery}
+                      index={index}
+                    />
+                  </div>
+                  <div className="p-5">
+                    <h3 className="text-[11px] tracking-[0.22em] text-bone mb-3">
+                      {item.title}
+                    </h3>
+                    {item.caption ? (
+                      <p className="text-xs text-ash leading-relaxed">
+                        {item.caption}
+                      </p>
+                    ) : null}
+                  </div>
+                </article>
+              </ScrollReveal>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {hasDemoSection ? (
+        <section className="px-6 md:px-12 lg:px-24 py-14 border-t border-iron">
+          <ScrollReveal>
+            <div className="border border-iron bg-surface/40 p-6 md:p-10">
+              <span className="text-[10px] tracking-[0.3em] text-steel block mb-5">
+                DEMO//
+              </span>
+              {mergedDeepDive.demoSummary ? (
+                <p className="text-sm md:text-base text-ash leading-relaxed max-w-3xl">
+                  {mergedDeepDive.demoSummary}
+                </p>
+              ) : null}
+              <div className="mt-8 flex flex-wrap items-center gap-4 text-xs tracking-[0.2em]">
+                {demoUrl ? (
+                  <a
+                    href={demoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 border border-ember/50 text-ember hover:bg-ember/10 transition-colors"
+                  >
+                    OPEN DEMO ↗
+                  </a>
+                ) : null}
+
+                {repoUrl ? (
+                  <a
+                    href={repoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 border border-iron text-ash hover:text-ember hover:border-ember/40 transition-colors"
+                  >
+                    SOURCE CODE ↗
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          </ScrollReveal>
+        </section>
+      ) : null}
+
+      <section className="px-6 md:px-12 lg:px-24 pb-24 pt-10 border-t border-iron">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <PublicLink
+            href="/v1/projects"
+            intent="drill-out"
+            className="text-xs tracking-[0.2em] text-ash hover:text-ember transition-colors"
+          >
+            &larr; ALL PROJECTS
+          </PublicLink>
+
+          <div className="flex items-center gap-6 text-[10px] tracking-[0.2em]">
+            {previousProject ? (
+              <PublicLink
+                href={`/v1/projects/${previousProject.number}`}
+                intent="sibling-prev"
+                className="text-steel hover:text-ember transition-colors"
+              >
+                PREV: {previousProject.number}
+                {"//"}
+              </PublicLink>
+            ) : (
+              <span className="text-steel">PREV: --</span>
+            )}
+
+            {nextProject ? (
+              <PublicLink
+                href={`/v1/projects/${nextProject.number}`}
+                intent="sibling-next"
+                className="text-steel hover:text-ember transition-colors"
+              >
+                NEXT: {nextProject.number}
+                {"//"}
+              </PublicLink>
+            ) : (
+              <span className="text-steel">NEXT: --</span>
+            )}
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

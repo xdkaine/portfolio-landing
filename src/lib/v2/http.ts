@@ -1,21 +1,8 @@
+import { NextResponse } from "next/server";
 export function v2Json(data: unknown, status = 200) {
-  return Response.json(
-    { version: "v2", data },
-    {
-      status,
-      headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" },
-    },
-  );
+  return NextResponse.json({ version: "v2", data }, { status, headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" } });
 }
-export function v2Error(message: string, status: number) {
-  return Response.json(
-    {
-      version: "v2",
-      error: { code: status === 404 ? "NOT_FOUND" : "INVALID_QUERY", message },
-    },
-    {
-      status,
-      headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" },
-    },
-  );
+export async function publicV2Response(response: Response) {
+  const payload = await response.json();
+  return v2Json(Array.isArray(payload) ? { items: payload, total: payload.length } : payload, response.status);
 }
