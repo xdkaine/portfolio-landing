@@ -21,7 +21,7 @@ function getSiteUrl(): string {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
   const now = new Date();
-  const bothVersions = (routes: MetadataRoute.Sitemap): MetadataRoute.Sitemap => [...routes, ...routes.map(route => ({ ...route, url: route.url.replace(`${siteUrl}/v1`, `${siteUrl}/v2`) }))];
+  const currentVersion = (routes: MetadataRoute.Sitemap): MetadataRoute.Sitemap => routes.map(route => ({ ...route, url: route.url.replace(`${siteUrl}/v1`, `${siteUrl}/v2`) }));
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
@@ -91,8 +91,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.75,
     }));
 
-    return bothVersions([...staticRoutes, ...postRoutes, ...projectRoutes]);
+    return currentVersion([...staticRoutes, ...postRoutes, ...projectRoutes]);
   } catch {
-    return bothVersions(staticRoutes);
+    return currentVersion(staticRoutes);
   }
 }

@@ -15,8 +15,8 @@ test("sitemap reflects live published content and removes unpublished URLs", asy
   const published = `sitemap-published-${id}`;
   const draft = `sitemap-draft-${id}`;
   const archived = `sitemap-archived-${id}`;
-  const projectPath = `/v1/projects/${project}`;
-  const postPath = `/v1/blog/${published}`;
+  const projectPath = `/v2/projects/${project}`;
+  const postPath = `/v2/blog/${published}`;
   async function urls() {
     const response = await request.get("/sitemap.xml");
     expect(response.ok()).toBeTruthy();
@@ -34,10 +34,11 @@ test("sitemap reflects live published content and removes unpublished URLs", asy
       INSERT INTO posts(id,slug,title,excerpt,date,read_time,tags,published,status,updated_at) VALUES ${posts};
       COMMIT;`);
     const current = await urls();
+    expect(current.some(path => path === "/v1" || path.startsWith("/v1/"))).toBe(false);
     expect(current).toContain(projectPath);
     expect(current).toContain(postPath);
-    expect(current).not.toContain(`/v1/blog/${draft}`);
-    expect(current).not.toContain(`/v1/blog/${archived}`);
+    expect(current).not.toContain(`/v2/blog/${draft}`);
+    expect(current).not.toContain(`/v2/blog/${archived}`);
 
     sql(`UPDATE posts SET published=false WHERE id=${literal(published)}; DELETE FROM projects WHERE id=${literal(project)};`);
     const updated = await urls();

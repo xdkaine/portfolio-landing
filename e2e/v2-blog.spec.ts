@@ -69,7 +69,7 @@ test.describe("V2 published blog content", () => {
   test("published V2 articles and project links work without JavaScript", async ({ browser, request, baseURL }) => {
     const posts = (await (await request.get("/v2/api/posts")).json()).data.items;
     expect(posts.length).toBeGreaterThan(0);
-    const context = await browser.newContext({ baseURL, javaScriptEnabled: false, extraHTTPHeaders: { DNT: "1" } });
+    const context = await browser.newContext({ baseURL, javaScriptEnabled: false, ignoreHTTPSErrors: baseURL === "https://127.0.0.1:18089", extraHTTPHeaders: { DNT: "1" } });
     try {
       const page = await context.newPage();
       await page.goto(`/v2/blog/${posts[0].slug}`);

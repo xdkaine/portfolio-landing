@@ -41,9 +41,9 @@ test("V2 public navigation and canonical metadata stay within V2", async ({ page
   }
 });
 
-test("V2 stylesheet leaves V1 unchanged when both version styles are loaded", async ({ page }) => {
+test("V2 stylesheet leaves shared sign-in unchanged when both version styles are loaded", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
-  await page.goto("/v1");
+  await page.goto("/v1/login");
   await page.evaluate(() => document.fonts.ready);
   const state = () => page.locator("body, main h1, nav, footer").evaluateAll(elements => elements.map(element => {
     const style = getComputedStyle(element);
