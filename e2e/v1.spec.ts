@@ -1,9 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('V1 App', () => {
-  test('should load the homepage and render the correct title', async ({ page }) => {
+test.describe('Public application', () => {
+  test('root opens V2 while V1 remains available', async ({ page }) => {
     // Navigate to the root, which should go through nginx to the next.js app
     await page.goto('/');
+
+    await expect(page).toHaveURL(/\/v2$/);
+    await expect(page.locator('main[data-portfolio-v2]')).toHaveCount(1);
+    expect((await page.request.get('/v1')).ok()).toBeTruthy();
 
     // Check if a header exists. (We might need to adjust this depending on the actual app content)
     // For now, let's just make sure we get a 200 OK and it's not the Nginx fallback
