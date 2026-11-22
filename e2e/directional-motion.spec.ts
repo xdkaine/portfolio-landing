@@ -17,7 +17,7 @@ test('entrances follow menu direction and reverse for browser history', async ({
   const nav = page.locator('nav').first();
   await expect(nav).toHaveCSS('opacity','1');
   await nav.getByRole('link',{name:'PROJECTS',exact:true}).click();
-  await expect(page).toHaveURL(/\/v1\/projects$/, {timeout:15_000});
+  await expect(page).toHaveURL(/\/v2\/projects$/, {timeout:15_000});
   await expect(page.locator('main')).toHaveAttribute('data-page-entry','from-right');
   expect(await headlineStart(page)).toBeGreaterThan(20);
   const headerScales = await page.locator('main header .scroll-reveal-content').evaluateAll(elements => elements.flatMap(element =>
@@ -29,14 +29,14 @@ test('entrances follow menu direction and reverse for browser history', async ({
   expect(headerScales.length).toBeGreaterThan(0);
   expect(headerScales.every(scale => scale === 1)).toBe(true);
   await nav.getByRole('link',{name:'BLOG',exact:true}).click();
-  await expect(page).toHaveURL(/\/v1\/blog$/, {timeout:15_000});
+  await expect(page).toHaveURL(/\/v2\/blog$/, {timeout:15_000});
   await expect(page.locator('main')).toHaveAttribute('data-page-entry','from-left');
   expect(await headlineStart(page)).toBeLessThan(-20);
   await page.goBack();
-  await expect(page).toHaveURL(/\/v1\/projects$/, {timeout:15_000});
+  await expect(page).toHaveURL(/\/v2\/projects$/, {timeout:15_000});
   await expect(page.locator('main')).toHaveAttribute('data-page-entry','from-right');
   await page.goForward();
-  await expect(page).toHaveURL(/\/v1\/blog$/, {timeout:15_000});
+  await expect(page).toHaveURL(/\/v2\/blog$/, {timeout:15_000});
   await expect(page.locator('main')).toHaveAttribute('data-page-entry','from-left');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
 });
@@ -45,12 +45,12 @@ test('directional entrances also work without the native transition API', async 
   await page.addInitScript(()=>Object.defineProperty(document,'startViewTransition',{value:undefined,configurable:true}));
   await page.goto('/v2/blog');
   await page.locator('nav').first().getByRole('link',{name:'Home',exact:true}).click();
-  await expect(page).toHaveURL(/\/v1$/, {timeout:15_000});
+  await expect(page).toHaveURL(/\/v2$/, {timeout:15_000});
   await expect(page.locator('main')).toHaveAttribute('data-page-entry','from-right');
   expect(await headlineStart(page)).toBeGreaterThan(20);
   await page.emulateMedia({reducedMotion:'reduce'});
   await page.locator('nav').first().getByRole('link',{name:'PROJECTS',exact:true}).click();
-  await expect(page).toHaveURL(/\/v1\/projects$/, {timeout:15_000});
+  await expect(page).toHaveURL(/\/v2\/projects$/, {timeout:15_000});
   await expect(page.locator('main')).toHaveAttribute('data-page-entry','from-left');
   expect(await headlineStart(page)).toBe(0);
 });

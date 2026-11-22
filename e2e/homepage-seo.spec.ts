@@ -64,7 +64,7 @@ test.describe("Homepage first render", () => {
     await expect(contact).toHaveAttribute("href", "/v2/contact");
 
     const socialImage = page.locator('meta[property="og:image"]').first();
-    await expect(socialImage).toHaveAttribute("content", /\/v1\/opengraph-image/);
+    await expect(socialImage).toHaveAttribute("content", /\/v2\/opengraph-image/);
     const imageResponse = await request.get("/v2/opengraph-image");
     expect(imageResponse.ok()).toBeTruthy();
     expect(imageResponse.headers()["content-type"]).toContain("image/png");
@@ -74,7 +74,7 @@ test.describe("Homepage first render", () => {
     await expect(entrance).toHaveCSS("opacity", "1");
     await expect(entrance).toHaveCSS("transform", /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
     await contact.click();
-    await expect(page).toHaveURL(/\/v1\/contact$/);
+    await expect(page).toHaveURL(/\/v2\/contact$/);
     await expect(page).toHaveTitle("Contact | Thomas Phao");
   });
 });
@@ -102,7 +102,7 @@ for (const reducedMotion of ["reduce", "no-preference"] as const) {
       expect(contentRequests).toEqual([]);
 
       await page.getByRole("link", { name: "CONTACT ME", exact: true }).click();
-      await expect(page).toHaveURL(/\/v1\/contact$/, { timeout: 15_000 });
+      await expect(page).toHaveURL(/\/v2\/contact$/, { timeout: 15_000 });
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("CONTACT");
       await expect(page).toHaveTitle("Contact | Thomas Phao");
       expect(errors).toEqual([]);
@@ -142,12 +142,12 @@ test("homepage title stays synchronized with the visible aliases and stops on ot
   expect([...activeAliases].sort()).toEqual(["Kaine", "Tommy"]);
   await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("Thomas Phao — Builder & Developer");
   await page.getByRole("link", { name: "CONTACT ME", exact: true }).click();
-  await expect(page).toHaveURL(/\/v1\/contact$/, { timeout: 15_000 });
+  await expect(page).toHaveURL(/\/v2\/contact$/, { timeout: 15_000 });
   await expect(page).toHaveTitle("Contact | Thomas Phao");
   await page.waitForTimeout(6000);
   await expect(page).toHaveTitle("Contact | Thomas Phao");
   await page.getByRole("link", { name: "Home", exact: true }).click();
-  await expect(page).toHaveURL(/\/v1$/, { timeout: 15_000 });
+  await expect(page).toHaveURL(/\/v2$/, { timeout: 15_000 });
   await expect(page).toHaveTitle(/\| Thomas Phao — Builder & Developer/);
 });
 
