@@ -14,7 +14,7 @@ async function faceState(page: Page) {
 test("Home metrics match the full public catalog", async ({ page, request }) => {
   const projects = await (await request.get("/v1/api/projects")).json();
   const posts = await (await request.get("/v1/api/posts")).json();
-  await page.goto("/v1");
+  await page.goto("/v2");
   const expected = { projects: projects.length, live: projects.filter((p: { status: string }) => p.status === "LIVE").length, technologies: new Set(projects.flatMap((p: { tags: string[] }) => p.tags.map(tag => tag.trim().toLowerCase()).filter(Boolean))).size, posts: posts.length };
   for (const [id, count] of Object.entries(expected)) await expect(page.locator(`[data-home-stat="${id}"] [data-stat-value]`)).toHaveText(String(count));
 });
@@ -22,7 +22,7 @@ test("Home metrics match the full public catalog", async ({ page, request }) => 
 test("number wipes pause and reverse with scrolling; words fill in sequence", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 600 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/v1"); await page.evaluate(() => document.fonts.ready);
+  await page.goto("/v2"); await page.evaluate(() => document.fonts.ready);
   const stat = page.locator('[data-home-stat="projects"]');
   await position(page, stat, 0.78);
   const partial = await faceState(page);
@@ -46,7 +46,7 @@ test("number wipes pause and reverse with scrolling; words fill in sequence", as
 
 test("new Home motion stays visible with reduced motion and fits narrow screens", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 });
-  await page.emulateMedia({ reducedMotion: "reduce" }); await page.goto("/v1");
+  await page.emulateMedia({ reducedMotion: "reduce" }); await page.goto("/v2");
   await expect(page.getByRole("heading", { name: "BUILDING ANYTHING & EVERYTHING.", exact: true })).toBeAttached();
   await page.locator('[data-home-motion]').scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -57,7 +57,7 @@ test("new Home motion stays visible with reduced motion and fits narrow screens"
 test("Home numbers and headline are readable without JavaScript", async ({ browser, baseURL }) => {
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
   try {
-    const page = await context.newPage(); await page.goto("/v1");
+    const page = await context.newPage(); await page.goto("/v2");
     await expect(page.getByRole("heading", { name: "BUILDING ANYTHING & EVERYTHING.", exact: true })).toBeAttached();
     expect((await faceState(page)).y).toBe(0);
     expect((await faceState(page)).blur).toBe("blur(0px)");
@@ -66,7 +66,7 @@ test("Home numbers and headline are readable without JavaScript", async ({ brows
 
 for (const colorScheme of ["light", "dark"] as const) test(`motion band is accessible in ${colorScheme} mode`, async ({ page }) => {
   await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
-  await page.goto("/v1");
+  await page.goto("/v2");
   await page.locator('[data-home-motion]').scrollIntoViewIfNeeded();
   expect((await new AxeBuilder({ page }).include('[data-home-motion]').analyze()).violations).toEqual([]);
 });

@@ -17,7 +17,7 @@ async function renderScroll(page: Page, top: number, viewportFraction: number) {
 test('Home reveals follow scroll position, pause with scrolling, and finish without a stagger queue', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 500 });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.goto('/v1');
+  await page.goto('/v2');
   await expect(page.locator('nav').first()).toHaveCSS('opacity', '1');
   await page.evaluate(() => document.fonts.ready);
   const heading = page.getByRole('heading', { name: 'BEHIND THE PROJECTS', exact: true });
@@ -54,7 +54,7 @@ test('Home reveals follow scroll position, pause with scrolling, and finish with
 test('About story blocks rewind without changing document layout or mounting new content', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 500 });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.goto('/v1/about');
+  await page.goto('/v2/about');
   await page.evaluate(() => document.fonts.ready);
   const block = page.locator('[aria-label="About me"] .article-prose > [data-story-reveal]').first();
   await expect(block).toBeAttached();
@@ -77,7 +77,7 @@ test('About story blocks rewind without changing document layout or mounting new
 test('the last reveal finishes smoothly with the remaining document scroll', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1200 });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.goto('/v1');
+  await page.goto('/v2');
   await page.evaluate(() => document.fonts.ready);
   const last = page.locator('[data-scroll-reveal]').last();
   await page.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight - innerHeight - 8, behavior: 'instant' }));
@@ -90,7 +90,7 @@ test('the last reveal finishes smoothly with the remaining document scroll', asy
 test('public page headings use the Blog entrance treatment on initial loading', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   let reference: { name: string; duration: string; easing: string } | undefined;
-  for (const route of ['/v1/blog', '/v1', '/v1/projects', '/v1/about', '/v1/contact']) {
+  for (const route of ['/v2/blog', '/v2', '/v2/projects', '/v2/about', '/v2/contact']) {
     await page.goto(route);
     const treatment = await page.locator('main h1').evaluate(element => {
       for (let node: Element | null = element; node; node = node.parentElement) {
@@ -108,7 +108,7 @@ test('public page headings use the Blog entrance treatment on initial loading', 
 test('reduced motion keeps Home content fully visible before and after scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 500 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/v1');
+  await page.goto('/v2');
   const heading = page.getByRole('heading', { name: 'BEHIND THE PROJECTS', exact: true });
   expect(await opacity(heading)).toBe(1);
   await heading.scrollIntoViewIfNeeded();
@@ -118,12 +118,12 @@ test('reduced motion keeps Home content fully visible before and after scrolling
 test('navigation from a scrolled page still runs the heading entrance after the route resets', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 500 });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.goto('/v1');
+  await page.goto('/v2');
   for (const [label, path, title] of [
-    ['ABOUT', '/v1/about', 'ABOUT THOMAS PHAO'],
-    ['BLOG', '/v1/blog', 'Blog'],
-    ['Home', '/v1', 'Thomas Phao — Builder & Developer'],
-    ['PROJECTS', '/v1/projects', 'PROJECTS'],
+    ['ABOUT', '/v2/about', 'ABOUT THOMAS PHAO'],
+    ['BLOG', '/v2/blog', 'Blog'],
+    ['Home', '/v2', 'Thomas Phao — Builder & Developer'],
+    ['PROJECTS', '/v2/projects', 'PROJECTS'],
   ]) {
     await page.evaluate(() => scrollTo({ top: 800, behavior: 'instant' }));
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
@@ -134,7 +134,7 @@ test('navigation from a scrolled page still runs the heading entrance after the 
     await expect.poll(() => page.locator('main h1').evaluate(element => {
       let node: Element | null = element;
       while (node && !node.classList.contains('scroll-reveal-content')) node = node.parentElement;
-      return node?.getAnimations().some(animation => animation instanceof CSSAnimation && animation.animationName === 'portfolio-reveal-headline');
+      return node?.getAnimations().some(animation => animation instanceof CSSAnimation && animation.animationName === 'v2-portfolio-reveal-headline');
     })).toBe(true);
     expect(await page.evaluate(() => scrollY)).toBe(0);
   }
@@ -144,7 +144,7 @@ test('reveal content stays readable without JavaScript', async ({ browser, baseU
   const context = await browser.newContext({ baseURL, javaScriptEnabled: false, extraHTTPHeaders: { DNT: '1' } });
   try {
     const page = await context.newPage();
-    for (const route of ['/v1', '/v1/blog', '/v1/about']) {
+    for (const route of ['/v2', '/v2/blog', '/v2/about']) {
       await page.goto(route);
       await expect.poll(() => opacity(page.locator('main h1'))).toBe(1);
     }
@@ -153,7 +153,7 @@ test('reveal content stays readable without JavaScript', async ({ browser, baseU
 
 test('keyboard focus makes a scroll-revealed action immediately readable', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 500 });
-  await page.goto('/v1');
+  await page.goto('/v2');
   await page.evaluate(() => document.fonts.ready);
   await expect(page.locator('nav').first()).toHaveCSS('opacity', '1');
   const action = page.getByRole('link', { name: 'More about me', exact: true });
