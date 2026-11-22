@@ -2006,7 +2006,7 @@ html.bg-paused .grain-overlay {
 .story-table :is(td, th) p, .post-editor .ProseMirror :is(td, th) p { margin: 0; }
 
 /* The CMS uses the public palette with larger, quieter controls. */
-[data-admin-ui] { --admin-text-size: .875rem; }
+[data-admin-ui] { --admin-text-size: .875rem; cursor: auto; }
 [data-admin-ui] :is(button, input, select, textarea, .post-action, .post-tool) { font-size: var(--admin-text-size); letter-spacing: .015em; }
 [data-admin-ui] :is(button, input:not([type="checkbox"]), select, .post-action, .post-tool) { min-height: 44px; }
 [data-admin-ui] :is(label, p, summary, span)[class*="text-["] { font-size: .8rem; letter-spacing: .025em; }
@@ -2017,7 +2017,7 @@ html.bg-paused .grain-overlay {
 [data-admin-ui] .post-tool { padding: .45rem .65rem; }
 [data-admin-ui] .post-action.bg-ember { color: var(--color-void); border-color: var(--color-ember); }
 [data-admin-ui] .post-action.bg-ember:hover { background: var(--color-bone); border-color: var(--color-bone); }
-[data-admin-ui] .post-editor .ProseMirror { min-height: 380px; padding: clamp(1rem, 3vw, 2.5rem); }
+[data-admin-ui] .post-editor .ProseMirror { cursor: text; min-height: 380px; padding: clamp(1rem, 3vw, 2.5rem); }
 [data-admin-ui] .content-editor[data-content-font="mono"] .ProseMirror { font-family: var(--font-dm-mono), monospace; font-size: 1rem; }
 [data-admin-ui] .ProseMirror-selectednode { outline: 2px solid var(--color-ember); outline-offset: 4px; }
 [data-admin-ui] .editor-gallery { display: flex; gap: 1rem; overflow-x: auto; border: 1px solid var(--color-iron); padding: 1rem; }
