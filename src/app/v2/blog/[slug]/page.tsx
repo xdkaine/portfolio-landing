@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { PostArticle } from "@/components/v2/blog/PostArticle";
 import { PublicTransitionSurface } from "@/components/v2/PublicTransition";
 import { getPostConnections, getPublishedPostBySlug } from "@/lib/postEditorial";
-import { DEFAULT_SOCIAL_IMAGE } from "@/lib/v2/siteMetadata";
+import { postSocialPreview, socialCardMetadata, SOCIAL_SITE_NAME } from "@/lib/v2/socialPreview";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export const dynamic = "force-dynamic";
@@ -25,21 +25,21 @@ export async function generateMetadata({
   ]);
   if (!post) return {};
 
-  const socialImage = post.coverImage
-    ? { url: post.coverImage, alt: post.coverAlt?.trim() || post.title }
-    : DEFAULT_SOCIAL_IMAGE;
+  const preview = postSocialPreview(post);
+  const canonical = `/v2/blog/${encodeURIComponent(post.slug)}`;
+  const socialImage = socialCardMetadata(canonical, preview);
 
   return {
     title: `${post.title} | Blog`,
-    description: post.excerpt,
+    description: preview.description,
     authors: [{ name: settings.siteName }],
-    alternates: { canonical: `/v2/blog/${post.slug}` },
+    alternates: { canonical },
     openGraph: {
       type: "article",
       title: post.title,
-      description: post.excerpt,
-      url: `/v2/blog/${post.slug}`,
-      siteName: settings.siteName,
+      description: preview.description,
+      url: canonical,
+      siteName: SOCIAL_SITE_NAME,
       publishedTime: post.publishedAt ?? undefined,
       modifiedTime: post.updatedAt,
       authors: [settings.siteName],
@@ -50,7 +50,7 @@ export async function generateMetadata({
     twitter: {
       card: "summary_large_image",
       title: post.title,
-      description: post.excerpt,
+      description: preview.description,
       images: [socialImage],
     },
   };
