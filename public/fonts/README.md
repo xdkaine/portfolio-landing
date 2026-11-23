@@ -10,6 +10,10 @@ same typefaces; builds no longer request Google Fonts CSS or font files.
 of each asset. The font-face declarations live in `src/app/fonts.css` and
 `src/app/v2/fonts.css`; layouts read the manifest for preload links.
 
+The server-rendered social cards use `social-latin.ttf` in the Anton and DM
+Mono directories. These are the same Latin regular faces decoded from their
+WOFF2 files for Next.js `ImageResponse`, which accepts TTF rather than WOFF2.
+
 All five families use the SIL Open Font License 1.1. Each family directory
 includes its upstream `OFL.txt`, retrieved from the Google Fonts repository:
 
