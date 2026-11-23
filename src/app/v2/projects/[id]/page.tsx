@@ -22,7 +22,8 @@ import {
   getProjectActions,
   type DisplayProjectStatus,
 } from "@/lib/projectPresentation";
-import { DEFAULT_SOCIAL_IMAGE, PORTFOLIO_NAME } from "@/lib/v2/siteMetadata";
+import { PORTFOLIO_NAME } from "@/lib/v2/siteMetadata";
+import { projectSocialPreview, socialCardMetadata, SOCIAL_SITE_NAME } from "@/lib/v2/socialPreview";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export const dynamic = "force-dynamic";
@@ -110,39 +111,31 @@ export async function generateMetadata({
   ]);
   if (!project) return {};
 
-  const normalizedProject = normalizeProject(project);
-  const caseStudy = mergeProjectCaseStudy(
-    createBaseCaseStudy(normalizedProject),
-    project.caseStudy,
-  );
-  const title = `${normalizedProject.title} | Projects | ${PORTFOLIO_NAME}`;
-  const description = caseStudy.subtitle || normalizedProject.description;
-  const canonical = `/v2/projects/${normalizedProject.number}`;
-  const previewImage = projectCover(caseStudy);
-  const socialImage = previewImage
-    ? { url: previewImage.image, alt: previewImage.alt }
-    : DEFAULT_SOCIAL_IMAGE;
+  const preview = projectSocialPreview(project);
+  const title = `${preview.title} | Projects | ${PORTFOLIO_NAME}`;
+  const canonical = `/v2/projects/${encodeURIComponent(project.number)}`;
+  const socialImage = socialCardMetadata(canonical, preview);
 
   return {
     title: { absolute: title },
-    description,
+    description: preview.description,
     authors: [{ name: settings.siteName }],
     alternates: { canonical },
     openGraph: {
       type: "article",
-      title,
-      description,
+      title: preview.title,
+      description: preview.description,
       url: canonical,
-      siteName: settings.siteName,
+      siteName: SOCIAL_SITE_NAME,
       authors: [settings.siteName],
       section: "Projects",
-      tags: normalizedProject.tags,
+      tags: project.tags,
       images: [socialImage],
     },
     twitter: {
       card: "summary_large_image",
-      title,
-      description,
+      title: preview.title,
+      description: preview.description,
       images: [socialImage],
     },
   };

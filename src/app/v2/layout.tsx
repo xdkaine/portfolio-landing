@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { PORTFOLIO_NAME, PORTFOLIO_TITLE, DEFAULT_SOCIAL_IMAGE } from "@/lib/v2/siteMetadata";
+import { PORTFOLIO_NAME, PORTFOLIO_TITLE } from "@/lib/v2/siteMetadata";
+import { homeSocialPreview, socialCardMetadata, SOCIAL_SITE_NAME } from "@/lib/v2/socialPreview";
 import "./v2.css";
 import { Navigation } from "@/components/v2/Navigation";
 import { PublicMotionRoot } from "@/components/v2/PublicTransition";
@@ -50,11 +51,13 @@ export default async function V2Layout({
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
+  const preview = homeSocialPreview(settings.siteDescription);
+  const image = socialCardMetadata("/v2", preview);
   return {
     title: { default: PORTFOLIO_TITLE, template: `%s | ${PORTFOLIO_NAME}` },
-    description: settings.siteDescription,
+    description: preview.description,
     alternates: { canonical: "/v2", types: { "application/rss+xml": [{ url: "/v2/feed.xml", title: `${settings.siteName} Blog posts RSS Feed` }] } },
-    openGraph: { type: "website", title: PORTFOLIO_TITLE, description: settings.siteDescription, url: "/v2", images: [DEFAULT_SOCIAL_IMAGE] },
-    twitter: { card: "summary_large_image", title: PORTFOLIO_TITLE, description: settings.siteDescription, images: [DEFAULT_SOCIAL_IMAGE] },
+    openGraph: { type: "website", title: PORTFOLIO_TITLE, description: preview.description, url: "/v2", siteName: SOCIAL_SITE_NAME, images: [image] },
+    twitter: { card: "summary_large_image", title: PORTFOLIO_TITLE, description: preview.description, images: [image] },
   };
 }
