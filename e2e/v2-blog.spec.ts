@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { test, expect } from "@playwright/test";
+import sharp from "sharp";
 import { ensureProjectFixture, removeProjectFixture } from "./fixture-project";
 import { expectBlockReplay } from "./scroll-helpers";
 
@@ -48,6 +49,48 @@ test.describe("V2 published blog content", () => {
       const page = await request.get(`/v2/blog/${slug}`);
       expect(page.status()).toBe(404);
       expect(await page.text()).not.toContain(`${state} body ${marker}`);
+      expect((await request.get(`/v2/blog/${slug}/opengraph-image`)).status()).toBe(404);
+      expect((await request.get(`/v2/blog/${slug}/opengraph-image.gif`)).status()).toBe(404);
+    }
+  });
+
+  test("Discord can read animated GIF cards and X can read PNG cards from the initial HTML head", async ({ request }) => {
+    const [postsResponse, projectsResponse] = await Promise.all([
+      request.get("/v2/api/posts"),
+      request.get("/v1/api/projects"),
+    ]);
+    expect(postsResponse.ok()).toBeTruthy();
+    expect(projectsResponse.ok()).toBeTruthy();
+    const { data: { items: posts } } = await postsResponse.json();
+    const projects = await projectsResponse.json();
+    expect(posts.length).toBeGreaterThan(0);
+    expect(projects.length).toBeGreaterThan(0);
+
+    for (const path of ["/v2", `/v2/blog/${posts[0].slug}`, `/v2/projects/${projects[0].number}`]) {
+      const response = await request.get(path, { headers: { "User-Agent": "Discordbot/2.0" } });
+      expect(response.ok()).toBeTruthy();
+      const head = (await response.text()).split("</head>", 1)[0];
+      expect(head).toContain('property="og:title"');
+      expect(head).toContain('property="og:description"');
+      expect(head).toContain('property="og:image:alt"');
+      expect(head).toContain('name="twitter:card" content="summary_large_image"');
+      const gifUrl = new URL(head.match(/<meta property="og:image" content="([^"]+)"/)?.[1] ?? "");
+      const pngUrl = new URL(head.match(/<meta name="twitter:image" content="([^"]+)"/)?.[1] ?? "");
+      expect(gifUrl.pathname).toBe(`${path}/opengraph-image.gif`);
+      expect(pngUrl.pathname).toBe(`${path}/opengraph-image`);
+      expect(head).toContain('property="og:image:type" content="image/gif"');
+      const animation = await request.get(gifUrl.pathname + gifUrl.search);
+      expect(animation.ok()).toBeTruthy();
+      expect(animation.headers()["content-type"]).toContain("image/gif");
+      const gif = await sharp(await animation.body(), { animated: true }).metadata();
+      expect([gif.width, gif.pageHeight, gif.loop]).toEqual([800, 420, 0]);
+      expect(gif.pages).toBeGreaterThan(1);
+      const card = await request.get(pngUrl.pathname + pngUrl.search);
+      expect(card.ok()).toBeTruthy();
+      expect(card.headers()["content-type"]).toContain("image/png");
+      const png = await card.body();
+      expect(png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
     }
   });
 
