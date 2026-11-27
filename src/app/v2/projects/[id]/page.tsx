@@ -130,13 +130,13 @@ export async function generateMetadata({
       authors: [settings.siteName],
       section: "Projects",
       tags: project.tags,
-      images: [socialImage],
+      images: [socialImage.animated],
     },
     twitter: {
       card: "summary_large_image",
       title: preview.title,
       description: preview.description,
-      images: [socialImage],
+      images: [socialImage.staticImage],
     },
   };
 }

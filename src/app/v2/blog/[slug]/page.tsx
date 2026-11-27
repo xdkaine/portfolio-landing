@@ -45,13 +45,13 @@ export async function generateMetadata({
       authors: [settings.siteName],
       section: "Blog",
       tags: post.tags,
-      images: [socialImage],
+      images: [socialImage.animated],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: preview.description,
-      images: [socialImage],
+      images: [socialImage.staticImage],
     },
   };
 }

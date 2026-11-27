@@ -5,7 +5,9 @@ import { DEFAULT_SITE_SETTINGS } from "@/lib/siteSettings-schema";
 import type { ProjectCaseStudyContent } from "@/lib/projectCaseStudy";
 
 export const SOCIAL_CARD_SIZE = { width: 1200, height: 630 };
+export const ANIMATED_SOCIAL_CARD_SIZE = { width: 800, height: 420 };
 export const SOCIAL_SITE_NAME = "phao.dev";
+const SOCIAL_CARD_REVISION = 4;
 
 export type SocialPreview = {
   kind: "Portfolio" | "Article" | "Project";
@@ -38,10 +40,9 @@ export function homeSocialPreview(siteDescription: string): SocialPreview {
     description: compactPreviewText(
       description && description !== DEFAULT_SITE_SETTINGS.siteDescription
         ? description
-        : "I build web apps and run a homelab. Projects and field notes from both.",
+        : "I build apps and cool things sometimes. See my projects and blogs.",
       160,
     ),
-    image: "/v2/uma-overview.png",
   };
 }
 
@@ -67,14 +68,27 @@ export function projectSocialPreview(project: {
   };
 }
 
-export function socialCardMetadata(path: string, preview: SocialPreview) {
-  const version = createHash("sha256")
-    .update(JSON.stringify([1, preview]))
+export function socialCardVersion(preview: SocialPreview) {
+  return createHash("sha256")
+    .update(JSON.stringify([SOCIAL_CARD_REVISION, preview]))
     .digest("hex")
     .slice(0, 12);
+}
+
+export function socialCardMetadata(path: string, preview: SocialPreview) {
+  const version = socialCardVersion(preview);
+  const alt = [compactPreviewText(preview.title, 108), preview.description, "Chuckle Duck"].filter(Boolean).join(" — ");
   return {
-    ...SOCIAL_CARD_SIZE,
-    url: `${path}/opengraph-image?v=${version}`,
-    alt: [compactPreviewText(preview.title, 108), preview.description].filter(Boolean).join(" — "),
+    animated: {
+      ...ANIMATED_SOCIAL_CARD_SIZE,
+      url: `${path}/opengraph-image.gif?v=${version}`,
+      type: "image/gif",
+      alt,
+    },
+    staticImage: {
+      ...SOCIAL_CARD_SIZE,
+      url: `${path}/opengraph-image?v=${version}`,
+      alt,
+    },
   };
 }

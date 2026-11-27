@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      { source: "/v2/:path*/opengraph-image.gif", destination: "/v2/:path*/opengraph-image" },
       { source: "/v1/assets/media/:path*", destination: "/media/:path*" },
       {
         source: "/v1/assets/projects/:path*",

@@ -57,7 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: PORTFOLIO_TITLE, template: `%s | ${PORTFOLIO_NAME}` },
     description: preview.description,
     alternates: { canonical: "/v2", types: { "application/rss+xml": [{ url: "/v2/feed.xml", title: `${settings.siteName} Blog posts RSS Feed` }] } },
-    openGraph: { type: "website", title: PORTFOLIO_TITLE, description: preview.description, url: "/v2", siteName: SOCIAL_SITE_NAME, images: [image] },
-    twitter: { card: "summary_large_image", title: PORTFOLIO_TITLE, description: preview.description, images: [image] },
+    openGraph: { type: "website", title: PORTFOLIO_TITLE, description: preview.description, url: "/v2", siteName: SOCIAL_SITE_NAME, images: [image.animated] },
+    twitter: { card: "summary_large_image", title: PORTFOLIO_TITLE, description: preview.description, images: [image.staticImage] },
   };
 }
